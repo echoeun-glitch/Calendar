@@ -1,0 +1,280 @@
+아래 코드 복사해서 calendar.html에 붙여넣으면 돼!
+html<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>컨디션 달력</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f9f9f9; color: #333; }
+
+    header {
+      text-align: center;
+      padding: 24px;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+    header h1 { font-size: 22px; margin-bottom: 12px; }
+    .nav button {
+      background: none; border: 1px solid #ddd;
+      padding: 6px 16px; border-radius: 20px;
+      cursor: pointer; font-size: 14px; margin: 0 8px;
+    }
+    .nav button:hover { background: #f0f0f0; }
+    .nav span { font-size: 18px; font-weight: bold; min-width: 140px; display: inline-block; }
+
+    .legend {
+      display: flex; justify-content: center; gap: 12px;
+      padding: 12px; background: white; border-bottom: 1px solid #eee;
+      flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+    .legend-dot { width: 14px; height: 14px; border-radius: 50%; }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      padding: 16px;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .day-header {
+      text-align: center; font-size: 12px;
+      font-weight: bold; color: #888; padding: 4px 0;
+    }
+    .day-header:first-child { color: #e57373; }
+    .day-header:last-child { color: #64b5f6; }
+
+    .day-cell {
+      background: white;
+      border-radius: 10px;
+      border: 1.5px solid #eee;
+      padding: 6px;
+      min-height: 80px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      position: relative;
+    }
+    .day-cell:hover { transform: scale(1.03); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .day-cell.empty { background: transparent; border: none; cursor: default; }
+    .day-cell.empty:hover { transform: none; box-shadow: none; }
+    .day-cell.today { border: 2px solid #4a90e2; }
+
+    .day-num {
+      font-size: 13px; font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .sun .day-num { color: #e57373; }
+    .sat .day-num { color: #64b5f6; }
+
+    .condition-bar {
+      height: 6px; border-radius: 3px;
+      margin-bottom: 4px;
+    }
+    .memo-preview {
+      font-size: 10px; color: #888;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.3;
+    }
+
+    .c1 { background: #66bb6a; }
+    .c2 { background: #aed581; }
+    .c3 { background: #ffd54f; }
+    .c4 { background: #ff8a65; }
+    .c5 { background: #ef5350; }
+.cell-c1 { background: #66bb6a; border-color: #66bb6a; color: white; }
+.cell-c2 { background: #aed581; border-color: #aed581; }
+.cell-c3 { background: #ffd54f; border-color: #ffd54f; }
+.cell-c4 { background: #ff8a65; border-color: #ff8a65; color: white; }
+.cell-c5 { background: #ef5350; border-color: #ef5350; color: white; }
+    .modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: white; border-radius: 16px;
+      padding: 28px; width: 320px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .modal h2 { font-size: 16px; margin-bottom: 16px; color: #555; }
+    .condition-picker {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .cond-btn {
+      flex: 1; padding: 10px 0; border: 2px solid transparent;
+      border-radius: 10px; cursor: pointer;
+      font-size: 18px; text-align: center;
+      transition: transform 0.1s;
+    }
+    .cond-btn:hover { transform: scale(1.1); }
+    .cond-btn.selected { border-color: #333; transform: scale(1.1); }
+    .cond-btn.b1 { background: #e8f5e9; }
+    .cond-btn.b2 { background: #f1f8e9; }
+    .cond-btn.b3 { background: #fffde7; }
+    .cond-btn.b4 { background: #fbe9e7; }
+    .cond-btn.b5 { background: #ffebee; }
+
+    .modal textarea {
+      width: 100%; height: 80px; border: 1px solid #ddd;
+      border-radius: 8px; padding: 8px; font-size: 13px;
+      resize: none; font-family: inherit;
+    }
+    .modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .modal-btns button {
+      flex: 1; padding: 10px; border: none;
+      border-radius: 8px; cursor: pointer; font-size: 14px;
+    }
+    .btn-save { background: #4a90e2; color: white; }
+    .btn-save:hover { background: #357abd; }
+    .btn-cancel { background: #f0f0f0; }
+    .btn-cancel:hover { background: #e0e0e0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1> ⭐나의 컨디션 달력</h1>
+  <div class="nav">
+    <button onclick="changeMonth(-1)">◀</button>
+    <span id="title"></span>
+    <button onclick="changeMonth(1)">▶</button>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot c1"></div> 최고</div>
+  <div class="legend-item"><div class="legend-dot c2"></div> 좋음</div>
+  <div class="legend-item"><div class="legend-dot c3"></div> 보통</div>
+  <div class="legend-item"><div class="legend-dot c4"></div> 나쁨</div>
+  <div class="legend-item"><div class="legend-dot c5"></div> 최악</div>
+</div>
+
+<div class="calendar-grid" id="calendar"></div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <h2 id="modal-title"></h2>
+    <div class="condition-picker">
+      <div class="cond-btn b1" onclick="selectCond(1)">😄</div>
+      <div class="cond-btn b2" onclick="selectCond(2)">🙂</div>
+      <div class="cond-btn b3" onclick="selectCond(3)">😐</div>
+      <div class="cond-btn b4" onclick="selectCond(4)">😔</div>
+      <div class="cond-btn b5" onclick="selectCond(5)">😣</div>
+    </div>
+    <textarea id="memo-input" placeholder="오늘의 메모를 남겨보세요..."></textarea>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" onclick="save()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DAYS = ['일','월','화','수','목','금','토'];
+  let current = new Date();
+  let data = JSON.parse(localStorage.getItem('conditionData') || '{}');
+  let selectedKey = '';
+  let selectedCond = 0;
+
+  function key(y, m, d) { return `${y}-${m+1}-${d}`; }
+
+  function render() {
+    const y = current.getFullYear();
+    const m = current.getMonth();
+    document.getElementById('title').textContent = `${y}년 ${m+1}월`;
+
+    const grid = document.getElementById('calendar');
+    grid.innerHTML = '';
+
+    DAYS.forEach(d => {
+      const h = document.createElement('div');
+      h.className = 'day-header';
+      h.textContent = d;
+      grid.appendChild(h);
+    });
+
+    const firstDay = new Date(y, m, 1).getDay();
+    const lastDate = new Date(y, m+1, 0).getDate();
+    const today = new Date();
+
+    for (let i = 0; i < firstDay; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'day-cell empty';
+      grid.appendChild(empty);
+    }
+
+    for (let d = 1; d <= lastDate; d++) {
+      const k = key(y, m, d);
+      const entry = data[k] || {};
+      const cell = document.createElement('div');
+      const dow = new Date(y, m, d).getDay();
+
+      cell.className = 'day-cell' + (entry.cond ? ` cell-c${entry.cond}` : '');
+      if (dow === 0) cell.classList.add('sun');
+      if (dow === 6) cell.classList.add('sat');
+      if (today.getFullYear()===y && today.getMonth()===m && today.getDate()===d)
+        cell.classList.add('today');
+
+      cell.innerHTML = `
+        <div class="day-num">${d}</div>
+        ${entry.cond ? `<div class="condition-bar c${entry.cond}"></div>` : ''}
+        <div class="memo-preview">${entry.memo || ''}</div>
+      `;
+      cell.onclick = () => openModal(y, m, d);
+      grid.appendChild(cell);
+    }
+  }
+
+  function openModal(y, m, d) {
+    selectedKey = key(y, m, d);
+    selectedCond = (data[selectedKey] || {}).cond || 0;
+    document.getElementById('modal-title').textContent = `${y}년 ${m+1}월 ${d}일`;
+    document.getElementById('memo-input').value = (data[selectedKey] || {}).memo || '';
+    updateCondBtns();
+    document.getElementById('modal-bg').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+  }
+
+  function selectCond(n) {
+    selectedCond = n;
+    updateCondBtns();
+  }
+
+  function updateCondBtns() {
+    document.querySelectorAll('.cond-btn').forEach((btn, i) => {
+      btn.classList.toggle('selected', i+1 === selectedCond);
+    });
+  }
+
+  function save() {
+    data[selectedKey] = {
+      cond: selectedCond,
+      memo: document.getElementById('memo-input').value
+    };
+    localStorage.setItem('conditionData', JSON.stringify(data));
+    closeModal();
+    render();
+  }
+
+  function changeMonth(dir) {
+    current.setMonth(current.getMonth() + dir);
+    render();
+  }
+
+  document.getElementById('modal-bg').onclick = function(e) {
+    if (e.target === this) closeModal();
+  };
+
+  render();
+</script>
+</body>
+</html>
