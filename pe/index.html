@@ -139,6 +139,7 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .ygrid td.evt{background:rgba(214,69,69,.05)}
 .ygrid td.outside{background:var(--line2);opacity:.45;cursor:default}
 .ygrid td.outside:hover{outline:0}
+.ygrid td.overc{background:var(--line2);opacity:.5;cursor:pointer}
 .ygrid td.emptyc{cursor:pointer}
 .ygrid td.emptyc:hover{background:var(--line2);outline:2px solid var(--accent);outline-offset:-2px}
 .ygrid .dsep{border-left:2px solid var(--muted)}
@@ -189,7 +190,8 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 
 /* ---------- 학급별 차시 요약 ---------- */
 .progwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:9px}
-.pitem{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel)}
+.pitem{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel);cursor:pointer}
+.pitem:hover{border-color:var(--accent)}
 .pitem .t{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
 .pitem .t b{font-size:14px;font-weight:800}
 .pitem .t span{margin-left:auto;font-size:13px;font-weight:700}
@@ -234,6 +236,7 @@ tr.dead .ord{text-decoration:line-through}
 .badge{font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:5px;white-space:nowrap}
 .badge.off{background:rgba(214,69,69,.12);color:#d05252}
 .badge.mk{background:var(--accent-soft);color:var(--accent)}
+.badge{background:var(--line2);color:var(--muted)}
 
 /* ---------- base timetable editor ---------- */
 .bt{width:100%;border-collapse:collapse}
@@ -340,7 +343,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
     <div class="card noprint" id="progCard">
-      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 이 기간 전체 차시</span></h2>
+      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 학급을 누르면 전체 차시를 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
     </div>
     <p class="tip" style="padding-left:0">
@@ -596,11 +599,18 @@ function rebuild(){
   }
   LESSONS.sort((a,b)=> a.date===b.date ? a.period-b.period : (a.date<b.date?-1:1));
 
-  const cnt={};
-  state.classes.forEach(c=>{ cnt[c.name]=Number(c.done)||0; });
+  /* 앞(이른 날짜)부터 채우고, 계획 차시를 넘는 뒤쪽 수업은 'over'로 비워 둔다 */
+  const cnt={}, cap={};
+  state.classes.forEach(c=>{
+    cnt[c.name]=Number(c.done)||0;
+    if(Number(c.plan)>0) cap[c.name]=Number(c.plan);
+  });
   for(const L of LESSONS){
-    if(L.status==='ok'){ cnt[L.cls]=(cnt[L.cls]||0)+1; L.ord=cnt[L.cls]; }
-    else L.ord=null;
+    if(L.status==='ok'){
+      const n=(cnt[L.cls]||0)+1;
+      if(cap[L.cls] && n>cap[L.cls]){ L.status='over'; L.ord=null; }
+      else { cnt[L.cls]=n; L.ord=n; }
+    } else L.ord=null;
     BYID[L.id]=L;
     (BYDATE[L.date] = BYDATE[L.date]||[]).push(L);
   }
@@ -609,17 +619,23 @@ function rebuild(){
   const covered = {};
   for(const e of state.extras) if(e.forId) covered[e.forId]=true;
   STATS={};
-  const blank = ()=>({done:0, ok:0, upto:0, lost:0, mk:0, unfixed:[]});
+  const blank = ()=>({done:0, plan:0, ok:0, upto:0, lost:0, mk:0, over:0, unfixed:[]});
   for(const c of state.classes){
-    STATS[c.name] = Object.assign(blank(), {done:Number(c.done)||0});
+    STATS[c.name] = Object.assign(blank(), {done:Number(c.done)||0, plan:Number(c.plan)||0});
   }
   for(const L of LESSONS){
     const st = STATS[L.cls] || (STATS[L.cls]=blank());
     if(L.status==='ok'){ st.ok++; if(L.date<=TODAY) st.upto++; if(L.kind==='extra') st.mk++; }
+    else if(L.status==='over'){ st.over++; }
     else { st.lost++; if(!covered[L.id]) st.unfixed.push(L); }
   }
-  /* total = 이 기간에 그 학급이 받을 전체 차시, prog = 오늘까지 한 차시 */
-  for(const k in STATS){ const st=STATS[k]; st.total=st.done+st.ok; st.prog=st.done+st.upto; }
+  for(const k in STATS){
+    const st=STATS[k];
+    st.filled = st.done+st.ok;                 /* 실제로 잡혀 있는 차시 */
+    st.prog   = st.done+st.upto;               /* 오늘까지 한 차시 */
+    st.total  = st.plan ? st.plan : st.filled; /* 화면에 보여줄 전체 차시 */
+    st.short  = st.plan ? Math.max(0, st.plan-st.filled) : 0;  /* 계획보다 모자란 만큼 */
+  }
 }
 
 /* ================= modal ================= */
@@ -845,9 +861,10 @@ function renderLostCard(){
 
 /* ================= render: year (한 장 배열표) ================= */
 const MD = d => (d.getMonth()+1)+'.'+d.getDate();
+const RANK={ok:0, cancel:1, off:1, over:2};
 function slotLessons(k,p){
   return (BYDATE[k]||[]).filter(L=>L.period===p)
-    .sort((a,b)=> (a.status==='ok'?0:1)-(b.status==='ok'?0:1));
+    .sort((a,b)=> (RANK[a.status]||1)-(RANK[b.status]||1));
 }
 function yearWeeks(){
   const sd=parseD(state.start), ed=parseD(state.end), out=[];
@@ -915,7 +932,13 @@ function renderYear(){
           h+='<td class="yc emptyc'+sep+evt+'" data-add="'+k+'#'+p+'"></td>';
           return;
         }
-        const L=here[0], pl=placeOf(L.place), dead=L.status!=='ok';
+        const L=here[0], pl=placeOf(L.place), dead=L.status==='cancel'||L.status==='off';
+        if(L.status==='over'){
+          h+='<td class="yc overc'+sep+'" data-id="'+L.id+'" title="'+
+             esc(L.cls+' 전체 차시를 다 채워 비워 둔 칸입니다. 누르면 다른 학급을 넣을 수 있습니다.')+
+             '"></td>';
+          return;
+        }
         const title=k+' ('+DOWK[L.dow]+') '+p+'교시 · '+L.cls+' · '+pl.name+
           (L.ord?' · '+L.ord+'차시':'')+(dead?' · 결손'+(L.reason?' '+L.reason:''):'')+
           (L.kind==='extra'?' · 보강':'');
@@ -960,12 +983,13 @@ function renderWeek(){
       h+='<td'+(day&&day.off?' class="offcell"':'')+'>';
       if(here.length){
         for(const L of here){
-          const pl=placeOf(L.place), dead=L.status!=='ok';
-          h+='<button class="slot filled'+(dead?' dead':'')+'" style="--c:'+pl.color+'" data-id="'+L.id+'">'+
+          const pl=placeOf(L.place), over=L.status==='over', dead=L.status==='cancel'||L.status==='off';
+          h+='<button class="slot filled'+(dead||over?' dead':'')+'" style="--c:'+pl.color+'" data-id="'+L.id+'">'+
              '<span class="big">'+esc(L.cls)+(L.ord?' <span style="font-size:11px;font-weight:600">'+L.ord+'차시</span>':'')+'</span>'+
              '<span class="pl" style="color:'+pl.color+'">'+esc(pl.name)+(L.kind==='extra'?' · 보강':'')+'</span>'+
              (L.rec.prog?'<span class="nt">'+esc(L.rec.prog)+'</span>':'')+
              (dead?'<span class="nt">결손'+(L.reason?' · '+esc(L.reason):'')+'</span>':'')+
+             (over?'<span class="nt">전체 차시 밖 · 비어 있음</span>':'')+
              '</button>';
         }
       }else{
@@ -998,14 +1022,15 @@ function renderLog(){
         '<th style="width:84px">장소</th><th style="width:56px">차시</th>'+
         '<th>진도 · 수업 내용</th><th style="width:30%">특이사항</th></tr></thead><tbody>';
   for(const L of ls){
-    const pl=placeOf(L.place), dead=L.status!=='ok', t=state.times[L.period-1];
+    const pl=placeOf(L.place), over=L.status==='over', dead=L.status!=='ok', t=state.times[L.period-1];
     h+='<tr class="'+(dead?'dead':'')+'" data-id="'+L.id+'">'+
        '<td><b>'+L.period+'</b>교시'+(t&&t.s?'<div class="muted" style="font-size:10.5px">'+esc(t.s)+'</div>':'')+'</td>'+
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 5px;font-weight:800">'+
          esc(L.cls)+'</button>'+(L.kind==='extra'?' <span class="badge mk">보강</span>':'')+'</td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>'+
        '<td>'+(L.ord?L.ord+'차시':'-')+'</td>';
-    if(dead) h+='<td colspan="2" class="muted"><span class="badge off">결손</span> '+esc(L.reason||'')+'</td>';
+    if(over) h+='<td colspan="2" class="muted"><span class="badge">전체 차시 밖</span> 비어 있는 시간</td>';
+    else if(dead) h+='<td colspan="2" class="muted"><span class="badge off">결손</span> '+esc(L.reason||'')+'</td>';
     else h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
@@ -1023,20 +1048,56 @@ function renderProgress(){
   const any=names.some(n=>(STATS[n]||{}).total);
   $('#progCard').hidden = !names.length || !any;
   $('#progWrap').innerHTML = names.map(n=>{
-    const st=STATS[n]||{prog:0,total:0,lost:0,mk:0,unfixed:[]};
-    const pct = st.total ? Math.round(st.prog/st.total*100) : 0;
-    const low = st.unfixed.length>0;      /* 보강을 안 잡은 결손이 있으면 그만큼 모자람 */
+    const st=STATS[n]||{prog:0,total:0,lost:0,mk:0,over:0,short:0,plan:0,unfixed:[]};
+    const pct = st.total ? Math.min(100, Math.round(st.prog/st.total*100)) : 0;
+    /* 전체 차시를 정해 둔 경우에는 뒤쪽 빈 칸이 결손을 자동으로 메우므로,
+       실제로 차시가 모자랄 때만 빨갛게 표시한다 */
+    const covered = st.plan && !st.short;
+    const low = st.short>0 || (!st.plan && st.unfixed.length>0);
     const bits=[];
     if(st.lost) bits.push('결손 '+st.lost);
     if(st.mk) bits.push('보강 '+st.mk);
-    if(st.unfixed.length) bits.push('<em>보강 필요 '+st.unfixed.length+'</em>');
-    return '<div class="pitem'+(low?' low':'')+'">'+
-      '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+'</i></span></div>'+
+    if(st.unfixed.length) bits.push(covered ? '보강 필요 '+st.unfixed.length+' (차시는 채워짐)'
+                                            : '<em>보강 필요 '+st.unfixed.length+'</em>');
+    if(st.short) bits.push('<em>'+st.short+'차시 모자람</em>');
+    else if(st.over) bits.push('뒤쪽 '+st.over+'칸 비움');
+    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 전체 차시를 정합니다">'+
+      '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+
+        (st.plan?'':' <span style="font-size:10px">자동</span>')+'</i></span></div>'+
       '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
       (bits.length?'<div class="sub">'+bits.join(' · ')+'</div>':'')+
       '</div>';
   }).join('');
 }
+
+function openPlan(name){
+  const st=STATS[name]||{filled:0,plan:0,over:0,prog:0};
+  const auto=st.filled+st.over;      /* 계획을 안 걸었을 때 나오는 차시 수 */
+  let h='<div class="okbox">지금 시간표대로라면 <b>'+auto+'차시</b>가 나옵니다.'+
+        (st.plan?' (지금 전체 차시: '+st.plan+')':'')+'</div>'+
+    '<div class="field"><label class="f">전체 차시</label>'+
+    '<input type="number" id="pVal" min="0" max="400" inputmode="numeric" style="width:120px" value="'+
+      (st.plan||'')+'" placeholder="예: 34"></div>'+
+    '<p class="muted" style="font-size:12.5px;line-height:1.7;margin-bottom:14px">'+
+    '앞(이른 날짜)에서부터 이 차시까지만 채우고, 남는 칸은 연간 표 <b>아래쪽부터 비웁니다.</b> '+
+    '비워 둔 칸은 눌러서 다른 학급을 넣을 수 있습니다. 비워두면 시간표에 있는 대로 전부 셉니다.</p>'+
+    '<div class="acts"><button class="btn" id="pAuto">자동으로 (입력 안 함)</button>'+
+    '<button class="btn primary" id="pSave">저장</button></div>';
+  modal(esc(name)+' 전체 차시', h, root=>{
+    const set=v=>{
+      const c=state.classes.find(x=>x.name===name); if(!c) return;
+      c.plan = v>0 ? v : 0;
+      closeModal(); touch();
+    };
+    $('#pSave',root).onclick=()=>set(Math.max(0, Math.floor(Number($('#pVal',root).value)||0)));
+    $('#pAuto',root).onclick=()=>set(0);
+    const inp=$('#pVal',root); inp.focus(); inp.select();
+    inp.onkeydown=e=>{ if(e.key==='Enter') $('#pSave',root).click(); };
+  });
+}
+$('#progWrap').onclick=e=>{
+  const it=e.target.closest('[data-plan]'); if(it) openPlan(it.dataset.plan);
+};
 
 function renderRecent(){
   const keys=Object.keys(state.logs||{}).filter(k=>String(state.logs[k]).trim()).sort().reverse();
@@ -1071,14 +1132,16 @@ function renderClass(){
   let h='<thead><tr><th style="width:52px">차시</th><th style="width:118px">날짜</th><th style="width:70px">교시</th>'+
         '<th style="width:82px">장소</th><th>진도 · 수업 내용</th><th>특이사항</th></tr></thead><tbody>';
   for(const L of rows){
-    const pl=placeOf(L.place), dead=L.status!=='ok';
+    const pl=placeOf(L.place), over=L.status==='over', dead=L.status!=='ok';
     h+='<tr class="'+(dead?'dead':'')+'" data-id="'+L.id+'">'+
        '<td class="ord"><b>'+(L.ord||'-')+'</b></td>'+
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 4px">'+
           L.date.slice(5)+' ('+DOWK[L.dow]+')</button></td>'+
        '<td>'+L.period+'교시'+(L.kind==='extra'?' <span class="badge mk">보강</span>':'')+'</td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>';
-    if(dead){
+    if(over){
+      h+='<td colspan="2" class="muted"><span class="badge">전체 차시 밖</span> 비어 있는 시간</td>';
+    }else if(dead){
       h+='<td colspan="2" class="muted"><span class="badge off">결손</span> '+esc(L.reason||'')+'</td>';
     }else{
       h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
@@ -1095,15 +1158,17 @@ function renderAllStats(){
   $('#clsStats').innerHTML='';
   const names=classNames();
   let h='<thead><tr><th>학급</th><th>오늘까지</th><th>전체 차시</th><th>남은</th>'+
-        '<th>결손</th><th>보강</th><th>보강 미배치</th></tr></thead><tbody>';
+        '<th>결손</th><th>보강</th><th>보강 미배치</th><th>비고</th></tr></thead><tbody>';
   for(const n of names){
     const s=STATS[n]||{};
-    const flag = s.unfixed && s.unfixed.length>0;
+    const flag = s.plan ? s.short>0 : (s.unfixed && s.unfixed.length>0);
     h+='<tr><td><b>'+esc(n)+'</b></td><td>'+(s.prog||0)+'</td>'+
        '<td><b'+(flag?' style="color:#d05252"':'')+'>'+(s.total||0)+'</b></td>'+
        '<td>'+Math.max(0,(s.total||0)-(s.prog||0))+'</td>'+
        '<td>'+(s.lost||0)+'</td><td>'+(s.mk||0)+'</td>'+
-       '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td></tr>';
+       '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td>'+
+       '<td class="muted">'+(s.short?'<span class="badge off">'+s.short+'차시 모자람</span>'
+                            :(s.over?'뒤쪽 '+s.over+'칸 비움':(s.plan?'':'자동')))+'</td></tr>';
   }
   h+='</tbody>';
   $('#clsTable').innerHTML=h;
@@ -1325,7 +1390,8 @@ $('#yCsv').onclick=()=>{
         if(d<sd||d>ed){ r.push(''); continue; }
         if(day&&day.off&&!hasExtra){ r.push(p===cols[0]?(day.label||'휴업일'):''); continue; }
         const L=slotLessons(k,p)[0];
-        r.push(!L ? '' : (L.status==='ok' ? L.cls+(L.kind==='extra'?'(보강)':'') : '('+L.cls+')'));
+        r.push(!L || L.status==='over' ? ''
+             : (L.status==='ok' ? L.cls+(L.kind==='extra'?'(보강)':'') : '('+L.cls+')'));
       }
     }
     rows.push(r);
@@ -1476,7 +1542,8 @@ function csvYear(){
   const rows=[['날짜','요일','교시','학급','장소','차시','상태','사유','진도/수업내용','특이사항','구분']];
   for(const L of LESSONS){
     rows.push([L.date, DOWK[L.dow], L.period, L.cls, placeOf(L.place).name, L.ord||'',
-      L.status==='ok'?'수업':'결손', L.reason||'', L.rec.prog||'', L.rec.special||'',
+      L.status==='ok'?'수업':(L.status==='over'?'전체 차시 밖':'결손'),
+      L.reason||'', L.rec.prog||'', L.rec.special||'',
       L.kind==='extra'?'보강':'정규']);
   }
   csvDL('연간시간표-'+TODAY+'.csv', rows);
@@ -1487,7 +1554,8 @@ function csvRecords(cls){
     if(cls && L.cls!==cls) continue;
     rows.push([L.ord||'', L.date, DOWK[L.dow], L.period, placeOf(L.place).name,
       L.rec.prog||'', L.rec.special||'',
-      L.status==='ok'?(L.kind==='extra'?'보강':''):'결손 '+(L.reason||'')]);
+      L.status==='ok'?(L.kind==='extra'?'보강':'')
+        :(L.status==='over'?'전체 차시 밖':'결손 '+(L.reason||''))]);
   }
   csvDL('수업기록-'+(cls||'전체')+'-'+TODAY+'.csv', rows);
 }
