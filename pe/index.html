@@ -156,6 +156,39 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   .dayflag{max-width:52px}
 }
 
+/* ---------- year grid (한 장 배열표) ---------- */
+.chk{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);font-weight:600}
+.ygrid{border-collapse:collapse;background:var(--panel);font-size:11px;width:auto;
+  box-shadow:var(--shadow);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ygrid th,.ygrid td{border:1px solid var(--line);padding:0;text-align:center;white-space:nowrap}
+.ygrid thead th{background:var(--line2);font-weight:700;padding:4px 3px;font-size:11.5px;
+  position:sticky;top:0;z-index:3}
+.ygrid thead tr:nth-child(2) th{top:26px}
+.ygrid th.wk{width:32px}
+.ygrid th.pd{width:100px}
+.ygrid tbody th{background:var(--line2);font-weight:700;font-size:11px;padding:2px 4px}
+.ygrid tbody th.pd{font-weight:600;font-size:10.5px;text-align:right;padding-right:6px;line-height:1.35}
+.ygrid tbody th.pd em{display:block;font-style:normal;color:#d05252;font-size:9px;font-weight:700}
+.ygrid .stick{position:sticky;left:0;z-index:2}
+.ygrid th.wk.stick{left:0} .ygrid th.pd.stick{left:32px}
+.ygrid thead th.wk.stick,.ygrid thead th.pd.stick{z-index:4}
+.ygrid td.yc{width:34px;height:23px;font-weight:700;color:var(--c);cursor:pointer;
+  line-height:1.15;padding:1px 0}
+.ygrid td.yc i{display:block;font-style:normal;font-size:8.5px;font-weight:700;color:var(--muted)}
+.ygrid td.yc:hover{outline:2px solid var(--accent);outline-offset:-2px}
+.ygrid td.dead{color:#9aa4b2;text-decoration:line-through;font-weight:600}
+.ygrid td.ex{box-shadow:inset 0 -3px 0 var(--c)}
+.ygrid td.offrow{color:#d64545;font-weight:800;letter-spacing:.45em;text-indent:.45em;
+  background:rgba(214,69,69,.07);cursor:pointer;font-size:11.5px}
+.ygrid td.evt{background:rgba(214,69,69,.05)}
+.ygrid td.outside{background:var(--line2);opacity:.45;cursor:default}
+.ygrid td.outside:hover{outline:0}
+.ygrid td.emptyc{cursor:pointer}
+.ygrid td.emptyc:hover{background:var(--line2);outline:2px solid var(--accent);outline-offset:-2px}
+.ygrid .dsep{border-left:2px solid var(--muted)}
+.ygrid tr.now td,.ygrid tr.now th{background:var(--accent-soft)}
+.ygrid tr.now th.wk{color:var(--accent)}
+
 /* ---------- week grid ---------- */
 .wgrid{width:100%;border-collapse:collapse;background:var(--panel);
   border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
@@ -240,6 +273,17 @@ tr.dead .ord{text-decoration:line-through}
   .day{min-height:96px}
   .chip{border:1px solid #999!important;background:#fff!important;color:#000}
   .card{box-shadow:none;border:1px solid #bbb;page-break-inside:auto}
+  .ygrid{box-shadow:none;font-size:9px;width:100%}
+  .ygrid td.yc{height:19px;width:auto}
+  .ygrid th.pd{width:13%}
+  .ygrid th.wk{width:4%}
+  .ygrid tbody th.pd{font-size:9px}
+  .ygrid tbody th.pd em{font-size:8px}
+  .ygrid td.yc i{font-size:7.5px}
+  .ygrid th,.ygrid td{border:1px solid #888}
+  .ygrid thead th,.ygrid tbody th{position:static;background:#eee!important}
+  .ygrid .stick{position:static}
+  .scroll{overflow:visible}
   th{background:#eee!important}
   .stats{border:1px solid #bbb}
   #printHead{display:block!important;font-size:17px;font-weight:800;margin:0 0 8px;text-align:center}
@@ -259,6 +303,7 @@ tr.dead .ord{text-decoration:line-through}
   </div>
   <nav class="tabs" id="tabs">
     <button data-view="month" class="on">달력</button>
+    <button data-view="year">연간</button>
     <button data-view="week">주간</button>
     <button data-view="class">학급별</button>
     <button data-view="setup">설정</button>
@@ -296,6 +341,22 @@ tr.dead .ord{text-decoration:line-through}
     </div>
     <p class="tip" style="padding-left:0">
       날짜의 <b>빈 곳</b>을 누르면 행사·휴업일 지정, <b>수업 칩</b>을 누르면 결손·보강·수업 기록.
+    </p>
+  </section>
+
+  <!-- ================= YEAR (한 장 배열표) ================= -->
+  <section id="view-year" hidden>
+    <div class="toolbar">
+      <div class="legend" id="legend3"></div>
+      <label class="chk"><input type="checkbox" id="yOrd"> 차시 번호 함께 보기</label>
+      <label class="chk"><input type="checkbox" id="yHide" checked> 안 쓰는 교시 열 숨기기</label>
+      <button class="btn sm" id="yCsv" style="margin-left:auto">CSV</button>
+      <button class="btn sm" id="yPrint">인쇄 (가로)</button>
+    </div>
+    <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
+    <p class="tip" style="padding-left:0">
+      칸을 누르면 결손·보강·수업 기록. 빈 칸을 누르면 그 자리에 수업을 넣습니다.
+      휴업일은 그 날 전체가 빨간 글씨로 덮입니다.
     </p>
   </section>
 
@@ -810,6 +871,88 @@ function renderLostCard(){
   };
 }
 
+/* ================= render: year (한 장 배열표) ================= */
+const MD = d => (d.getMonth()+1)+'.'+d.getDate();
+function yearWeeks(){
+  const sd=parseD(state.start), ed=parseD(state.end), out=[];
+  if(!(sd<=ed)) return out;
+  for(let w=monday(sd); w<=ed; w=addD(w,7)){
+    const days=[0,1,2,3,4].map(i=>addD(w,i));
+    const inr=days.filter(d=>d>=sd&&d<=ed);
+    if(inr.length) out.push({days:days, from:inr[0], to:inr[inr.length-1]});
+  }
+  return out;
+}
+/* 어느 교시에 수업이 하나라도 있는지 — 빈 열은 접어서 표를 좁게 만듭니다 */
+function usedPeriods(){
+  const use={};
+  for(const k in state.base) if(state.base[k].cls) use[k.split('-')[1]]=true;
+  for(const e of state.extras) use[e.period]=true;
+  const out=[];
+  for(let p=1;p<=state.periods;p++) if(use[p]) out.push(p);
+  return out.length? out : [1];
+}
+function renderYear(){
+  $('#legend3').innerHTML = legendHTML();
+  const weeks=yearWeeks(), sd=parseD(state.start), ed=parseD(state.end);
+  const showOrd=$('#yOrd').checked;
+  const cols = $('#yHide').checked ? usedPeriods()
+             : Array.from({length:state.periods},(_,i)=>i+1);
+  const P = cols.length;
+  const thisMon=isoOf(monday(new Date()));
+
+  let h='<thead><tr><th class="wk stick" rowspan="2">주</th><th class="pd stick" rowspan="2">기 간</th>';
+  for(let i=1;i<=5;i++) h+='<th colspan="'+P+'" class="dsep">'+DOWK[i]+'</th>';
+  h+='</tr><tr>';
+  for(let i=1;i<=5;i++) cols.forEach((p,ci)=>{ h+='<th'+(ci===0?' class="dsep"':'')+'>'+p+'</th>'; });
+  h+='</tr></thead><tbody>';
+
+  weeks.forEach((W,wi)=>{
+    const now = isoOf(W.days[0])===thisMon;
+    /* 이번 주 행사 이름을 기간 칸에 작게 적어 둡니다 */
+    const notes=[];
+    for(const d of W.days){
+      const k=isoOf(d), day=state.days[k];
+      if(day && day.label && d>=sd && d<=ed) notes.push(MD(d)+' '+day.label);
+    }
+    h+='<tr'+(now?' class="now"':'')+'><th class="wk stick">'+(wi+1)+'</th>'+
+       '<th class="pd stick">'+MD(W.from)+'–'+MD(W.to)+
+       (notes.length?'<em>'+esc(notes.slice(0,2).join(', '))+'</em>':'')+'</th>';
+    for(const d of W.days){
+      const k=isoOf(d), out=(d<sd||d>ed), day=state.days[k];
+      if(out){
+        cols.forEach((p,ci)=>{ h+='<td class="outside'+(ci===0?' dsep':'')+'"></td>'; });
+        continue;
+      }
+      if(day && day.off){
+        h+='<td class="offrow dsep" colspan="'+P+'" data-day="'+k+'">'+
+           esc((day.label||'휴업일').slice(0,10))+'</td>';
+        continue;
+      }
+      const evt = day && day.label ? ' evt' : '';
+      cols.forEach((p,ci)=>{
+        const here=(BYDATE[k]||[]).filter(L=>L.period===p);
+        const sep=(ci===0?' dsep':'');
+        if(!here.length){
+          h+='<td class="yc emptyc'+sep+evt+'" data-add="'+k+'#'+p+'"></td>';
+          return;
+        }
+        const L=here[0], pl=placeOf(L.place), dead=L.status!=='ok';
+        const title=k+' ('+DOWK[L.dow]+') '+p+'교시 · '+L.cls+' · '+pl.name+
+          (L.ord?' · '+L.ord+'차시':'')+(dead?' · 결손'+(L.reason?' '+L.reason:''):'')+
+          (L.kind==='extra'?' · 보강':'');
+        h+='<td class="yc'+(dead?' dead':'')+(L.kind==='extra'?' ex':'')+sep+evt+
+           '" style="--c:'+pl.color+'" data-id="'+L.id+'" title="'+esc(title)+'">'+
+           esc(L.cls)+(showOrd&&L.ord?'<i>'+L.ord+'</i>':'')+
+           (here.length>1?'<i>+'+(here.length-1)+'</i>':'')+'</td>';
+      });
+    }
+    h+='</tr>';
+  });
+  if(!weeks.length) h+='<tr><td class="muted" style="padding:20px">설정에서 기간과 기초 시간표를 먼저 넣어주세요.</td></tr>';
+  $('#ygrid').innerHTML=h+'</tbody>';
+}
+
 /* ================= render: week ================= */
 let weekCur=new Date();
 function monday(d){ const x=new Date(d.getTime()); const n=(x.getDay()+6)%7; return addD(x,-n); }
@@ -984,8 +1127,9 @@ let view='month';
 function render(){
   $('#rangeLabel').textContent = state.start+' ~ '+state.end;
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
-  ['month','week','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
+  ['month','year','week','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
   if(view==='month') renderMonth();
+  if(view==='year')  renderYear();
   if(view==='week')  renderWeek();
   if(view==='class') renderClass();
   if(view==='setup') renderSetup();
@@ -1004,6 +1148,46 @@ $('#cal').onclick=e=>{
   if(chip){ openLesson(chip.dataset.id); return; }
   const day=e.target.closest('.day');
   if(day && !day.classList.contains('out')) openDay(day.dataset.date);
+};
+$('#ygrid').onclick=e=>{
+  const td=e.target.closest('td'); if(!td) return;
+  if(td.dataset.id) openLesson(td.dataset.id);
+  else if(td.dataset.day) openDay(td.dataset.day);
+  else if(td.dataset.add){
+    const q=td.dataset.add.split('#');
+    openMakeup({date:q[0], period:Number(q[1])});
+  }
+};
+$('#yOrd').onchange=renderYear;
+$('#yHide').onchange=renderYear;
+$('#yPrint').onclick=()=>{
+  $('#printHead').textContent='연간 시간표  '+state.start+' ~ '+state.end;
+  const st=document.createElement('style');
+  st.id='landscape'; st.textContent='@page{size:A4 landscape;margin:8mm}';
+  document.head.appendChild(st);
+  window.print();
+  setTimeout(()=>st.remove(), 500);
+};
+$('#yCsv').onclick=()=>{
+  const cols = $('#yHide').checked ? usedPeriods()
+             : Array.from({length:state.periods},(_,i)=>i+1);
+  const head=['주','기간'];
+  for(let i=1;i<=5;i++) for(const p of cols) head.push(DOWK[i]+p);
+  const rows=[head], sd=parseD(state.start), ed=parseD(state.end);
+  yearWeeks().forEach((W,wi)=>{
+    const r=[wi+1, MD(W.from)+'–'+MD(W.to)];
+    for(const d of W.days){
+      const k=isoOf(d), day=state.days[k];
+      for(const p of cols){
+        if(d<sd||d>ed){ r.push(''); continue; }
+        if(day&&day.off){ r.push(p===cols[0]?(day.label||'휴업일'):''); continue; }
+        const L=(BYDATE[k]||[]).filter(x=>x.period===p)[0];
+        r.push(!L ? '' : (L.status==='ok' ? L.cls+(L.kind==='extra'?'(보강)':'') : '('+L.cls+')'));
+      }
+    }
+    rows.push(r);
+  });
+  csvDL('연간시간표-배열표-'+TODAY+'.csv', rows);
 };
 $('#wPrev').onclick=()=>{ weekCur=addD(weekCur,-7); renderWeek(); };
 $('#wNext').onclick=()=>{ weekCur=addD(weekCur,7); renderWeek(); };
