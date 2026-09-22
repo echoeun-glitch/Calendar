@@ -226,6 +226,21 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .slot.dead{opacity:.55}
 .slot.dead .big{text-decoration:line-through}
 
+/* ---------- 일지 ---------- */
+.logbox{min-height:210px;font-size:14px;line-height:1.8;padding:12px 13px}
+.loghead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.daytag{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:6px;
+  background:var(--accent-soft);color:var(--accent)}
+.daytag.off{background:rgba(214,69,69,.12);color:#d05252}
+.recent{display:flex;flex-wrap:wrap;gap:6px}
+.recent button{border:1px solid var(--line);background:var(--panel);border-radius:8px;
+  padding:6px 10px;font-size:12.5px;text-align:left;max-width:100%}
+.recent button:hover{border-color:var(--accent);color:var(--accent)}
+.recent button b{font-weight:800;margin-right:6px}
+.recent button span{color:var(--muted);font-weight:400}
+.recent button:hover span{color:inherit}
+.logmark{position:absolute;right:4px;bottom:3px;font-size:10px;color:var(--accent);opacity:.75}
+
 /* ---------- class progress ---------- */
 .clsbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .clsbar button{border:1px solid var(--line);background:var(--panel);border-radius:8px;
@@ -321,6 +336,7 @@ tr.dead .ord{text-decoration:line-through}
     <button data-view="month" class="on">달력</button>
     <button data-view="year">연간</button>
     <button data-view="week">주간</button>
+    <button data-view="log">일지</button>
     <button data-view="class">학급별</button>
     <button data-view="setup">설정</button>
   </nav>
@@ -390,6 +406,40 @@ tr.dead .ord{text-decoration:line-through}
     </div>
     <div class="scroll"><table class="wgrid" id="wgrid"></table></div>
     <p class="tip" style="padding-left:0">빈 칸을 누르면 그 자리에 <b>보강·추가 수업</b>을 넣을 수 있습니다.</p>
+  </section>
+
+  <!-- ================= LOG (수업 일지) ================= -->
+  <section id="view-log" hidden>
+    <div class="toolbar">
+      <div class="nav">
+        <button id="gPrev" title="이전 날">‹</button>
+        <span class="label" id="gLabel">—</span>
+        <button id="gNext" title="다음 날">›</button>
+      </div>
+      <button class="btn sm" id="gToday">오늘</button>
+      <input type="date" id="gDate">
+      <button class="btn sm" id="gPrint" style="margin-left:auto">인쇄</button>
+      <button class="btn sm" id="gCsv">일지 CSV</button>
+    </div>
+
+    <div class="card">
+      <h2 id="gHead">그날의 수업 <span class="hint">진도·특이사항은 바로 입력하면 저장됩니다</span></h2>
+      <div class="scroll"><table id="logTable"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>일지</h2>
+      <div class="pad">
+        <textarea id="gText" class="logbox"
+          placeholder="오늘 수업은 어땠는지, 전달받은 사항, 다음 시간에 준비할 것 등"></textarea>
+        <p class="muted" style="font-size:12px;margin-top:8px">쓰는 동안 자동으로 저장됩니다.</p>
+      </div>
+    </div>
+
+    <div class="card noprint" id="gRecentCard">
+      <h2>지난 일지 <span class="hint">누르면 그 날로 갑니다</span></h2>
+      <div class="pad" id="gRecent"></div>
+    </div>
   </section>
 
   <!-- ================= CLASS ================= -->
@@ -522,7 +572,8 @@ function defState(){
     classes: DEF_CLASSES.map(n=>({name:n, done:0, plan:0})),
     base: {},     // 'dow-period' -> {cls, place}
     days: {},     // iso -> {label, off}
-    rec: {},      // lessonId -> {status,cls,place,reason,prog,special,absent,injury}
+    rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
+    logs: {},     // iso -> 그날의 일지 (자유 입력)
     extras: []    // {id,date,period,cls,place,forId}
   };
 }
@@ -658,7 +709,7 @@ function openDay(dateISO){
          ls.map(L=>L.period+'교시 '+esc(L.cls)).join(' · ')+'</div>';
   }
   h += '<div class="acts">'+
-       '<button class="btn" data-close="1">닫기</button>'+
+       '<button class="btn" id="dLog">일지 쓰기</button>'+
        '<button class="btn warn" id="dClear">정상 수업일로</button>'+
        '<button class="btn primary" id="dSave">저장</button></div>';
 
@@ -680,6 +731,7 @@ function openDay(dateISO){
       closeModal(); touch();
     };
     $('#dClear',root).onclick=()=>{ delete state.days[dateISO]; closeModal(); touch(); };
+    $('#dLog',root).onclick=()=>{ closeModal(); goLog(dateISO); };
   });
 }
 
@@ -706,6 +758,7 @@ function openLesson(id){
        '<div class="field"><label class="f">특이사항</label>'+
        '<textarea id="rSpecial" placeholder="수업 중 있었던 일">'+esc(L.rec.special||'')+'</textarea></div>';
   h += '<div class="acts">';
+  h += '<button class="btn" id="lLog">이 날 일지</button>';
   if(dead && !covered) h+='<button class="btn primary" id="lMake">보강 잡기</button>';
   if(covered) h+='<button class="btn ghost" disabled>보강 배치됨</button>';
   if(L.kind==='extra') h+='<button class="btn warn" id="lDel">이 보강 삭제</button>';
@@ -740,6 +793,7 @@ function openLesson(id){
     };
     const mk=$('#lMake',root);
     if(mk) mk.onclick=()=>{ commit(); save(); rebuild(); openMakeup({cls:L.cls, place:L.place, forId:id, from:L}); };
+    $('#lLog',root).onclick=()=>{ commit(); save(); rebuild(); closeModal(); goLog(L.date); };
     const del=$('#lDel',root);
     if(del) del.onclick=()=>{
       state.extras=state.extras.filter(x=>x.id!==id); delete state.rec[id];
@@ -849,6 +903,7 @@ function dayCellHTML(d,m){
   }
   h+='</div>';
   if(!out && !ls.length && dw!==0 && dw!==6) h+='<span class="empty">＋</span>';
+  if(state.logs && String(state.logs[k]||'').trim()) h+='<span class="logmark" title="일지 있음">✎</span>';
   return h+'</div>';
 }
 function renderLostCard(){
@@ -1000,6 +1055,57 @@ function renderWeek(){
   $('#wgrid').innerHTML=h+'</tbody>';
 }
 
+/* ================= render: log (수업 일지) ================= */
+let logDate = TODAY;
+function logText(k){ return (state.logs && state.logs[k]) || ''; }
+function renderLog(){
+  if(!state.logs) state.logs={};
+  const k=logDate, d=parseD(k), day=state.days[k];
+  $('#gLabel').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+DOWK[d.getDay()]+')';
+  $('#gDate').value=k;
+
+  let head='<span class="loghead">'+k+' ('+DOWK[d.getDay()]+')';
+  if(day && day.label) head+=' <span class="daytag'+(day.off?' off':'')+'">'+esc(day.label)+'</span>';
+  if(d.getDay()===0||d.getDay()===6) head+=' <span class="daytag">주말</span>';
+  head+='</span> <span class="hint">진도·특이사항은 바로 입력하면 저장됩니다</span>';
+  $('#gHead').innerHTML=head;
+
+  const ls=(BYDATE[k]||[]).slice().sort((a,b)=>a.period-b.period);
+  let h='<thead><tr><th style="width:64px">교시</th><th style="width:74px">학급</th>'+
+        '<th style="width:84px">장소</th><th style="width:56px">차시</th>'+
+        '<th>진도 · 수업 내용</th><th style="width:30%">특이사항</th></tr></thead><tbody>';
+  for(const L of ls){
+    const pl=placeOf(L.place), dead=L.status!=='ok', t=state.times[L.period-1];
+    h+='<tr class="'+(dead?'dead':'')+'" data-id="'+L.id+'">'+
+       '<td><b>'+L.period+'</b>교시'+(t&&t.s?'<div class="muted" style="font-size:10.5px">'+esc(t.s)+'</div>':'')+'</td>'+
+       '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 5px;font-weight:800">'+
+         esc(L.cls)+'</button>'+(L.kind==='extra'?' <span class="badge mk">보강</span>':'')+'</td>'+
+       '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>'+
+       '<td>'+(L.ord?L.ord+'차시':'-')+'</td>';
+    if(dead) h+='<td colspan="2" class="muted"><span class="badge off">결손</span> '+esc(L.reason||'')+'</td>';
+    else h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
+            '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
+    h+='</tr>';
+  }
+  if(!ls.length) h+='<tr><td colspan="6" class="muted" style="padding:18px;text-align:center">'+
+    (day&&day.off ? '«'+esc(day.label||'휴업일')+'» — 수업이 없는 날입니다.' : '이 날은 수업이 없습니다.')+
+    '</td></tr>';
+  $('#logTable').innerHTML=h+'</tbody>';
+
+  $('#gText').value=logText(k);
+  renderRecent();
+}
+function renderRecent(){
+  const keys=Object.keys(state.logs||{}).filter(k=>String(state.logs[k]).trim()).sort().reverse();
+  $('#gRecentCard').hidden = !keys.length;
+  $('#gRecent').innerHTML = keys.slice(0,14).map(k=>{
+    const d=parseD(k), one=String(state.logs[k]).trim().split('\n')[0];
+    return '<button data-go="'+k+'"><b>'+(d.getMonth()+1)+'.'+d.getDate()+
+      '('+DOWK[d.getDay()]+')</b><span>'+esc(one.slice(0,26))+(one.length>26?'…':'')+'</span></button>';
+  }).join('') || '';
+  $('#gRecent').className='recent';
+}
+
 /* ================= render: class ================= */
 let curCls='';
 function renderClass(){
@@ -1129,10 +1235,11 @@ let view='month';
 function render(){
   $('#rangeLabel').textContent = state.start+' ~ '+state.end;
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
-  ['month','year','week','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
+  ['month','year','week','log','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
   if(view==='month') renderMonth();
   if(view==='year')  renderYear();
   if(view==='week')  renderWeek();
+  if(view==='log')   renderLog();
   if(view==='class') renderClass();
   if(view==='setup') renderSetup();
 }
@@ -1263,6 +1370,45 @@ $('#wgrid').onclick=e=>{
     openMakeup({date:parts[0], period:Number(parts[1])});
   }
 };
+/* --- 일지 --- */
+function goLog(k){ logDate=k; view='log'; render(); window.scrollTo(0,0); }
+$('#gPrev').onclick=()=>{ logDate=isoOf(addD(parseD(logDate),-1)); renderLog(); };
+$('#gNext').onclick=()=>{ logDate=isoOf(addD(parseD(logDate), 1)); renderLog(); };
+$('#gToday').onclick=()=>{ logDate=TODAY; renderLog(); };
+$('#gDate').onchange=e=>{ if(e.target.value){ logDate=e.target.value; renderLog(); } };
+$('#gText').addEventListener('input', e=>{
+  if(!state.logs) state.logs={};
+  const v=e.target.value;
+  if(v.trim()) state.logs[logDate]=v; else delete state.logs[logDate];
+  save();                      /* 다시 그리지 않아 커서가 유지됩니다 */
+});
+$('#gText').addEventListener('change', ()=>{ renderRecent(); });
+$('#gRecent').onclick=e=>{
+  const b=e.target.closest('[data-go]'); if(!b) return;
+  logDate=b.dataset.go; renderLog(); window.scrollTo(0,0);
+};
+$('#logTable').addEventListener('input',  e=>{ writeRec(e.target); });
+$('#logTable').addEventListener('change', e=>{ writeRec(e.target); });
+$('#logTable').addEventListener('click', e=>{
+  const b=e.target.closest('[data-open]'); if(b) openLesson(b.dataset.open);
+});
+$('#gPrint').onclick=()=>{
+  const d=parseD(logDate);
+  $('#printHead').textContent='체육 수업 일지  '+logDate+' ('+DOWK[d.getDay()]+')';
+  window.print();
+};
+$('#gCsv').onclick=()=>{
+  const keys=Object.keys(state.logs||{}).filter(k=>String(state.logs[k]).trim()).sort();
+  const rows=[['날짜','요일','행사','수업','일지']];
+  for(const k of keys){
+    const d=parseD(k), day=state.days[k];
+    const ls=(BYDATE[k]||[]).slice().sort((a,b)=>a.period-b.period)
+      .map(L=>L.period+'교시 '+L.cls+(L.status==='ok'?'':'(결손)')).join(' / ');
+    rows.push([k, DOWK[d.getDay()], (day&&day.label)||'', ls, state.logs[k]]);
+  }
+  csvDL('수업일지-'+TODAY+'.csv', rows);
+};
+
 $('#clsbar').onclick=e=>{
   const b=e.target.closest('button'); if(!b) return;
   curCls = b.dataset.all ? 'ALL' : b.dataset.cls;
@@ -1436,7 +1582,9 @@ $('#impFile').onchange=e=>{
       const s=JSON.parse(rd.result);
       if(!s || !s.classes) throw 0;
       if(!confirm('현재 데이터를 백업 파일로 바꿉니다. 계속할까요?')) return;
-      state=Object.assign(defState(), s); touch();
+      state=Object.assign(defState(), s);
+      if(!state.logs) state.logs={};
+      touch();
       alert('불러왔습니다.');
     }catch(err){ alert('백업 파일이 아닌 것 같습니다.'); }
   };
