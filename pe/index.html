@@ -78,7 +78,7 @@ main{max-width:1180px;margin:0 auto;padding:16px}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .btn{
   border:1px solid var(--line);background:var(--panel);border-radius:9px;
-  padding:7px 13px;font-size:13.5px;font-weight:600
+  padding:7px 13px;font-size:13.5px;font-weight:600;white-space:nowrap
 }
 .btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -451,14 +451,33 @@ tr.dead .ord{text-decoration:line-through}
         <div class="row" style="margin-bottom:14px">
           <div><label class="f">시작일</label><input type="date" id="startD"></div>
           <div><label class="f">종료일</label><input type="date" id="endD"></div>
-          <button class="btn sm" id="fillHoliday">고정 공휴일 표시</button>
         </div>
         <div class="scroll"><table id="timeSetup"></table></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>4. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
+      <h2>4. 행사 · 휴업일 <span class="hint">수업이 없는 날과 학교 행사를 한곳에서 관리합니다</span></h2>
+      <div class="pad">
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn primary" id="fillHoliday">공휴일 한 번에 넣기</button>
+          <span class="muted" style="font-size:12.5px">
+            기간 안의 공휴일을 채웁니다. 추석·설날은 학사일정과 한 번 대조해 주세요.</span>
+        </div>
+        <div class="row" style="margin-bottom:6px;align-items:flex-end">
+          <div><label class="f">날짜</label><input type="date" id="hDate"></div>
+          <div style="flex:1;min-width:150px"><label class="f">이름</label>
+            <input type="text" id="hName" placeholder="예: 가을 체육대회" style="width:100%"></div>
+          <label class="chk" style="padding-bottom:8px">
+            <input type="checkbox" id="hOff" checked> 수업 없음</label>
+          <button class="btn sm" id="hAdd" style="margin-bottom:1px">추가</button>
+        </div>
+        <div class="scroll" style="max-height:290px;overflow-y:auto"><table id="dayList"></table></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
       <div class="pad">
         <div class="row">
           <button class="btn" id="expBtn">백업 파일 내보내기</button>
@@ -485,9 +504,19 @@ const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40
                    ['13:20','14:00'],['14:10','14:50'],['15:00','15:40']];
 const PALETTE = ['#2563eb','#15803d','#c2680a','#7c3aed','#0891b2','#be123c'];
 const DEF_CLASSES = ['1-1','1-2','2-1','2-2','3-1','3-2','3-3','3-4','5-1','5-2'];
-/* 날짜가 법으로 고정된 공휴일만. 설·추석·대체공휴일은 학사일정을 보고 직접 지정하세요. */
+/* 공휴일. 날짜가 고정된 것과, 해마다 바뀌는 것(설·추석·부처님오신날·대체공휴일)을 함께 담는다.
+   음력에서 오는 날짜는 학교 학사일정과 한 번 대조해 주세요. */
 const FIXED_HOLIDAYS = [['01-01','신정'],['03-01','삼일절'],['05-05','어린이날'],['06-06','현충일'],
                         ['08-15','광복절'],['10-03','개천절'],['10-09','한글날'],['12-25','성탄절']];
+const YEAR_HOLIDAYS = {
+  2026: [['05-24','부처님오신날'],['05-25','대체공휴일'],
+         ['09-24','추석 연휴'],['09-25','추석'],['09-26','추석 연휴'],['09-28','대체공휴일'],
+         ['10-05','대체공휴일']],
+  2027: [['02-05','설 연휴'],['02-06','설날'],['02-07','설 연휴'],
+         ['02-08','대체공휴일'],['02-09','대체공휴일'],
+         ['05-13','부처님오신날'],
+         ['09-14','추석 연휴'],['09-15','추석'],['09-16','추석 연휴']]
+};
 
 /* 저장이 실제로 되는 환경인지 먼저 확인합니다. 미리보기 창(iframe)이나 시크릿 모드,
    사이트 데이터 차단 상태에서는 localStorage가 막혀 입력이 사라집니다. */
@@ -1215,6 +1244,8 @@ function renderSetup(){
   });
   $('#placeSetup').innerHTML=pl+'</tbody>';
 
+  renderDayList();
+
   /* 교시 시각 */
   let t='<thead><tr><th style="width:70px">교시</th><th>시작</th><th>끝</th></tr></thead><tbody>';
   for(let i=0;i<state.periods;i++){
@@ -1224,6 +1255,23 @@ function renderSetup(){
        '<td><input type="time" data-t="'+i+'" data-k="e" value="'+x.e+'"></td></tr>';
   }
   $('#timeSetup').innerHTML=t+'</tbody>';
+}
+
+function renderDayList(){
+  const keys=Object.keys(state.days).sort();
+  let h='<thead><tr><th style="width:150px">날짜</th><th>이름</th>'+
+        '<th style="width:96px">수업</th><th style="width:68px"></th></tr></thead><tbody>';
+  for(const k of keys){
+    const d=parseD(k), v=state.days[k], out=(k<state.start||k>state.end);
+    h+='<tr'+(out?' class="dead"':'')+'><td>'+k+' ('+DOWK[d.getDay()]+')'+
+       (out?' <span class="badge">기간 밖</span>':'')+'</td>'+
+       '<td><input class="ntin" data-d="'+k+'" value="'+esc(v.label||'')+'" placeholder="이름"></td>'+
+       '<td>'+(v.off?'<span class="badge off">수업 없음</span>':'<span class="badge mk">수업 있음</span>')+'</td>'+
+       '<td style="text-align:right"><button class="btn sm warn" data-deld="'+k+'">삭제</button></td></tr>';
+  }
+  if(!keys.length) h+='<tr><td colspan="4" class="muted" style="padding:16px;text-align:center">'+
+    '아직 지정한 행사·휴업일이 없습니다. 위에서 «공휴일 한 번에 넣기»를 누르거나 직접 추가하세요.</td></tr>';
+  $('#dayList').innerHTML=h+'</tbody>';
 }
 
 /* ================= render ================= */
@@ -1511,21 +1559,49 @@ $('#timeSetup').addEventListener('change', e=>{
   state.times[Number(i)]=state.times[Number(i)]||{s:'',e:''};
   state.times[Number(i)][e.target.dataset.k]=e.target.value; save();
 });
+$('#hAdd').onclick=()=>{
+  const d=$('#hDate').value;
+  if(!d){ alert('날짜를 먼저 고르세요.'); return; }
+  const off=$('#hOff').checked;
+  const name=$('#hName').value.trim() || (off?'휴업일':'행사');
+  state.days[d]={label:name, off:off};
+  $('#hName').value='';
+  touch();
+};
+$('#dayList').addEventListener('input', e=>{
+  const k=e.target.dataset.d; if(!k||!state.days[k]) return;
+  state.days[k].label=e.target.value.trim();
+  save(); rebuild();          /* 입력 중인 칸은 다시 그리지 않습니다 */
+});
+$('#dayList').addEventListener('click', e=>{
+  const k=e.target.dataset.deld; if(!k) return;
+  delete state.days[k]; touch();
+});
 $('#startD').onchange=e=>{ state.start=e.target.value; touch(); };
 $('#endD').onchange=e=>{ state.end=e.target.value; touch(); };
 $('#fillHoliday').onclick=()=>{
-  const sd=parseD(state.start), ed=parseD(state.end); let n=0;
+  const sd=parseD(state.start), ed=parseD(state.end);
+  const added=[], skipped=[];
   for(let y=sd.getFullYear(); y<=ed.getFullYear(); y++){
-    for(const hd of FIXED_HOLIDAYS){
-      const k=y+'-'+hd[0];
+    const list=FIXED_HOLIDAYS.map(h=>[y+'-'+h[0], h[1]])
+      .concat((YEAR_HOLIDAYS[y]||[]).map(h=>[y+'-'+h[0], h[1]]));
+    for(const [k,name] of list){
       if(k<state.start||k>state.end) continue;
-      const dw=parseD(k).getDay(); if(dw===0||dw===6) continue;
-      if(state.days[k]) continue;
-      state.days[k]={label:hd[1], off:true}; n++;
+      const dw=parseD(k).getDay();
+      if(dw===0||dw===6) continue;            /* 주말은 원래 수업이 없습니다 */
+      if(state.days[k]){ skipped.push(k+' '+name); continue; }
+      state.days[k]={label:name, off:true};
+      added.push(k+' ('+DOWK[dw]+') '+name);
     }
   }
   touch();
-  alert(n+'일을 표시했습니다.\n설날·추석·대체공휴일은 날짜가 해마다 달라 넣지 않았습니다. 학사일정을 보고 직접 지정해 주세요.');
+  added.sort();
+  alert(added.length ?
+    added.length+'일을 넣었습니다.\n\n'+added.join('\n')+
+    '\n\n추석·설날·대체공휴일은 음력에서 오는 날짜라 학사일정과 한 번 대조해 주세요.\n'+
+    '틀린 날은 아래 목록에서 삭제하고 직접 추가하시면 됩니다.'
+    : '기간 안에 새로 넣을 공휴일이 없습니다.'+
+      (skipped.length?'\n(이미 지정된 날: '+skipped.length+'일)':''));
 };
 
 /* --- 데이터 --- */
