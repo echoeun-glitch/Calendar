@@ -56,6 +56,12 @@ button{cursor:pointer}
 }
 .tabs button.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
 #saveState{font-size:11.5px;color:var(--muted);min-width:52px;text-align:right}
+#saveState.bad{color:#d64545;font-weight:800}
+.warnbanner{border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.7;
+  border:1px solid rgba(214,69,69,.4);background:rgba(214,69,69,.1);color:#b83f3f;font-weight:600}
+.warnbanner.soft{border-color:rgba(31,111,235,.3);background:var(--accent-soft);color:var(--accent)}
+.warnbanner b{display:block;font-size:14.5px;margin-bottom:4px}
+.warnbanner .row{margin-top:10px}
 
 main{max-width:1180px;margin:0 auto;padding:16px}
 @media(max-width:560px){ main{padding:10px} .topbar{padding:8px 12px;gap:8px} .tabs button{padding:6px 10px} }
@@ -262,6 +268,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <main>
   <div id="printHead"></div>
+  <div id="storeWarn" class="warnbanner noprint" hidden></div>
 
   <!-- ================= MONTH ================= -->
   <section id="view-month">
@@ -402,6 +409,18 @@ const DEF_CLASSES = ['1-1','1-2','2-1','2-2','3-1','3-2','3-3','3-4','5-1','5-2'
 const FIXED_HOLIDAYS = [['01-01','신정'],['03-01','삼일절'],['05-05','어린이날'],['06-06','현충일'],
                         ['08-15','광복절'],['10-03','개천절'],['10-09','한글날'],['12-25','성탄절']];
 
+/* 저장이 실제로 되는 환경인지 먼저 확인합니다. 미리보기 창(iframe)이나 시크릿 모드,
+   사이트 데이터 차단 상태에서는 localStorage가 막혀 입력이 사라집니다. */
+const STORAGE = (function(){
+  try{
+    localStorage.setItem('__probe__','1');
+    const ok = localStorage.getItem('__probe__')==='1';
+    localStorage.removeItem('__probe__');
+    return ok ? 'ok' : 'bad';
+  }catch(e){ return 'blocked'; }
+})();
+const INFRAME = (function(){ try{ return window.top!==window.self; }catch(e){ return true; } })();
+
 const $  = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const pad = n => String(n).padStart(2,'0');
@@ -440,14 +459,21 @@ function load(){
 let state = load();
 
 let saveTimer=null;
+function setSaveState(txt, bad){
+  const el=$('#saveState'); el.textContent=txt; el.classList.toggle('bad', !!bad);
+}
 function save(){
   clearTimeout(saveTimer);
-  $('#saveState').textContent='…';
+  if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
+  setSaveState('…');
   saveTimer = setTimeout(()=>{
     try{
       localStorage.setItem(LSKEY, JSON.stringify(state));
-      $('#saveState').textContent='저장됨';
-    }catch(e){ $('#saveState').textContent='저장 실패'; }
+      setSaveState('저장됨');
+    }catch(e){
+      setSaveState('저장 안 됨', true);
+      storageNotice('저장 공간이 꽉 찼거나 브라우저가 저장을 막았습니다.');
+    }
   }, 200);
 }
 function touch(){ save(); rebuild(); render(); }
@@ -1147,11 +1173,13 @@ $('#clsPrint').onclick=()=>{
     ' ('+state.start+' ~ '+state.end+')';
   window.print();
 };
-$('#expBtn').onclick=()=>{
+function exportBackup(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,1)],{type:'application/json'}));
   a.download='체육시간표-백업-'+TODAY+'.json'; a.click(); URL.revokeObjectURL(a.href);
-};
+  try{ localStorage.setItem('lastBackup', TODAY); }catch(e){}
+}
+$('#expBtn').onclick=exportBackup;
 $('#impBtn').onclick=()=>$('#impFile').click();
 $('#impFile').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -1174,8 +1202,45 @@ $('#resetBtn').onclick=()=>{
 };
 
 /* ================= init ================= */
+function storageNotice(extra){
+  const el=$('#storeWarn');
+  if(STORAGE!=='ok'){
+    el.hidden=false; el.className='warnbanner noprint';
+    el.innerHTML='<b>이 화면에서는 입력한 내용이 저장되지 않습니다.</b>'+
+      (INFRAME
+        ? '미리보기 창 안에서 열려 있어 브라우저가 저장을 막습니다. 파일을 컴퓨터에 내려받아 직접 열거나, 인터넷 주소로 올려서 열어주세요.'
+        : '시크릿 모드이거나 브라우저가 이 페이지의 사이트 데이터를 막고 있습니다. 일반 창에서 열어주세요.')+
+      ' 지금 넣으신 내용은 창을 닫으면 사라집니다.'+
+      (extra? ' ('+extra+')' : '')+
+      '<div class="row"><button class="btn sm" id="fnBackup">지금 백업 파일로 빼두기</button></div>';
+    const bk=$('#fnBackup'); if(bk) bk.onclick=exportBackup;
+    return;
+  }
+  if(extra){
+    el.hidden=false; el.className='warnbanner noprint';
+    el.innerHTML='<b>저장에 실패했습니다.</b>'+extra+
+      '<div class="row"><button class="btn sm" id="fnBackup">백업 파일로 빼두기</button></div>';
+    const bk=$('#fnBackup'); if(bk) bk.onclick=exportBackup;
+    return;
+  }
+  if(location.protocol==='file:'){
+    let hidden=false; try{ hidden = localStorage.getItem('hideFileNote')==='1'; }catch(e){}
+    if(hidden) return;
+    el.hidden=false; el.className='warnbanner soft noprint';
+    el.innerHTML='<b>파일을 직접 열어 쓰고 계십니다.</b>'+
+      '저장은 되지만 <b style="display:inline">같은 브라우저에서 이 파일을 열 때만</b> 보입니다. '+
+      '다른 기기나 다른 브라우저에서는 비어 보이고, 브라우저 데이터를 지우면 함께 사라집니다. '+
+      '인터넷 주소로 올려서 쓰시는 편이 안전합니다.'+
+      '<div class="row"><button class="btn sm" id="fnBackup">지금 백업 파일로 빼두기</button>'+
+      '<button class="btn sm ghost" id="fnHide">알겠습니다</button></div>';
+    $('#fnBackup').onclick=exportBackup;
+    $('#fnHide').onclick=()=>{ try{ localStorage.setItem('hideFileNote','1'); }catch(e){} el.hidden=true; };
+  }
+}
+
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
+  if(STORAGE!=='ok') return;
   try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
 }
 window.addEventListener('pagehide', flush);
@@ -1187,7 +1252,8 @@ document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush();
   cur = (now<sd) ? sd : now;
   weekCur = (now<sd) ? sd : now;
   rebuild(); render();
-  $('#saveState').textContent='저장됨';
+  setSaveState(STORAGE==='ok' ? '저장됨' : '저장 안 됨', STORAGE!=='ok');
+  storageNotice();
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
