@@ -151,7 +151,10 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   border-radius:11px;box-shadow:0 8px 28px rgba(18,28,45,.22);padding:9px;min-width:188px
 }
 .pick .ph{font-size:11.5px;color:var(--muted);font-weight:700;padding:0 2px 7px;
-  border-bottom:1px solid var(--line2);margin-bottom:7px}
+  border-bottom:1px solid var(--line2);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.pick .ph .del{margin-left:auto;border:1px solid var(--line);background:var(--panel);
+  border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--muted)}
+.pick .ph .del:hover{border-color:var(--danger);color:var(--danger)}
 .pick .pg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
 .pick .pg button{
   border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 2px;
@@ -183,6 +186,20 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   box-shadow:inset 3px 0 0 var(--c)}
 .slot.dead{opacity:.55}
 .slot.dead .big{text-decoration:line-through}
+
+/* ---------- 학급별 차시 요약 ---------- */
+.progwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:9px}
+.pitem{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel)}
+.pitem .t{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+.pitem .t b{font-size:14px;font-weight:800}
+.pitem .t span{margin-left:auto;font-size:13px;font-weight:700}
+.pitem .t span i{font-style:normal;color:var(--muted);font-weight:600}
+.pitem .bar{height:5px;border-radius:3px;background:var(--line2);overflow:hidden}
+.pitem .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.pitem .sub{font-size:10.5px;color:var(--muted);margin-top:5px;font-weight:600}
+.pitem .sub em{font-style:normal;color:#d05252}
+.pitem.low{border-color:rgba(214,69,69,.45)}
+.pitem.low .bar i{background:#d64545}
 
 /* ---------- 일지 ---------- */
 .logbox{min-height:210px;font-size:14px;line-height:1.8;padding:12px 13px}
@@ -322,6 +339,10 @@ tr.dead .ord{text-decoration:line-through}
       </div>
     </div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
+    <div class="card noprint" id="progCard">
+      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 이 기간 전체 차시</span></h2>
+      <div class="pad"><div class="progwrap" id="progWrap"></div></div>
+    </div>
     <p class="tip" style="padding-left:0">
       칸을 <b>한 번</b> 누르면 학급만 바로 바꾸고, <b>두 번</b> 누르면 상세 화면이 열립니다.
       빈 칸도 같습니다 — 한 번 누르면 학급만 골라 넣고, 두 번 누르면 장소까지 정합니다.
@@ -412,16 +433,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>2. 학급 <span class="hint">2학기부터 쓰신다면 1학기까지 한 차시를 '이미 한 차시'에 넣어주세요</span></h2>
-      <div class="scroll"><table id="clsSetup"></table></div>
-      <div class="pad row">
-        <input type="text" id="newCls" placeholder="예: 6-1" style="width:110px">
-        <button class="btn sm" id="addCls">학급 추가</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>3. 수업 장소 <span class="hint">달력에서 색으로 구분됩니다</span></h2>
+      <h2>2. 수업 장소 <span class="hint">달력에서 색으로 구분됩니다</span></h2>
       <div class="scroll"><table id="placeSetup"></table></div>
       <div class="pad row">
         <input type="text" id="newPlace" placeholder="장소 이름" style="width:130px">
@@ -431,7 +443,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>4. 기간과 교시 시각</h2>
+      <h2>3. 기간과 교시 시각</h2>
       <div class="pad">
         <div class="row" style="margin-bottom:14px">
           <div><label class="f">시작일</label><input type="date" id="startD"></div>
@@ -443,7 +455,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>5. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
+      <h2>4. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
       <div class="pad">
         <div class="row">
           <button class="btn" id="expBtn">백업 파일 내보내기</button>
@@ -562,6 +574,7 @@ function rebuild(){
         const b=s.base[dw+'-'+p];
         if(!b || !b.cls) continue;
         const id=key+'#'+p, r=s.rec[id]||{};
+        if(r.del) continue;                 /* 이 날짜만 지운 칸 */
         LESSONS.push({
           id:id, date:key, dow:dw, period:p, kind:'base',
           cls: r.cls || b.cls, place: r.place || b.place,
@@ -596,15 +609,17 @@ function rebuild(){
   const covered = {};
   for(const e of state.extras) if(e.forId) covered[e.forId]=true;
   STATS={};
+  const blank = ()=>({done:0, ok:0, upto:0, lost:0, mk:0, unfixed:[]});
   for(const c of state.classes){
-    STATS[c.name] = {done:Number(c.done)||0, ok:0, lost:0, mk:0, plan:Number(c.plan)||0, unfixed:[]};
+    STATS[c.name] = Object.assign(blank(), {done:Number(c.done)||0});
   }
   for(const L of LESSONS){
-    const st = STATS[L.cls] || (STATS[L.cls]={done:0,ok:0,lost:0,mk:0,plan:0,unfixed:[]});
-    if(L.status==='ok'){ st.ok++; if(L.kind==='extra') st.mk++; }
+    const st = STATS[L.cls] || (STATS[L.cls]=blank());
+    if(L.status==='ok'){ st.ok++; if(L.date<=TODAY) st.upto++; if(L.kind==='extra') st.mk++; }
     else { st.lost++; if(!covered[L.id]) st.unfixed.push(L); }
   }
-  for(const k in STATS){ const st=STATS[k]; st.total=st.done+st.ok; st.left=st.plan?st.plan-st.total:null; }
+  /* total = 이 기간에 그 학급이 받을 전체 차시, prog = 오늘까지 한 차시 */
+  for(const k in STATS){ const st=STATS[k]; st.total=st.done+st.ok; st.prog=st.done+st.upto; }
 }
 
 /* ================= modal ================= */
@@ -916,6 +931,7 @@ function renderYear(){
   $('#ygrid').innerHTML=h+'</tbody>';
   closePick();
   $('#emptyHint').hidden = Object.keys(state.base).length>0;
+  renderProgress();
   renderLostCard();
 }
 
@@ -1002,6 +1018,26 @@ function renderLog(){
   $('#gText').value=logText(k);
   renderRecent();
 }
+function renderProgress(){
+  const names=classNames();
+  const any=names.some(n=>(STATS[n]||{}).total);
+  $('#progCard').hidden = !names.length || !any;
+  $('#progWrap').innerHTML = names.map(n=>{
+    const st=STATS[n]||{prog:0,total:0,lost:0,mk:0,unfixed:[]};
+    const pct = st.total ? Math.round(st.prog/st.total*100) : 0;
+    const low = st.unfixed.length>0;      /* 보강을 안 잡은 결손이 있으면 그만큼 모자람 */
+    const bits=[];
+    if(st.lost) bits.push('결손 '+st.lost);
+    if(st.mk) bits.push('보강 '+st.mk);
+    if(st.unfixed.length) bits.push('<em>보강 필요 '+st.unfixed.length+'</em>');
+    return '<div class="pitem'+(low?' low':'')+'">'+
+      '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+'</i></span></div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      (bits.length?'<div class="sub">'+bits.join(' · ')+'</div>':'')+
+      '</div>';
+  }).join('');
+}
+
 function renderRecent(){
   const keys=Object.keys(state.logs||{}).filter(k=>String(state.logs[k]).trim()).sort().reverse();
   $('#gRecentCard').hidden = !keys.length;
@@ -1025,12 +1061,11 @@ function renderClass(){
   }).join('') + '<button data-all="1" class="'+(curCls==='ALL'?'on':'')+'" style="margin-left:6px">전체 시수</button>';
 
   if(curCls==='ALL'){ renderAllStats(); return; }
-  const st=STATS[curCls]||{done:0,ok:0,lost:0,mk:0,plan:0,total:0,left:null,unfixed:[]};
+  const st=STATS[curCls]||{prog:0,total:0,ok:0,lost:0,mk:0,unfixed:[]};
   $('#clsStats').innerHTML=
-    stat(st.total,'누적 이수 차시') + stat(st.ok,'이 기간 수업') + stat(st.lost,'결손') +
-    stat(st.mk,'보강') + stat(st.unfixed.length,'보강 미배치') +
-    stat(st.plan? (st.left>0? '−'+st.left : (st.left<0? '+'+(-st.left) : '0')) : '—',
-         st.plan? (st.left>0? '계획까지 남음' : (st.left<0? '계획 초과' : '계획과 같음')) : '계획 미입력');
+    stat(st.prog,'오늘까지 한 차시') + stat(st.total,'이 기간 전체 차시') +
+    stat(Math.max(0,st.total-st.prog),'남은 차시') +
+    stat(st.lost,'결손') + stat(st.mk,'보강') + stat(st.unfixed.length,'보강 미배치');
 
   const rows=LESSONS.filter(L=>L.cls===curCls);
   let h='<thead><tr><th style="width:52px">차시</th><th style="width:118px">날짜</th><th style="width:70px">교시</th>'+
@@ -1059,25 +1094,24 @@ function stat(v,l){ return '<div class="stat"><b>'+v+'</b><span>'+l+'</span></di
 function renderAllStats(){
   $('#clsStats').innerHTML='';
   const names=classNames();
-  const totals=names.map(n=>STATS[n]?STATS[n].total:0);
-  const mx=Math.max.apply(null,totals.concat([0])), mn=Math.min.apply(null,totals.concat([0]));
-  let h='<thead><tr><th>학급</th><th>이미 한 차시</th><th>이 기간 수업</th><th>누적 이수</th>'+
-        '<th>결손</th><th>보강</th><th>미배치</th><th>연간 계획</th><th>남은</th></tr></thead><tbody>';
+  let h='<thead><tr><th>학급</th><th>오늘까지</th><th>전체 차시</th><th>남은</th>'+
+        '<th>결손</th><th>보강</th><th>보강 미배치</th></tr></thead><tbody>';
   for(const n of names){
     const s=STATS[n]||{};
-    const flag = (mx-mn)>=2 && s.total===mn;
-    h+='<tr><td><b>'+esc(n)+'</b></td><td>'+(s.done||0)+'</td><td>'+(s.ok||0)+'</td>'+
+    const flag = s.unfixed && s.unfixed.length>0;
+    h+='<tr><td><b>'+esc(n)+'</b></td><td>'+(s.prog||0)+'</td>'+
        '<td><b'+(flag?' style="color:#d05252"':'')+'>'+(s.total||0)+'</b></td>'+
+       '<td>'+Math.max(0,(s.total||0)-(s.prog||0))+'</td>'+
        '<td>'+(s.lost||0)+'</td><td>'+(s.mk||0)+'</td>'+
-       '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td>'+
-       '<td>'+(s.plan||'-')+'</td><td>'+(s.plan?(s.left>0?s.left+'시간':(s.left<0?'초과 '+(-s.left):'맞음')):'-')+'</td></tr>';
+       '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td></tr>';
   }
   h+='</tbody>';
   $('#clsTable').innerHTML=h;
-  const gap=mx-mn;
-  $('#clsStats').innerHTML = stat(gap+'시간','학급 간 최대 편차') +
-    stat(names.length,'학급 수') +
-    stat(Object.keys(STATS).reduce((a,k)=>a+(STATS[k].unfixed?STATS[k].unfixed.length:0),0),'보강 미배치 전체');
+  const sum=(f)=>names.reduce((a,n)=>a+(STATS[n]?f(STATS[n]):0),0);
+  $('#clsStats').innerHTML =
+    stat(sum(x=>x.prog),'오늘까지 한 차시 합') +
+    stat(sum(x=>x.lost),'결손 합') +
+    stat(sum(x=>x.unfixed.length),'보강 미배치 합');
 }
 
 /* ================= render: setup ================= */
@@ -1106,16 +1140,6 @@ function renderSetup(){
   $('#startD').value=state.start; $('#endD').value=state.end;
 
   renderBaseTable();
-  /* 학급 */
-  let c='<thead><tr><th>학급</th><th style="width:130px">이미 한 차시</th>'+
-        '<th style="width:130px">연간 계획 시수</th><th style="width:60px"></th></tr></thead><tbody>';
-  state.classes.forEach((cl,i)=>{
-    c+='<tr><td><input type="text" data-c="'+i+'" data-k="name" value="'+esc(cl.name)+'" style="width:90px"></td>'+
-       '<td><input type="number" min="0" data-c="'+i+'" data-k="done" value="'+(cl.done||0)+'" style="width:78px"></td>'+
-       '<td><input type="number" min="0" data-c="'+i+'" data-k="plan" value="'+(cl.plan||0)+'" style="width:78px"></td>'+
-       '<td style="text-align:right"><button class="btn sm warn" data-delc="'+i+'">삭제</button></td></tr>';
-  });
-  $('#clsSetup').innerHTML=c+'</tbody>';
 
   /* 장소 */
   let pl='<thead><tr><th>장소</th><th style="width:90px">색</th><th style="width:60px"></th></tr></thead><tbody>';
@@ -1171,7 +1195,8 @@ function openPick(td){
   const box=document.createElement('div');
   box.id='pickBox'; box.className='pick';
   box.innerHTML='<div class="ph">'+date.slice(5)+' ('+DOWK[parseD(date).getDay()]+') '+per+'교시'+
-      (L?' · 이 날짜만':' · 수업 넣기')+'</div>'+
+      (L?' · 이 날짜만':' · 수업 넣기')+
+      (L?'<button class="del" data-del="1" title="이 칸을 비웁니다">지우기</button>':'')+'</div>'+
     '<div class="pg">'+ classNames().map(n=>
       '<button data-c="'+esc(n)+'"'+(L&&L.cls===n?' class="on"':'')+'>'+esc(n)+'</button>').join('')+
     '</div><div class="ft">두 번 누르면 상세 화면</div>';
@@ -1185,6 +1210,16 @@ function openPick(td){
   box.style.left=Math.round(x)+'px'; box.style.top=Math.round(Math.max(8,y))+'px';
 
   box.onclick=ev=>{
+    if(ev.target.closest('[data-del]')){       /* 이 칸 비우기 */
+      if(L.kind==='extra'){
+        state.extras=state.extras.filter(x=>x.id!==L.id);
+        delete state.rec[L.id];
+      }else{
+        const rec=state.rec[L.id]=state.rec[L.id]||{};
+        rec.del=1; delete rec.cls;
+      }
+      closePick(); touch(); return;
+    }
     const b=ev.target.closest('button[data-c]'); if(!b) return;
     const cls=b.dataset.c;
     if(L){
@@ -1197,11 +1232,20 @@ function openPick(td){
         if(!Object.keys(rec).some(k=>rec[k])) delete state.rec[L.id];
       }
     }else{
-      state.extras.push({
-        id:'x'+Date.now().toString(36)+Math.floor(Math.random()*900+100),
-        date:date, period:per, cls:cls,
-        place:(state.places[0]?state.places[0].id:''), forId:''
-      });
+      /* 지웠던 기본 시간표 칸이면 되살리고, 아니면 새 수업으로 넣는다 */
+      const dw=parseD(date).getDay(), bk=dw+'-'+per, rid=date+'#'+per;
+      const base=state.base[bk], hidden=state.rec[rid];
+      if(base && base.cls && hidden && hidden.del){
+        delete hidden.del;
+        if(cls===base.cls) delete hidden.cls; else hidden.cls=cls;
+        if(!Object.keys(hidden).some(k=>hidden[k])) delete state.rec[rid];
+      }else{
+        state.extras.push({
+          id:'x'+Date.now().toString(36)+Math.floor(Math.random()*900+100),
+          date:date, period:per, cls:cls,
+          place:(state.places[0]?state.places[0].id:''), forId:''
+        });
+      }
     }
     closePick(); touch();
   };
@@ -1379,40 +1423,6 @@ $('#btTable').addEventListener('change', e=>{
   }else b.place=sel.value;
   touch();
 });
-$('#clsSetup').addEventListener('input', e=>{
-  const i=e.target.dataset.c; if(i===undefined) return;
-  const k=e.target.dataset.k; if(k==='name') return;   /* 학급 이름은 다 치고 나서(blur) 반영 */
-  const cl=state.classes[Number(i)]; if(!cl) return;
-  cl[k]=Number(e.target.value)||0;
-  save(); rebuild();
-});
-$('#clsSetup').addEventListener('change', e=>{
-  const i=e.target.dataset.c; if(i===undefined) return;
-  const k=e.target.dataset.k, cl=state.classes[Number(i)]; if(!cl) return;
-  if(k==='name'){
-    const prev=cl.name, nv=e.target.value.trim();
-    if(!nv || nv===prev){ e.target.value=prev; return; }
-    if(classNames().indexOf(nv)>=0){ alert('이미 있는 학급 이름입니다.'); e.target.value=prev; return; }
-    for(const key in state.base) if(state.base[key].cls===prev) state.base[key].cls=nv;
-    for(const key in state.rec) if(state.rec[key].cls===prev) state.rec[key].cls=nv;
-    state.extras.forEach(x=>{ if(x.cls===prev) x.cls=nv; });
-    cl.name=nv; if(curCls===prev) curCls=nv;
-  }else cl[k]=Number(e.target.value)||0;
-  save(); rebuild(); renderBaseTable();   /* 입력 중인 표는 다시 그리지 않습니다 */
-});
-$('#clsSetup').addEventListener('click', e=>{
-  const i=e.target.dataset.delc; if(i===undefined) return;
-  const cl=state.classes[Number(i)];
-  if(!confirm(cl.name+' 학급을 삭제할까요? 기초 시간표에서도 빠집니다.')) return;
-  for(const key in state.base) if(state.base[key].cls===cl.name) delete state.base[key];
-  state.extras=state.extras.filter(x=>x.cls!==cl.name);
-  state.classes.splice(Number(i),1); touch();
-});
-$('#addCls').onclick=()=>{
-  const v=$('#newCls').value.trim(); if(!v) return;
-  if(classNames().indexOf(v)>=0){ alert('이미 있는 학급입니다.'); return; }
-  state.classes.push({name:v,done:0,plan:0}); $('#newCls').value=''; touch();
-};
 $('#placeSetup').addEventListener('change', e=>{
   const i=e.target.dataset.p; if(i===undefined) return;
   state.places[Number(i)][e.target.dataset.k]=e.target.value;
@@ -1482,11 +1492,11 @@ function csvRecords(cls){
   csvDL('수업기록-'+(cls||'전체')+'-'+TODAY+'.csv', rows);
 }
 function csvHours(){
-  const rows=[['학급','이미 한 차시','이 기간 수업','누적 이수','결손','보강','보강 미배치','연간 계획','남은']];
+  const rows=[['학급','오늘까지 한 차시','전체 차시','남은','결손','보강','보강 미배치']];
   for(const n of classNames()){
     const s2=STATS[n]||{};
-    rows.push([n, s2.done||0, s2.ok||0, s2.total||0, s2.lost||0, s2.mk||0,
-      (s2.unfixed||[]).length, s2.plan||'', s2.plan?(s2.left):'']);
+    rows.push([n, s2.prog||0, s2.total||0, Math.max(0,(s2.total||0)-(s2.prog||0)),
+      s2.lost||0, s2.mk||0, (s2.unfixed||[]).length]);
   }
   csvDL('시수집계-'+TODAY+'.csv', rows);
 }
