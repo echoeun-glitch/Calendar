@@ -521,7 +521,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-23f';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-23g';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -574,7 +574,7 @@ function defState(){
     places: [{id:'p1',name:'체육관',color:PALETTE[0]},
              {id:'p2',name:'운동장',color:PALETTE[1]},
              {id:'p3',name:'예지관',color:PALETTE[2]}],
-    classes: DEF_CLASSES.map(n=>({name:n, done:0, plan:0, capOn:false, from:'', to:''})),
+    classes: DEF_CLASSES.map(n=>({name:n, plan:0, capOn:false, from:'', to:''})),
     base: {},     // 'dow-period' -> {cls, place}
     days: {},     // iso -> {label, off}
     rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
@@ -589,7 +589,10 @@ function load(){
     const s = JSON.parse(raw), d = defState();
     const st = Object.assign(d, s, {times: s.times||d.times});
     /* 예전에 차시 개수가 조용히 칸을 비우던 동작은 기본 꺼짐으로 둔다 */
-    (st.classes||[]).forEach(c=>{ if(c.capOn===undefined) c.capOn=false; });
+    (st.classes||[]).forEach(c=>{
+      if(c.capOn===undefined) c.capOn=false;
+      delete c.done;   /* 입력란이 없어진 뒤로도 차시에 몰래 더해지던 예전 값 */
+    });
     return st;
   }catch(e){ return defState(); }
 }
@@ -658,7 +661,7 @@ function rebuild(){
   /* 학급마다 수업 기간을 정해 두면 그 밖의 날은 'over'(쓰지 않는 칸)로 둔다 */
   const cnt={}, rng={}, cap={};
   state.classes.forEach(c=>{
-    cnt[c.name]=Number(c.done)||0;
+    cnt[c.name]=0;
     if(c.from || c.to) rng[c.name]={from:c.from||'', to:c.to||''};
     if(c.capOn && Number(c.plan)>0) cap[c.name]=Number(c.plan);
   });
@@ -678,11 +681,11 @@ function rebuild(){
   const covered = {};
   for(const e of state.extras) if(e.forId) covered[e.forId]=true;
   STATS={};
-  const blank = ()=>({done:0, plan:0, capOn:false, from:'', to:'',
+  const blank = ()=>({plan:0, capOn:false, from:'', to:'',
                       ok:0, upto:0, lost:0, mk:0, over:0, unfixed:[]});
   for(const c of state.classes){
-    STATS[c.name] = Object.assign(blank(), {done:Number(c.done)||0,
-      plan:Number(c.plan)||0, capOn:!!c.capOn, from:c.from||'', to:c.to||''});
+    STATS[c.name] = Object.assign(blank(),
+      {plan:Number(c.plan)||0, capOn:!!c.capOn, from:c.from||'', to:c.to||''});
   }
   for(const L of LESSONS){
     const st = STATS[L.cls] || (STATS[L.cls]=blank());
@@ -692,8 +695,8 @@ function rebuild(){
   }
   for(const k in STATS){
     const st=STATS[k];
-    st.sched = st.done+st.ok;                       /* 실제로 편성된 차시 */
-    st.prog  = st.done+st.upto;                     /* 오늘까지 한 차시 */
+    st.sched = st.ok;      /* 이 기간에 화면에 보이는 칸 수 */
+    st.prog  = st.upto;    /* 그중 오늘까지 지난 것 */
     st.total = st.plan>0 ? st.plan : st.sched;      /* 화면의 분모 = 목표 또는 편성 */
     st.short = st.plan>0 ? Math.max(0, st.plan-st.sched) : 0;   /* 목표보다 모자란 만큼 */
     st.spare = st.plan>0 ? Math.max(0, st.sched-st.plan) : 0;   /* 목표보다 많은 만큼 */
