@@ -221,6 +221,32 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .pitem.low{border-color:rgba(214,69,69,.45)}
 .pitem.low .bar i{background:#d64545}
 
+/* ---------- 명렬표 · 팀뽑기 ---------- */
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px}
+.rname{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
+  padding:6px 9px;font-size:13px;background:var(--panel)}
+.rname i{font-style:normal;color:var(--muted);font-size:11px;font-weight:700;min-width:16px}
+.rname b{font-weight:700}
+.namepick{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:5px;margin-top:8px}
+.namepick button{border:1px solid var(--line);background:var(--panel);border-radius:8px;
+  padding:6px 4px;font-size:12.5px;font-weight:700}
+.namepick button.out{opacity:.4;text-decoration:line-through;border-style:dashed}
+.namepick button:hover{border-color:var(--accent)}
+.teamnum{display:flex;gap:4px;background:var(--line2);padding:3px;border-radius:10px}
+.teamnum button{border:0;background:none;padding:6px 12px;border-radius:8px;
+  font-size:13.5px;font-weight:700;color:var(--muted)}
+.teamnum button.on{background:var(--panel);color:var(--accent);box-shadow:var(--shadow)}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.team{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden;
+  box-shadow:var(--shadow)}
+.team h3{font-size:14px;padding:9px 12px;background:var(--line2);display:flex;align-items:center;gap:6px}
+.team h3 span{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:600}
+.team ol{list-style:none;padding:8px 12px 12px;counter-reset:m}
+.team li{font-size:14px;padding:4px 0;border-bottom:1px solid var(--line2);display:flex;gap:8px}
+.team li:last-child{border-bottom:0}
+.team li i{font-style:normal;color:var(--muted);font-size:11.5px;min-width:18px}
+.rosrow input{width:100%}
+
 /* ---------- 일지 ---------- */
 .logbox{min-height:210px;font-size:14px;line-height:1.8;padding:12px 13px}
 .loghead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -329,6 +355,7 @@ tr.dead .ord{text-decoration:line-through}
     <button data-view="year" class="on">연간</button>
     <button data-view="week">주간</button>
     <button data-view="log">일지</button>
+    <button data-view="team">팀뽑기</button>
     <button data-view="class">학급별</button>
     <button data-view="setup">설정</button>
   </nav>
@@ -422,6 +449,38 @@ tr.dead .ord{text-decoration:line-through}
     </div>
   </section>
 
+  <!-- ================= TEAM ================= -->
+  <section id="view-team" hidden>
+    <div class="toolbar">
+      <div class="clsbar" id="teamCls" style="margin:0"></div>
+    </div>
+    <div class="card" id="teamSetCard">
+      <div class="pad">
+        <div class="row" style="margin-bottom:12px">
+          <span class="muted" style="font-size:13px;font-weight:700">팀 수</span>
+          <div class="teamnum" id="teamNum"></div>
+          <button class="btn primary" id="teamGo">팀 뽑기</button>
+          <button class="btn sm" id="teamPrint" style="margin-left:auto">인쇄</button>
+        </div>
+        <div class="row" style="gap:6px">
+          <span class="muted" style="font-size:12.5px;font-weight:700">오늘 빠지는 학생</span>
+          <span class="muted" style="font-size:11.5px">이름을 눌러 빼두면 뽑기에서 제외됩니다</span>
+        </div>
+        <div class="namepick" id="teamPool"></div>
+      </div>
+    </div>
+    <div id="teamOut"></div>
+    <div class="card noprint" id="teamEmpty" hidden>
+      <h2>명렬표가 없습니다</h2>
+      <div class="pad">
+        <p style="font-size:13.5px;line-height:1.8;margin-bottom:12px">
+          <b>설정 → 5. 명렬표</b>에서 나이스에서 받은 엑셀 파일을 올리면 이 탭에서 팀을 뽑을 수 있습니다.
+        </p>
+        <button class="btn primary" id="goRoster">명렬표 올리러 가기</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= CLASS ================= -->
   <section id="view-class" hidden>
     <div class="clsbar" id="clsbar"></div>
@@ -431,6 +490,10 @@ tr.dead .ord{text-decoration:line-through}
     <div class="card">
       <h2>수업 기록 <span class="hint">내용·메모 칸은 바로 입력하면 저장됩니다</span></h2>
       <div class="scroll"><table id="clsTable"></table></div>
+    </div>
+    <div class="card" id="clsRosterCard">
+      <h2>명렬표 <span class="hint" id="clsRosterN"></span></h2>
+      <div class="pad"><div class="roster" id="clsRoster"></div></div>
     </div>
     <div class="row noprint" style="margin-top:18px;opacity:.55;font-size:12px">
       <button class="btn sm ghost" id="clsPrint">인쇄</button>
@@ -498,7 +561,26 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>5. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
+      <h2>5. 명렬표 <span class="hint">나이스에서 받은 엑셀 파일을 그대로 올리세요</span></h2>
+      <div class="pad">
+        <div class="row" style="margin-bottom:10px">
+          <label class="f" style="margin:0">학급</label>
+          <select id="rosCls"></select>
+          <button class="btn primary" id="rosPick">엑셀 파일 올리기</button>
+          <input type="file" id="rosFile" accept=".xlsx,.xls,.csv,.txt" hidden>
+          <button class="btn sm" id="rosPaste">붙여넣기로 넣기</button>
+        </div>
+        <p class="muted" style="font-size:12.5px;line-height:1.7;margin-bottom:12px">
+          엑셀(.xlsx)·나이스에서 내려받은 .xls·CSV를 읽습니다. 번호와 이름 칸을 알아서 찾고,
+          올린 뒤 확인 화면에서 고칠 수 있습니다.
+          <b>학생 이름은 이 브라우저 안에만 저장되고 밖으로 나가지 않습니다.</b>
+        </p>
+        <div class="scroll"><table id="rosList"></table></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>6. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
       <div class="pad">
         <div class="row">
           <button class="btn" id="expBtn">백업 파일 내보내기</button>
@@ -521,7 +603,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-24';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-24b';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -579,6 +661,7 @@ function defState(){
     days: {},     // iso -> {label, off}
     rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
     logs: {},     // iso -> 그날의 일지 (자유 입력)
+    roster: {},   // 학급 -> [{no, name}] 명렬표
     extras: []    // {id,date,period,cls,place}
   };
 }
@@ -600,6 +683,7 @@ function load(){
       if(!Object.keys(r).some(x=>r[x])) delete st.rec[k];
     }
     (st.extras||[]).forEach(e=>{ delete e.forId; });
+    if(!st.roster) st.roster={};
     return st;
   }catch(e){ return defState(); }
 }
@@ -879,6 +963,159 @@ function legendHTML(){
   return state.places.map(p=>'<span><i style="background:'+p.color+'"></i>'+esc(p.name)+'</span>').join('');
 }
 
+/* ================= 명렬표 읽기 =================
+   나이스에서 받은 파일을 그대로 읽습니다.
+   - .xlsx : ZIP을 브라우저 기본 기능(DecompressionStream)으로 풀어 XML을 읽습니다
+   - .xls  : 나이스가 내려주는 파일은 실제로는 HTML 표인 경우가 많아 그대로 읽습니다
+   - .csv / 붙여넣기도 같은 방법으로 처리합니다
+   바깥으로 나가는 통신은 없습니다. */
+
+function u16(b,i){ return b[i] | (b[i+1]<<8); }
+function u32(b,i){ return (b[i] | (b[i+1]<<8) | (b[i+2]<<16) | (b[i+3]<<24)) >>> 0; }
+
+async function inflateRaw(bytes){
+  const ds = new DecompressionStream('deflate-raw');
+  const stream = new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+/* zip 안에서 필요한 파일만 꺼낸다 */
+async function zipRead(buf, want){
+  const b = new Uint8Array(buf);
+  let eocd = -1;
+  for(let i=b.length-22; i>=0 && i>b.length-70000; i--){
+    if(u32(b,i)===0x06054b50){ eocd=i; break; }
+  }
+  if(eocd<0) throw new Error('zip-not-found');
+  const n = u16(b, eocd+10);
+  let off = u32(b, eocd+16);
+  const out = {};
+  for(let k=0; k<n; k++){
+    if(u32(b,off)!==0x02014b50) break;
+    const method = u16(b, off+10);
+    const csize  = u32(b, off+20);
+    const nameLen= u16(b, off+28), extraLen=u16(b, off+30), cmtLen=u16(b, off+32);
+    const lho    = u32(b, off+42);
+    const name   = new TextDecoder().decode(b.subarray(off+46, off+46+nameLen));
+    if(want(name)){
+      const lNameLen = u16(b, lho+26), lExtraLen = u16(b, lho+28);
+      const start = lho + 30 + lNameLen + lExtraLen;
+      const raw = b.subarray(start, start+csize);
+      const data = method===0 ? raw : await inflateRaw(raw);
+      out[name] = new TextDecoder().decode(data);
+    }
+    off += 46 + nameLen + extraLen + cmtLen;
+  }
+  return out;
+}
+const colNum = ref => {
+  let n=0; for(const ch of (ref.match(/^[A-Z]+/)||[''])[0]) n = n*26 + (ch.charCodeAt(0)-64);
+  return n-1;
+};
+async function readXlsx(buf){
+  const files = await zipRead(buf, n =>
+    n==='xl/sharedStrings.xml' || n==='xl/workbook.xml' || /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
+  const dp = new DOMParser();
+  let shared=[];
+  if(files['xl/sharedStrings.xml']){
+    const d = dp.parseFromString(files['xl/sharedStrings.xml'], 'application/xml');
+    shared = Array.from(d.getElementsByTagName('si')).map(si =>
+      Array.from(si.getElementsByTagName('t')).map(t=>t.textContent).join(''));
+  }
+  const sheetName = Object.keys(files).filter(n=>n.indexOf('worksheets')>=0).sort()[0];
+  if(!sheetName) throw new Error('no-sheet');
+  const d = dp.parseFromString(files[sheetName], 'application/xml');
+  const rows=[];
+  for(const row of Array.from(d.getElementsByTagName('row'))){
+    const arr=[];
+    for(const cell of Array.from(row.getElementsByTagName('c'))){
+      const ci = colNum(cell.getAttribute('r')||'A1');
+      const t = cell.getAttribute('t');
+      let v='';
+      if(t==='inlineStr'){
+        v = Array.from(cell.getElementsByTagName('t')).map(x=>x.textContent).join('');
+      }else{
+        const vn = cell.getElementsByTagName('v')[0];
+        v = vn ? vn.textContent : '';
+        if(t==='s') v = shared[Number(v)] || '';
+      }
+      arr[ci] = String(v).trim();
+    }
+    rows.push(arr);
+  }
+  return rows;
+}
+function readHtmlTable(text){
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  const table = doc.querySelector('table');
+  if(!table) return null;
+  return Array.from(table.rows).map(tr =>
+    Array.from(tr.cells).map(td => td.textContent.replace(/\s+/g,' ').trim()));
+}
+function readDelimited(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  const sep = (lines[0].indexOf('\t')>=0) ? '\t' : (lines[0].indexOf(',')>=0 ? ',' : null);
+  return lines.map(l => sep ? l.split(sep).map(c=>c.replace(/^"|"$/g,'').trim()) : [l.trim()]);
+}
+
+/* 표에서 번호·이름을 찾아낸다 */
+const NAMEISH = v => /^[가-힣]{2,5}$/.test(v) || /^[A-Za-z][A-Za-z .'-]{1,20}$/.test(v);
+function pickRoster(rows){
+  if(!rows || !rows.length) return [];
+  let hRow=-1, cName=-1, cNo=-1;
+  for(let r=0; r<Math.min(rows.length, 15); r++){
+    const row = rows[r]||[];
+    for(let c=0; c<row.length; c++){
+      const v = (row[c]||'').replace(/\s/g,'');
+      if(cName<0 && /^(이름|성명|학생명|성 명)$/.test(v)){ hRow=r; cName=c; }
+      if(cNo<0 && /^(번호|번|학번|출석번호)$/.test(v) && hRow<=r){ cNo=c; }
+    }
+    if(cName>=0){ break; }
+  }
+  if(cName<0){                       /* 머리글이 없으면 이름처럼 보이는 열을 고른다 */
+    const score=[];
+    for(const row of rows) (row||[]).forEach((v,c)=>{
+      if(v && NAMEISH(v)) score[c]=(score[c]||0)+1;
+    });
+    let best=-1, bestN=0;
+    score.forEach((n,c)=>{ if(n>bestN){ bestN=n; best=c; } });
+    if(best<0 || bestN<3) return [];
+    cName=best; hRow=-1;
+  }
+  const out=[], seen={};
+  for(let r=hRow+1; r<rows.length; r++){
+    const row = rows[r]||[];
+    const nm = (row[cName]||'').replace(/\s+/g,' ').trim();
+    if(!nm || !NAMEISH(nm)) continue;
+    if(/^(이름|성명|합계|계|소계)$/.test(nm)) continue;
+    let no = cNo>=0 ? String(row[cNo]||'').replace(/[^0-9]/g,'') : '';
+    if(!no) no = String(out.length+1);
+    const key = no+'/'+nm;
+    if(seen[key]) continue; seen[key]=1;
+    out.push({no:Number(no)||out.length+1, name:nm});
+    if(out.length>=60) break;
+  }
+  return out;
+}
+async function parseRosterFile(file){
+  const name = (file.name||'').toLowerCase();
+  const buf = await file.arrayBuffer();
+  const head = new Uint8Array(buf.slice(0,8));
+  if(head[0]===0x50 && head[1]===0x4B){                 /* PK... = xlsx */
+    return pickRoster(await readXlsx(buf));
+  }
+  if(head[0]===0xD0 && head[1]===0xCF){                 /* 진짜 옛날 .xls (BIFF) */
+    throw new Error('old-xls');
+  }
+  let text='';
+  for(const enc of ['utf-8','euc-kr']){
+    try{ text = new TextDecoder(enc, {fatal:false}).decode(buf); }catch(e){ continue; }
+    if(text.indexOf('�')<0 || enc==='euc-kr') break;
+  }
+  const html = readHtmlTable(text);
+  if(html && html.length) return pickRoster(html);
+  return pickRoster(readDelimited(text));
+}
+
 /* ================= render: year (한 장 배열표) ================= */
 const MD = d => (d.getMonth()+1)+'.'+d.getDate();
 const RANK={ok:0, cancel:1, off:1, over:2};
@@ -1020,6 +1257,119 @@ function renderWeek(){
     h+='</tr>';
   }
   $('#wgrid').innerHTML=h+'</tbody>';
+}
+
+/* ================= 명렬표 · 팀뽑기 ================= */
+function roster(cls){ return (state.roster && state.roster[cls]) || []; }
+
+function renderRosterSetup(){
+  const names=classNames();
+  const sel=$('#rosCls');
+  const keep=sel.value;
+  sel.innerHTML=names.map(n=>'<option'+(n===keep?' selected':'')+'>'+esc(n)+'</option>').join('');
+  let h='<thead><tr><th style="width:90px">학급</th><th style="width:80px">인원</th>'+
+        '<th>이름</th><th style="width:68px"></th></tr></thead><tbody>';
+  let any=false;
+  for(const n of names){
+    const r=roster(n); if(!r.length) continue;
+    any=true;
+    h+='<tr><td><b>'+esc(n)+'</b></td><td>'+r.length+'명</td>'+
+       '<td class="muted" style="font-size:12px">'+
+        esc(r.slice(0,8).map(x=>x.name).join(', '))+(r.length>8?' …':'')+'</td>'+
+       '<td style="text-align:right"><button class="btn sm warn" data-rosdel="'+esc(n)+'">삭제</button></td></tr>';
+  }
+  if(!any) h+='<tr><td colspan="4" class="muted" style="padding:16px;text-align:center">'+
+    '아직 올린 명렬표가 없습니다.</td></tr>';
+  $('#rosList').innerHTML=h+'</tbody>';
+}
+
+/* 읽어온 목록을 확인하고 고쳐서 저장 */
+function openRosterCheck(cls, list){
+  if(!list.length){
+    alert('이름을 찾지 못했습니다.\n\n번호·이름이 들어 있는 표인지 확인해 주세요.\n'+
+          '그래도 안 되면 «붙여넣기로 넣기»로 이름을 줄바꿈으로 붙여 넣으시면 됩니다.');
+    return;
+  }
+  let h='<div class="row" style="margin-bottom:12px">'+
+        '<label class="f" style="margin:0">학급</label><select id="rcCls">'+
+        classNames().map(n=>'<option'+(n===cls?' selected':'')+'>'+esc(n)+'</option>').join('')+
+        '</select><span class="muted" style="font-size:12.5px">'+list.length+'명을 찾았습니다</span></div>'+
+    '<div class="scroll" style="max-height:44vh"><table id="rcTable"><tbody>'+
+    list.map((x,i)=>'<tr data-i="'+i+'">'+
+      '<td style="width:64px"><input class="rcno" type="number" min="0" value="'+x.no+'" style="width:56px"></td>'+
+      '<td class="rosrow"><input class="rcname" value="'+esc(x.name)+'"></td>'+
+      '<td style="width:52px;text-align:right"><button class="btn sm ghost rcdel">✕</button></td></tr>').join('')+
+    '</tbody></table></div>'+
+    '<p class="muted" style="font-size:12px;margin:10px 0 12px">잘못 읽힌 줄은 고치거나 ✕로 빼세요.</p>'+
+    '<div class="acts"><button class="btn" data-close="1">취소</button>'+
+    '<button class="btn primary" id="rcSave">이 학급 명렬표로 저장</button></div>';
+  modal('명렬표 확인', h, root=>{
+    $('#rcTable',root).addEventListener('click', e=>{
+      if(e.target.classList.contains('rcdel')) e.target.closest('tr').remove();
+    });
+    $('#rcSave',root).onclick=()=>{
+      const target=$('#rcCls',root).value, out=[];
+      $$('#rcTable tr',root).forEach(tr=>{
+        const nm=$('.rcname',tr).value.trim();
+        if(!nm) return;
+        out.push({no:Number($('.rcno',tr).value)||out.length+1, name:nm});
+      });
+      if(!state.roster) state.roster={};
+      if(out.length) state.roster[target]=out; else delete state.roster[target];
+      closeModal(); touch();
+      alert(target+' 명렬표 '+out.length+'명을 저장했습니다.');
+    };
+  });
+}
+
+/* ---- 팀뽑기 ---- */
+let teamCls='', teamN=4, teamOut=null, teamExcl={};
+function renderTeam(){
+  const withRoster=classNames().filter(n=>roster(n).length);
+  if(!withRoster.length){
+    $('#teamEmpty').hidden=false;
+    $('#teamSetCard').hidden=true; $('#teamOut').innerHTML=''; $('#teamCls').innerHTML='';
+    return;
+  }
+  $('#teamEmpty').hidden=true; $('#teamSetCard').hidden=false;
+  if(withRoster.indexOf(teamCls)<0){ teamCls=withRoster[0]; teamOut=null; }
+  $('#teamCls').innerHTML=withRoster.map(n=>
+    '<button class="'+(n===teamCls?'on':'')+'" data-tc="'+esc(n)+'">'+esc(n)+
+    ' <span style="opacity:.7;font-weight:400">'+roster(n).length+'</span></button>').join('');
+  $('#teamNum').innerHTML=[1,2,3,4,5,6].map(n=>
+    '<button class="'+(n===teamN?'on':'')+'" data-tn="'+n+'">'+n+'팀</button>').join('');
+  const ex=teamExcl[teamCls]||{};
+  $('#teamPool').innerHTML=roster(teamCls).map(p=>
+    '<button class="'+(ex[p.name]?'out':'')+'" data-ex="'+esc(p.name)+'">'+
+    '<span style="color:var(--muted);font-size:11px">'+p.no+'</span> '+esc(p.name)+'</button>').join('');
+  renderTeamOut();
+}
+function renderTeamOut(){
+  const box=$('#teamOut');
+  if(!teamOut || teamOut.cls!==teamCls){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="card"><h2>'+esc(teamCls)+' · '+teamOut.teams.length+'팀 '+
+    '<span class="hint">'+teamOut.total+'명 · '+teamOut.when+'</span></h2>'+
+    '<div class="pad"><div class="teams">'+
+    teamOut.teams.map((t,i)=>'<div class="team"><h3>'+(i+1)+'팀<span>'+t.length+'명</span></h3>'+
+      '<ol>'+t.map(p=>'<li><i>'+p.no+'</i>'+esc(p.name)+'</li>').join('')+'</ol></div>').join('')+
+    '</div></div></div>';
+}
+function drawTeams(){
+  const ex=teamExcl[teamCls]||{};
+  const pool=roster(teamCls).filter(p=>!ex[p.name]);
+  if(!pool.length){ alert('뽑을 학생이 없습니다.'); return; }
+  for(let i=pool.length-1;i>0;i--){            /* 무작위로 섞는다 */
+    const j=Math.floor(Math.random()*(i+1));
+    const t=pool[i]; pool[i]=pool[j]; pool[j]=t;
+  }
+  const n=Math.min(teamN, pool.length);
+  const teams=Array.from({length:n},()=>[]);
+  pool.forEach((p,i)=>teams[i%n].push(p));     /* 인원이 고르게 나뉘도록 */
+  teams.forEach(t=>t.sort((a,b)=>a.no-b.no));
+  const d=new Date();
+  teamOut={cls:teamCls, teams:teams, total:pool.length,
+    when:(d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes())};
+  renderTeamOut();
 }
 
 /* ================= render: log (수업 일지) ================= */
@@ -1207,14 +1557,16 @@ function renderRecent(){
 let curCls='';
 function renderClass(){
   const names=classNames();
-  if(names.indexOf(curCls)<0) curCls = names[0]||'';
+  if(names.indexOf(curCls)<0){
+    /* 수업이 있는 학급을 먼저 보여준다 */
+    curCls = names.find(n=>(STATS[n]||{}).sched>0) || names.find(n=>roster(n).length) || names[0] || '';
+  }
   $('#clsbar').innerHTML = names.map(n=>
     '<button class="'+(n===curCls?'on':'')+'" data-cls="'+esc(n)+'">'+esc(n)+'</button>').join('');
   const st=STATS[curCls]||{prog:0,total:0,sched:0,short:0,plan:0};
   $('#clsStats').innerHTML=
     stat(st.prog,'오늘까지 한 차시') + stat(st.total, st.plan>0?'전체 차시(목표)':'전체 차시') +
     stat(Math.max(0,st.total-st.prog),'남은 차시') +
-    (st.plan>0 ? stat(st.sched,'실제 편성') : '') +
     (st.short ? stat(st.short,'목표보다 모자람') : '');
 
   const rows=LESSONS.filter(L=>L.cls===curCls && L.status==='ok');
@@ -1235,6 +1587,12 @@ function renderClass(){
   if(!rows.length) h+='<tr><td colspan="6" class="muted" style="padding:20px;text-align:center">'+
     '설정에서 기초 시간표를 먼저 넣어주세요.</td></tr>';
   $('#clsTable').innerHTML=h+'</tbody>';
+
+  const r=roster(curCls);
+  $('#clsRosterN').textContent = r.length ? r.length+'명' : '설정 → 5. 명렬표에서 올리세요';
+  $('#clsRoster').innerHTML = r.length
+    ? r.map(p=>'<div class="rname"><i>'+p.no+'</i><b>'+esc(p.name)+'</b></div>').join('')
+    : '<span class="muted" style="font-size:13px">아직 올린 명렬표가 없습니다.</span>';
 }
 function stat(v,l){ return '<div class="stat"><b>'+v+'</b><span>'+l+'</span></div>'; }
 
@@ -1275,6 +1633,7 @@ function renderSetup(){
   $('#placeSetup').innerHTML=pl+'</tbody>';
 
   renderDayList();
+  renderRosterSetup();
 
   /* 교시 시각 */
   let t='<thead><tr><th style="width:70px">교시</th><th>시작</th><th>끝</th></tr></thead><tbody>';
@@ -1342,10 +1701,11 @@ let view='year';
 function render(){
   $('#rangeLabel').textContent = state.start+' ~ '+state.end;
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
-  ['year','week','log','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
+  ['year','week','log','team','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
   if(view==='year')  renderYear();
   if(view==='week')  renderWeek();
   if(view==='log')   renderLog();
+  if(view==='team')  renderTeam();
   if(view==='class') renderClass();
   if(view==='setup') renderSetup();
 }
@@ -1521,6 +1881,68 @@ $('#wgrid').onclick=e=>{
     openMakeup({date:parts[0], period:Number(parts[1])});
   }
 };
+/* --- 명렬표 --- */
+$('#rosPick').onclick=()=>$('#rosFile').click();
+$('#rosFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value='';
+  if(!f) return;
+  const cls=$('#rosCls').value;
+  try{
+    const list=await parseRosterFile(f);
+    openRosterCheck(cls, list);
+  }catch(err){
+    if(String(err.message)==='old-xls')
+      alert('옛날 방식(.xls)으로 저장된 파일이라 바로 읽을 수 없습니다.\n\n'+
+            '엑셀에서 열어 «다른 이름으로 저장 → Excel 통합 문서(.xlsx)»로 한 번 저장한 뒤 올려주세요.\n'+
+            '또는 이름 칸을 복사해 «붙여넣기로 넣기»를 쓰셔도 됩니다.');
+    else alert('파일을 읽지 못했습니다. (' + err.message + ')\n\n'+
+               '«붙여넣기로 넣기»로 이름을 줄바꿈으로 붙여 넣으셔도 됩니다.');
+  }
+};
+$('#rosPaste').onclick=()=>{
+  const cls=$('#rosCls').value;
+  const h='<div class="field"><label class="f">'+esc(cls)+' 학생 이름</label>'+
+    '<textarea id="rpText" style="min-height:190px" placeholder="한 줄에 한 명씩 붙여 넣으세요.\n번호와 이름을 같이 붙여 넣어도 됩니다.\n\n1 김민준\n2 이서연"></textarea></div>'+
+    '<div class="acts"><button class="btn" data-close="1">취소</button>'+
+    '<button class="btn primary" id="rpGo">읽기</button></div>';
+  modal(esc(cls)+' 명렬표 붙여넣기', h, root=>{
+    $('#rpGo',root).onclick=()=>{
+      const txt=$('#rpText',root).value;
+      closeModal();
+      openRosterCheck(cls, pickRoster(readDelimited(txt)) );
+    };
+  });
+};
+$('#rosList').addEventListener('click', e=>{
+  const n=e.target.dataset.rosdel; if(!n) return;
+  if(!confirm(n+' 명렬표를 삭제할까요?')) return;
+  delete state.roster[n]; touch();
+});
+
+/* --- 팀뽑기 --- */
+$('#teamCls').onclick=e=>{
+  const b=e.target.closest('[data-tc]'); if(!b) return;
+  teamCls=b.dataset.tc; teamOut=null; renderTeam();
+};
+$('#teamNum').onclick=e=>{
+  const b=e.target.closest('[data-tn]'); if(!b) return;
+  teamN=Number(b.dataset.tn); renderTeam();
+};
+$('#teamPool').onclick=e=>{
+  const b=e.target.closest('[data-ex]'); if(!b) return;
+  const ex=teamExcl[teamCls]=teamExcl[teamCls]||{};
+  const nm=b.dataset.ex;
+  if(ex[nm]) delete ex[nm]; else ex[nm]=1;
+  renderTeam();
+};
+$('#teamGo').onclick=drawTeams;
+$('#teamPrint').onclick=()=>{
+  if(!teamOut){ alert('먼저 팀을 뽑아주세요.'); return; }
+  $('#printHead').textContent=teamCls+' 팀 편성  ('+teamOut.when+')';
+  window.print();
+};
+$('#goRoster').onclick=()=>{ view='setup'; render(); window.scrollTo(0,0); };
+
 /* --- 일지 --- */
 function goLog(k){ logDate=k; view='log'; render(); window.scrollTo(0,0); }
 $('#gPrev').onclick=()=>{ logDate=isoOf(addD(parseD(logDate),-1)); renderLog(); };
@@ -1761,6 +2183,7 @@ $('#impFile').onchange=e=>{
       if(!confirm('현재 데이터를 백업 파일로 바꿉니다. 계속할까요?')) return;
       state=Object.assign(defState(), s);
       if(!state.logs) state.logs={};
+      if(!state.roster) state.roster={};
       touch();
       alert('불러왔습니다.');
     }catch(err){ alert('백업 파일이 아닌 것 같습니다.'); }
