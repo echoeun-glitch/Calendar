@@ -352,7 +352,7 @@ tr.dead .ord{text-decoration:line-through}
     <div id="capNote" class="warnbanner soft noprint" hidden></div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
     <div class="card noprint" id="progCard">
-      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 학급을 누르면 수업 기간을 정합니다</span></h2>
+      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 학급을 누르면 차시와 기간을 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
     </div>
     <p class="tip" style="padding-left:0">
@@ -511,7 +511,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-23c';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-23d';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -564,7 +564,7 @@ function defState(){
     places: [{id:'p1',name:'체육관',color:PALETTE[0]},
              {id:'p2',name:'운동장',color:PALETTE[1]},
              {id:'p3',name:'예지관',color:PALETTE[2]}],
-    classes: DEF_CLASSES.map(n=>({name:n, done:0, from:'', to:''})),
+    classes: DEF_CLASSES.map(n=>({name:n, done:0, plan:0, capOn:false, from:'', to:''})),
     base: {},     // 'dow-period' -> {cls, place}
     days: {},     // iso -> {label, off}
     rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
@@ -578,8 +578,8 @@ function load(){
     if(!raw) return defState();
     const s = JSON.parse(raw), d = defState();
     const st = Object.assign(d, s, {times: s.times||d.times});
-    /* 차시 개수로 잘라 두던 예전 설정은 기간 방식으로 바뀌면서 없앴다 */
-    (st.classes||[]).forEach(c=>{ delete c.plan; });
+    /* 예전에 차시 개수가 조용히 칸을 비우던 동작은 기본 꺼짐으로 둔다 */
+    (st.classes||[]).forEach(c=>{ if(c.capOn===undefined) c.capOn=false; });
     return st;
   }catch(e){ return defState(); }
 }
@@ -646,16 +646,19 @@ function rebuild(){
   LESSONS.sort((a,b)=> a.date===b.date ? a.period-b.period : (a.date<b.date?-1:1));
 
   /* 학급마다 수업 기간을 정해 두면 그 밖의 날은 'over'(쓰지 않는 칸)로 둔다 */
-  const cnt={}, rng={};
+  const cnt={}, rng={}, cap={};
   state.classes.forEach(c=>{
     cnt[c.name]=Number(c.done)||0;
     if(c.from || c.to) rng[c.name]={from:c.from||'', to:c.to||''};
+    if(c.capOn && Number(c.plan)>0) cap[c.name]=Number(c.plan);
   });
   for(const L of LESSONS){
     if(L.status==='ok'){
       const r=rng[L.cls];
-      if(r && ((r.from && L.date<r.from) || (r.to && L.date>r.to))){ L.status='over'; L.ord=null; }
-      else { cnt[L.cls]=(cnt[L.cls]||0)+1; L.ord=cnt[L.cls]; }
+      const outside = r && ((r.from && L.date<r.from) || (r.to && L.date>r.to));
+      const n=(cnt[L.cls]||0)+1;
+      if(outside || (cap[L.cls] && n>cap[L.cls])){ L.status='over'; L.ord=null; }
+      else { cnt[L.cls]=n; L.ord=n; }
     } else L.ord=null;
     BYID[L.id]=L;
     (BYDATE[L.date] = BYDATE[L.date]||[]).push(L);
@@ -665,10 +668,11 @@ function rebuild(){
   const covered = {};
   for(const e of state.extras) if(e.forId) covered[e.forId]=true;
   STATS={};
-  const blank = ()=>({done:0, from:'', to:'', ok:0, upto:0, lost:0, mk:0, over:0, unfixed:[]});
+  const blank = ()=>({done:0, plan:0, capOn:false, from:'', to:'',
+                      ok:0, upto:0, lost:0, mk:0, over:0, unfixed:[]});
   for(const c of state.classes){
-    STATS[c.name] = Object.assign(blank(),
-      {done:Number(c.done)||0, from:c.from||'', to:c.to||''});
+    STATS[c.name] = Object.assign(blank(), {done:Number(c.done)||0,
+      plan:Number(c.plan)||0, capOn:!!c.capOn, from:c.from||'', to:c.to||''});
   }
   for(const L of LESSONS){
     const st = STATS[L.cls] || (STATS[L.cls]=blank());
@@ -678,8 +682,11 @@ function rebuild(){
   }
   for(const k in STATS){
     const st=STATS[k];
-    st.total = st.done+st.ok;      /* 이 학급이 받을 전체 차시 */
-    st.prog  = st.done+st.upto;    /* 오늘까지 한 차시 */
+    st.sched = st.done+st.ok;                       /* 실제로 편성된 차시 */
+    st.prog  = st.done+st.upto;                     /* 오늘까지 한 차시 */
+    st.total = st.plan>0 ? st.plan : st.sched;      /* 화면의 분모 = 목표 또는 편성 */
+    st.short = st.plan>0 ? Math.max(0, st.plan-st.sched) : 0;   /* 목표보다 모자란 만큼 */
+    st.spare = st.plan>0 ? Math.max(0, st.sched-st.plan) : 0;   /* 목표보다 많은 만큼 */
     st.ranged = !!(st.from || st.to);
   }
 }
@@ -1075,17 +1082,19 @@ function renderProgress(){
     const pct = st.total ? Math.min(100, Math.round(st.prog/st.total*100)) : 0;
     /* 전체 차시를 정해 둔 경우에는 뒤쪽 빈 칸이 결손을 자동으로 메우므로,
        실제로 차시가 모자랄 때만 빨갛게 표시한다 */
-    const low = st.unfixed.length>0;
+    const low = st.unfixed.length>0 || st.short>0;
     const bits=[];
     if(st.ranged){
       bits.push('<b style="font-weight:700">'+
         MD(parseD(st.from||state.start))+'~'+MD(parseD(st.to||state.end))+'</b>');
     }
+    if(st.plan>0 && st.sched!==st.plan) bits.push('편성 '+st.sched+'차시');
+    if(st.short) bits.push('<em>'+st.short+'차시 모자람</em>');
     if(st.lost) bits.push('결손 '+st.lost);
     if(st.mk) bits.push('보강 '+st.mk);
     if(st.unfixed.length) bits.push('<em>보강 필요 '+st.unfixed.length+'</em>');
-    if(st.over) bits.push('기간 밖 '+st.over+'칸');
-    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 수업 기간을 정합니다">'+
+    if(st.over) bits.push('쓰지 않는 칸 '+st.over);
+    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 전체 차시와 수업 기간을 정합니다">'+
       '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+'</i></span></div>'+
       '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
       (bits.length?'<div class="sub">'+bits.join(' · ')+'</div>':'')+
@@ -1096,64 +1105,75 @@ function renderProgress(){
 /* 전체 차시를 정해 둔 학급이 있으면 표 위에 알린다 (칸이 비는 이유를 바로 알 수 있게) */
 function renderCapNote(){
   const el=$('#capNote');
-  const capped=classNames().filter(n=>(STATS[n]||{}).ranged && (STATS[n]||{}).over>0);
+  const capped=classNames().filter(n=>(STATS[n]||{}).over>0);
   if(!capped.length){ el.hidden=true; return; }
   const total=capped.reduce((a,n)=>a+STATS[n].over,0);
   el.hidden=false;
-  el.innerHTML='<b>빗금 친 칸은 «수업 기간»을 정해 둔 학급의 기간 밖 칸입니다.</b>'+
+  el.innerHTML='<b>빗금 친 칸은 쓰지 않도록 정해 둔 칸입니다. 수업이 지워진 것이 아닙니다.</b>'+
     capped.map(n=>{ const st=STATS[n];
-      return esc(n)+' '+(st.from||state.start)+'~'+(st.to||state.end)+' ('+st.over+'칸)'; }).join(' · ')+
-    ' — 모두 '+total+'칸. 수업이 지워진 것이 아니라 그 기간만 쓰도록 정해 둔 것입니다.'+
-    '<div class="row"><button class="btn sm" id="capUndo">전부 «전체 기간»으로 되돌리기</button></div>';
+      const why = st.ranged ? (st.from||state.start)+'~'+(st.to||state.end)
+                            : '전체 차시 '+st.plan+'까지';
+      return esc(n)+' '+why+' ('+st.over+'칸)'; }).join(' · ')+
+    ' — 모두 '+total+'칸.'+
+    '<div class="row"><button class="btn sm" id="capUndo">전부 되돌리기 (전체 기간·상한 해제)</button></div>';
   $('#capUndo').onclick=()=>{
-    if(!confirm('학급마다 정해 둔 수업 기간을 모두 지우고 전체 기간을 쓰도록 되돌립니다.')) return;
-    state.classes.forEach(c=>{ c.from=''; c.to=''; });
+    if(!confirm('학급마다 정해 둔 수업 기간과 차시 상한을 모두 풀어 시간표대로 전부 쓰도록 되돌립니다.')) return;
+    state.classes.forEach(c=>{ c.from=''; c.to=''; c.capOn=false; });
     touch();
   };
 }
 
 function openPlan(name){
-  const st=STATS[name]||{from:'',to:'',total:0,over:0};
-  let h='<div class="okbox">이 학급이 수업하는 기간입니다. '+
-        '설정에 넣으신 전체 기간(<b>'+state.start+' ~ '+state.end+'</b>)이 기본값이고, '+
-        '한 학기만 하는 학급이면 줄여서 쓰시면 됩니다.</div>'+
-    '<div class="row" style="margin-bottom:12px">'+
-    '<div><label class="f">시작일</label><input type="date" id="pFrom" min="'+state.start+
+  const st=STATS[name]||{plan:0,capOn:false,from:'',to:'',sched:0,over:0};
+  let h='<div class="field"><label class="f">전체 차시 <span style="font-weight:400">'+
+      '(교육과정 배당 시수. 비워 두면 시간표대로)</span></label>'+
+    '<input type="number" id="pVal" min="0" max="400" inputmode="numeric" style="width:120px" value="'+
+      (st.plan||'')+'" placeholder="예: 34"></div>'+
+    '<label class="chk" style="margin-bottom:14px"><input type="checkbox" id="pCap"'+
+      (st.capOn?' checked':'')+'> 이 차시를 채우면 뒤쪽 칸은 쓰지 않기</label>'+
+    '<div class="row" style="margin-bottom:6px">'+
+    '<div><label class="f">수업 시작일</label><input type="date" id="pFrom" min="'+state.start+
       '" max="'+state.end+'" value="'+(st.from||state.start)+'"></div>'+
-    '<div><label class="f">종료일</label><input type="date" id="pTo" min="'+state.start+
+    '<div><label class="f">수업 종료일</label><input type="date" id="pTo" min="'+state.start+
       '" max="'+state.end+'" value="'+(st.to||state.end)+'"></div></div>'+
-    '<p class="muted" style="font-size:12.5px;line-height:1.7;margin-bottom:14px">'+
-    '<b id="pPrev"></b><br>기간 밖의 칸은 연간 표에서 빗금 친 «쓰지 않는 칸»이 됩니다. '+
-    '수업이 지워지는 것은 아니고, 그 칸을 눌러 다른 학급을 넣을 수 있습니다.</p>'+
-    '<div class="acts"><button class="btn" id="pAuto">전체 기간으로</button>'+
-    '<button class="btn primary" id="pSave">저장</button></div>';
-  modal(esc(name)+' 수업 기간', h, root=>{
-    const f=$('#pFrom',root), t=$('#pTo',root);
+    '<p class="muted" style="font-size:12.5px;line-height:1.7;margin:8px 0 14px">'+
+    '<b id="pPrev"></b><br>기간을 줄이면 그 밖의 칸은 연간 표에서 빗금 친 «쓰지 않는 칸»이 됩니다. '+
+    '수업이 지워지는 것은 아니고, 눌러서 다른 학급을 넣을 수 있습니다.</p>'+
+    '<div class="acts"><button class="btn primary" id="pSave">저장</button></div>';
+
+  modal(esc(name)+' 차시와 기간', h, root=>{
+    const f=$('#pFrom',root), t=$('#pTo',root), v=$('#pVal',root), cp=$('#pCap',root);
     const prev=()=>{
       const a=f.value||state.start, b2=t.value||state.end;
-      const whole=(a===state.start && b2===state.end);
+      if(b2<a){ $('#pPrev',root).textContent='종료일이 시작일보다 빠릅니다.'; return; }
       let n=0;
       for(const L of LESSONS){
         if(L.cls!==name) continue;
         if(L.status!=='ok' && L.status!=='over') continue;
         if(L.date>=a && L.date<=b2) n++;
       }
-      $('#pPrev',root).textContent = (b2<a) ? '종료일이 시작일보다 빠릅니다.'
-        : '이 기간이면 '+n+'차시가 됩니다.'+(whole?' (전체 기간)':'');
+      const goal=Math.floor(Number(v.value)||0);
+      let msg='이 기간이면 '+n+'차시가 편성됩니다.';
+      if(goal>0){
+        if(goal>n) msg+=' 전체 차시 '+goal+'보다 '+(goal-n)+'차시 모자랍니다.';
+        else if(goal<n) msg+= cp.checked ? ' 전체 차시 '+goal+'을 넘는 '+(n-goal)+'칸은 비워 둡니다.'
+                                         : ' 전체 차시 '+goal+'보다 '+(n-goal)+'차시 많습니다.';
+        else msg+=' 전체 차시와 같습니다.';
+      }
+      $('#pPrev',root).textContent=msg;
     };
-    f.oninput=prev; t.oninput=prev; prev();
-    const set=(from,to)=>{
-      const c=state.classes.find(x=>x.name===name); if(!c) return;
-      /* 전체 기간과 같으면 비워 둔다 — 나중에 설정의 기간을 바꿔도 따라오도록 */
-      c.from = (from && from!==state.start) ? from : '';
-      c.to   = (to   && to  !==state.end)   ? to   : '';
-      closeModal(); touch();
-    };
+    [f,t,v].forEach(el=>el.oninput=prev); cp.onchange=prev; prev();
     $('#pSave',root).onclick=()=>{
       if(f.value && t.value && t.value<f.value){ alert('종료일이 시작일보다 빠릅니다.'); return; }
-      set(f.value, t.value);
+      const c=state.classes.find(x=>x.name===name); if(!c) return;
+      c.plan  = Math.max(0, Math.floor(Number(v.value)||0));
+      c.capOn = cp.checked && c.plan>0;
+      /* 전체 기간과 같으면 비워 둔다 — 나중에 설정의 기간을 바꾸면 따라오도록 */
+      c.from = (f.value && f.value!==state.start) ? f.value : '';
+      c.to   = (t.value && t.value!==state.end)   ? t.value : '';
+      closeModal(); touch();
     };
-    $('#pAuto',root).onclick=()=>{ f.value=state.start; t.value=state.end; set('',''); };
+    v.focus(); v.select();
   });
 }
 $('#progWrap').onclick=e=>{
@@ -1185,9 +1205,10 @@ function renderClass(){
   if(curCls==='ALL'){ renderAllStats(); return; }
   const st=STATS[curCls]||{prog:0,total:0,ok:0,lost:0,mk:0,unfixed:[]};
   $('#clsStats').innerHTML=
-    stat(st.prog,'오늘까지 한 차시') + stat(st.total,'이 기간 전체 차시') +
+    stat(st.prog,'오늘까지 한 차시') + stat(st.total, st.plan>0?'전체 차시(목표)':'전체 차시') +
     stat(Math.max(0,st.total-st.prog),'남은 차시') +
-    stat(st.lost,'결손') + stat(st.mk,'보강') + stat(st.unfixed.length,'보강 미배치');
+    stat(st.lost,'결손') + stat(st.mk,'보강') +
+    (st.short? stat(st.short,'목표보다 모자람') : stat(st.unfixed.length,'보강 미배치'));
 
   const rows=LESSONS.filter(L=>L.cls===curCls);
   let h='<thead><tr><th style="width:52px">차시</th><th style="width:118px">날짜</th><th style="width:70px">교시</th>'+
@@ -1228,9 +1249,9 @@ function renderAllStats(){
        '<td>'+Math.max(0,(s.total||0)-(s.prog||0))+'</td>'+
        '<td>'+(s.lost||0)+'</td><td>'+(s.mk||0)+'</td>'+
        '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td>'+
-       '<td class="muted">'+(s.ranged
-          ? esc((s.from||state.start)+'~'+(s.to||state.end))+(s.over?' · 기간 밖 '+s.over+'칸':'')
-          : '전체 기간')+'</td></tr>';
+       '<td class="muted">'+
+         (s.ranged ? esc((s.from||state.start)+'~'+(s.to||state.end)) : '전체 기간')+
+         (s.plan>0?' · 목표 '+s.plan:'')+(s.over?' · 안 쓰는 칸 '+s.over:'')+'</td></tr>';
   }
   h+='</tbody>';
   $('#clsTable').innerHTML=h;
