@@ -482,10 +482,11 @@ tr.dead .ord{text-decoration:line-through}
         <div class="row">
           <button class="btn" id="expBtn">백업 파일 내보내기</button>
           <button class="btn" id="impBtn">백업 불러오기</button>
-          <input type="file" id="impFile" accept=".json,application/json" hidden>
+          <input type="file" id="impFile" hidden>
           <button class="btn warn" id="resetBtn">전부 초기화</button>
         </div>
         <p class="muted" style="font-size:12.5px;margin-top:10px;line-height:1.7">
+          백업 파일은 브라우저의 <b>다운로드 폴더</b>에 <b>PE-backup-날짜.json</b> 이름으로 저장됩니다.<br>
           지금은 <b>이 브라우저 안에만</b> 저장됩니다. 학기 중에는 한 달에 한 번쯤 백업 파일을 내보내
           두시면 안전합니다. PC와 폰이 자동으로 같은 데이터를 보게 하는 동기화는 다음 단계에서 붙입니다.
         </p>
@@ -1444,7 +1445,7 @@ $('#yCsv').onclick=()=>{
     }
     rows.push(r);
   });
-  csvDL('연간시간표-배열표-'+TODAY+'.csv', rows);
+  csvDL('PE-year-grid-'+TODAY+'.csv', rows);
 };
 $('#wPrev').onclick=()=>{ weekCur=addD(weekCur,-7); renderWeek(); };
 $('#wNext').onclick=()=>{ weekCur=addD(weekCur,7); renderWeek(); };
@@ -1496,7 +1497,7 @@ $('#gCsv').onclick=()=>{
       .map(L=>L.period+'교시 '+L.cls+(L.status==='ok'?'':'(결손)')).join(' / ');
     rows.push([k, DOWK[d.getDay()], (day&&day.label)||'', ls, state.logs[k]]);
   }
-  csvDL('수업일지-'+TODAY+'.csv', rows);
+  csvDL('PE-journal-'+TODAY+'.csv', rows);
 };
 
 $('#clsbar').onclick=e=>{
@@ -1605,7 +1606,10 @@ $('#fillHoliday').onclick=()=>{
 };
 
 /* --- 데이터 --- */
+/* 브라우저가 한글 파일명을 버리고 'download'로 저장해 버리므로 아스키로 짓는다 */
+function safeName(name){ return name.replace(/[^\x20-\x7E]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-'); }
 function csvDL(name, rows){
+  name = safeName(name);
   const csv='﻿'+rows.map(r=>r.map(c=>{
     const s=String(c==null?'':c);
     return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
@@ -1622,7 +1626,7 @@ function csvYear(){
       L.reason||'', L.rec.prog||'', L.rec.special||'',
       L.kind==='extra'?'보강':'정규']);
   }
-  csvDL('연간시간표-'+TODAY+'.csv', rows);
+  csvDL('PE-annual-timetable-'+TODAY+'.csv', rows);
 }
 function csvRecords(cls){
   const rows=[['차시','날짜','요일','교시','장소','진도/수업내용','특이사항','상태']];
@@ -1633,7 +1637,7 @@ function csvRecords(cls){
       L.status==='ok'?(L.kind==='extra'?'보강':'')
         :(L.status==='over'?'전체 차시 밖':'결손 '+(L.reason||''))]);
   }
-  csvDL('수업기록-'+(cls||'전체')+'-'+TODAY+'.csv', rows);
+  csvDL('PE-records-'+safeName(cls||'all')+'-'+TODAY+'.csv', rows);
 }
 function csvHours(){
   const rows=[['학급','오늘까지 한 차시','전체 차시','남은','결손','보강','보강 미배치']];
@@ -1642,7 +1646,7 @@ function csvHours(){
     rows.push([n, s2.prog||0, s2.total||0, Math.max(0,(s2.total||0)-(s2.prog||0)),
       s2.lost||0, s2.mk||0, (s2.unfixed||[]).length]);
   }
-  csvDL('시수집계-'+TODAY+'.csv', rows);
+  csvDL('PE-hours-'+TODAY+'.csv', rows);
 }
 $('#csvRec').onclick=()=>csvRecords(curCls==='ALL'?'':curCls);
 $('#csvHours').onclick=csvHours;
@@ -1655,7 +1659,7 @@ $('#clsPrint').onclick=()=>{
 function exportBackup(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,1)],{type:'application/json'}));
-  a.download='체육시간표-백업-'+TODAY+'.json'; a.click(); URL.revokeObjectURL(a.href);
+  a.download='PE-backup-'+TODAY+'.json'; a.click(); URL.revokeObjectURL(a.href);
   try{ localStorage.setItem('lastBackup', TODAY); }catch(e){}
 }
 $('#expBtn').onclick=exportBackup;
