@@ -521,7 +521,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-23e';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-23f';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1894,7 +1894,16 @@ document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush();
   setSaveState(STORAGE==='ok' ? '저장됨' : '저장 안 됨', STORAGE!=='ok');
   storageNotice();
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-    navigator.serviceWorker.register('sw.js').catch(()=>{});
+    /* updateViaCache:'none' — sw.js 자체도 브라우저 캐시를 쓰지 않는다 */
+    navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(reg=>{
+      reg.update().catch(()=>{});                       /* 열 때마다 새 버전 확인 */
+      setInterval(()=>reg.update().catch(()=>{}), 60*60*1000);
+    }).catch(()=>{});
+    /* 새 버전이 적용되면 한 번만 새로고침해서 바로 최신 화면을 보여준다 */
+    let reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(reloaded) return; reloaded=true; location.reload();
+    });
   }
 })();
 </script>
