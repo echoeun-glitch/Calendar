@@ -197,16 +197,26 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .rnote b{color:#d05252}
 
 /* ---------- 학급별 차시 요약 ---------- */
-.progwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:9px}
+.progwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(164px,1fr));gap:9px}
 .pitem{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel);cursor:pointer}
 .pitem:hover{border-color:var(--accent)}
 .pitem .t{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
 .pitem .t b{font-size:14px;font-weight:800}
-.pitem .t span{margin-left:auto;font-size:13px;font-weight:700}
-.pitem .t span i{font-style:normal;color:var(--muted);font-weight:600}
+.pitem .t span{margin-left:auto;font-size:13px;font-weight:700;display:flex;align-items:center;gap:3px}
+.pitem .t span em{font-style:normal}
+.pitem .pin{
+  width:52px;padding:2px 4px;font-size:13px;font-weight:700;text-align:center;
+  border:1px solid transparent;border-radius:6px;background:var(--line2);color:var(--ink);
+  -moz-appearance:textfield
+}
+.pitem .pin::-webkit-outer-spin-button,.pitem .pin::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+.pitem .pin::placeholder{color:var(--muted);font-weight:600}
+.pitem .pin:hover{border-color:var(--line)}
+.pitem .pin:focus{border-color:var(--accent);background:var(--panel);outline:none}
 .pitem .bar{height:5px;border-radius:3px;background:var(--line2);overflow:hidden}
 .pitem .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
-.pitem .sub{font-size:10.5px;color:var(--muted);margin-top:5px;font-weight:600}
+.pitem .sub{font-size:10.5px;color:var(--muted);margin-top:5px;font-weight:600;min-height:13px}
 .pitem .sub em{font-style:normal;color:#d05252}
 .pitem.low{border-color:rgba(214,69,69,.45)}
 .pitem.low .bar i{background:#d64545}
@@ -352,7 +362,7 @@ tr.dead .ord{text-decoration:line-through}
     <div id="capNote" class="warnbanner soft noprint" hidden></div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
     <div class="card noprint" id="progCard">
-      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 학급을 누르면 차시와 기간을 정합니다</span></h2>
+      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 칸에 바로 넣으세요. 카드를 누르면 수업 기간까지 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
     </div>
     <p class="tip" style="padding-left:0">
@@ -511,7 +521,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-23d';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-23e';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1073,6 +1083,18 @@ function renderLog(){
   $('#gText').value=logText(k);
   renderRecent();
 }
+function cardBits(st){
+  const bits=[];
+  if(st.ranged) bits.push('<b style="font-weight:700">'+
+      MD(parseD(st.from||state.start))+'~'+MD(parseD(st.to||state.end))+'</b>');
+  if(st.plan>0 && st.sched!==st.plan) bits.push('편성 '+st.sched+'차시');
+  if(st.short) bits.push('<em>'+st.short+'차시 모자람</em>');
+  if(st.lost) bits.push('결손 '+st.lost);
+  if(st.mk) bits.push('보강 '+st.mk);
+  if(st.unfixed.length) bits.push('<em>보강 필요 '+st.unfixed.length+'</em>');
+  if(st.over) bits.push('쓰지 않는 칸 '+st.over);
+  return bits.join(' · ');
+}
 function renderProgress(){
   const names=classNames();
   const any=names.some(n=>(STATS[n]||{}).total);
@@ -1083,21 +1105,15 @@ function renderProgress(){
     /* 전체 차시를 정해 둔 경우에는 뒤쪽 빈 칸이 결손을 자동으로 메우므로,
        실제로 차시가 모자랄 때만 빨갛게 표시한다 */
     const low = st.unfixed.length>0 || st.short>0;
-    const bits=[];
-    if(st.ranged){
-      bits.push('<b style="font-weight:700">'+
-        MD(parseD(st.from||state.start))+'~'+MD(parseD(st.to||state.end))+'</b>');
-    }
-    if(st.plan>0 && st.sched!==st.plan) bits.push('편성 '+st.sched+'차시');
-    if(st.short) bits.push('<em>'+st.short+'차시 모자람</em>');
-    if(st.lost) bits.push('결손 '+st.lost);
-    if(st.mk) bits.push('보강 '+st.mk);
-    if(st.unfixed.length) bits.push('<em>보강 필요 '+st.unfixed.length+'</em>');
-    if(st.over) bits.push('쓰지 않는 칸 '+st.over);
-    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 전체 차시와 수업 기간을 정합니다">'+
-      '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+'</i></span></div>'+
+    const bits=[cardBits(st)];
+    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 수업 기간까지 정합니다">'+
+      '<div class="t"><b>'+esc(n)+'</b>'+
+        '<span><em class="pv">'+st.prog+'</em> / '+
+        '<input class="pin" type="number" min="0" max="400" inputmode="numeric" '+
+          'value="'+(st.plan>0?st.plan:'')+'" placeholder="'+(st.sched>0?st.sched:'—')+'" '+
+          'title="전체 차시를 직접 넣으세요. 비우면 시간표대로 셉니다."></span></div>'+
       '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
-      (bits.length?'<div class="sub">'+bits.join(' · ')+'</div>':'')+
+      '<div class="sub">'+bits.join(' · ')+'</div>'+
       '</div>';
   }).join('');
 }
@@ -1176,7 +1192,30 @@ function openPlan(name){
     v.focus(); v.select();
   });
 }
+function patchCard(name){
+  const el=$('#progWrap').querySelector('.pitem[data-plan="'+name+'"]');
+  if(!el) return;
+  const st=STATS[name]; if(!st) return;
+  const pct = st.total ? Math.min(100, Math.round(st.prog/st.total*100)) : 0;
+  el.querySelector('.pv').textContent=st.prog;
+  el.querySelector('.bar i').style.width=pct+'%';
+  el.querySelector('.pin').placeholder = st.sched>0 ? st.sched : '—';
+  el.querySelector('.sub').innerHTML=cardBits(st);
+  el.classList.toggle('low', st.unfixed.length>0 || st.short>0);
+}
+$('#progWrap').addEventListener('input', e=>{
+  const inp=e.target.closest('.pin'); if(!inp) return;
+  const name=inp.closest('[data-plan]').dataset.plan;
+  const c=state.classes.find(x=>x.name===name); if(!c) return;
+  c.plan=Math.max(0, Math.min(400, Math.floor(Number(inp.value)||0)));
+  if(!c.plan) c.capOn=false;
+  save(); rebuild(); patchCard(name); renderCapNote();
+});
+$('#progWrap').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target.closest('.pin')) e.target.blur();
+});
 $('#progWrap').onclick=e=>{
+  if(e.target.closest('.pin')) return;          /* 입력칸은 창을 열지 않는다 */
   const it=e.target.closest('[data-plan]'); if(it) openPlan(it.dataset.plan);
 };
 
