@@ -139,7 +139,9 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .ygrid td.evt{background:rgba(214,69,69,.05)}
 .ygrid td.outside{background:var(--line2);opacity:.45;cursor:default}
 .ygrid td.outside:hover{outline:0}
-.ygrid td.overc{background:var(--line2);opacity:.5;cursor:pointer}
+.ygrid td.overc{cursor:pointer;color:var(--muted);opacity:.38;font-weight:600;
+  background:repeating-linear-gradient(135deg,transparent 0 4px,rgba(127,140,158,.16) 4px 8px)}
+.ygrid td.overc:hover{opacity:.8}
 .ygrid td.emptyc{cursor:pointer}
 .ygrid td.emptyc:hover{background:var(--line2);outline:2px solid var(--accent);outline-offset:-2px}
 .ygrid .dsep{border-left:2px solid var(--muted)}
@@ -347,9 +349,10 @@ tr.dead .ord{text-decoration:line-through}
         <button class="btn primary" id="goSetup">기초 시간표 넣으러 가기</button>
       </div>
     </div>
+    <div id="capNote" class="warnbanner soft noprint" hidden></div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
     <div class="card noprint" id="progCard">
-      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 학급을 누르면 전체 차시를 정합니다</span></h2>
+      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 학급을 누르면 수업 기간을 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
     </div>
     <p class="tip" style="padding-left:0">
@@ -508,7 +511,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-23';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-23b';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -561,7 +564,7 @@ function defState(){
     places: [{id:'p1',name:'체육관',color:PALETTE[0]},
              {id:'p2',name:'운동장',color:PALETTE[1]},
              {id:'p3',name:'예지관',color:PALETTE[2]}],
-    classes: DEF_CLASSES.map(n=>({name:n, done:0, plan:0})),
+    classes: DEF_CLASSES.map(n=>({name:n, done:0, from:'', to:''})),
     base: {},     // 'dow-period' -> {cls, place}
     days: {},     // iso -> {label, off}
     rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
@@ -574,7 +577,10 @@ function load(){
     const raw = localStorage.getItem(LSKEY);
     if(!raw) return defState();
     const s = JSON.parse(raw), d = defState();
-    return Object.assign(d, s, {times: s.times||d.times});
+    const st = Object.assign(d, s, {times: s.times||d.times});
+    /* 차시 개수로 잘라 두던 예전 설정은 기간 방식으로 바뀌면서 없앴다 */
+    (st.classes||[]).forEach(c=>{ delete c.plan; });
+    return st;
   }catch(e){ return defState(); }
 }
 let state = load();
@@ -639,17 +645,17 @@ function rebuild(){
   }
   LESSONS.sort((a,b)=> a.date===b.date ? a.period-b.period : (a.date<b.date?-1:1));
 
-  /* 앞(이른 날짜)부터 채우고, 계획 차시를 넘는 뒤쪽 수업은 'over'로 비워 둔다 */
-  const cnt={}, cap={};
+  /* 학급마다 수업 기간을 정해 두면 그 밖의 날은 'over'(쓰지 않는 칸)로 둔다 */
+  const cnt={}, rng={};
   state.classes.forEach(c=>{
     cnt[c.name]=Number(c.done)||0;
-    if(Number(c.plan)>0) cap[c.name]=Number(c.plan);
+    if(c.from || c.to) rng[c.name]={from:c.from||'', to:c.to||''};
   });
   for(const L of LESSONS){
     if(L.status==='ok'){
-      const n=(cnt[L.cls]||0)+1;
-      if(cap[L.cls] && n>cap[L.cls]){ L.status='over'; L.ord=null; }
-      else { cnt[L.cls]=n; L.ord=n; }
+      const r=rng[L.cls];
+      if(r && ((r.from && L.date<r.from) || (r.to && L.date>r.to))){ L.status='over'; L.ord=null; }
+      else { cnt[L.cls]=(cnt[L.cls]||0)+1; L.ord=cnt[L.cls]; }
     } else L.ord=null;
     BYID[L.id]=L;
     (BYDATE[L.date] = BYDATE[L.date]||[]).push(L);
@@ -659,9 +665,10 @@ function rebuild(){
   const covered = {};
   for(const e of state.extras) if(e.forId) covered[e.forId]=true;
   STATS={};
-  const blank = ()=>({done:0, plan:0, ok:0, upto:0, lost:0, mk:0, over:0, unfixed:[]});
+  const blank = ()=>({done:0, from:'', to:'', ok:0, upto:0, lost:0, mk:0, over:0, unfixed:[]});
   for(const c of state.classes){
-    STATS[c.name] = Object.assign(blank(), {done:Number(c.done)||0, plan:Number(c.plan)||0});
+    STATS[c.name] = Object.assign(blank(),
+      {done:Number(c.done)||0, from:c.from||'', to:c.to||''});
   }
   for(const L of LESSONS){
     const st = STATS[L.cls] || (STATS[L.cls]=blank());
@@ -671,10 +678,9 @@ function rebuild(){
   }
   for(const k in STATS){
     const st=STATS[k];
-    st.filled = st.done+st.ok;                 /* 실제로 잡혀 있는 차시 */
-    st.prog   = st.done+st.upto;               /* 오늘까지 한 차시 */
-    st.total  = st.plan ? st.plan : st.filled; /* 화면에 보여줄 전체 차시 */
-    st.short  = st.plan ? Math.max(0, st.plan-st.filled) : 0;  /* 계획보다 모자란 만큼 */
+    st.total = st.done+st.ok;      /* 이 학급이 받을 전체 차시 */
+    st.prog  = st.done+st.upto;    /* 오늘까지 한 차시 */
+    st.ranged = !!(st.from || st.to);
   }
 }
 
@@ -951,8 +957,9 @@ function renderYear(){
         const L=here[0], pl=placeOf(L.place), dead=L.status==='cancel'||L.status==='off';
         if(L.status==='over'){
           h+='<td class="yc overc'+sep+'" data-id="'+L.id+'" title="'+
-             esc(L.cls+' 전체 차시를 다 채워 비워 둔 칸입니다. 누르면 다른 학급을 넣을 수 있습니다.')+
-             '"></td>';
+             esc(L.cls+' — 정해 둔 수업 기간 밖이라 쓰지 않는 칸입니다. '+
+                 '누르면 다른 학급을 넣을 수 있고, 학급 카드에서 «전체 기간으로»를 누르면 되살아납니다.')+
+             '">'+esc(L.cls)+'</td>';
           return;
         }
         const title=k+' ('+DOWK[L.dow]+') '+p+'교시 · '+L.cls+' · '+pl.name+
@@ -970,6 +977,7 @@ function renderYear(){
   $('#ygrid').innerHTML=h+'</tbody>';
   closePick();
   $('#emptyHint').hidden = Object.keys(state.base).length>0;
+  renderCapNote();
   renderProgress();
 }
 
@@ -1004,7 +1012,7 @@ function renderWeek(){
              '<span class="pl" style="color:'+pl.color+'">'+esc(pl.name)+(L.kind==='extra'?' · 보강':'')+'</span>'+
              (L.rec.prog?'<span class="nt">'+esc(L.rec.prog)+'</span>':'')+
              (dead?'<span class="nt">결손'+(L.reason?' · '+esc(L.reason):'')+'</span>':'')+
-             (over?'<span class="nt">전체 차시 밖 · 비어 있음</span>':'')+
+             (over?'<span class="nt">수업 기간 밖 · 쓰지 않음</span>':'')+
              '</button>';
         }
       }else{
@@ -1044,7 +1052,7 @@ function renderLog(){
          esc(L.cls)+'</button>'+(L.kind==='extra'?' <span class="badge mk">보강</span>':'')+'</td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>'+
        '<td>'+(L.ord?L.ord+'차시':'-')+'</td>';
-    if(over) h+='<td colspan="2" class="muted"><span class="badge">전체 차시 밖</span> 비어 있는 시간</td>';
+    if(over) h+='<td colspan="2" class="muted"><span class="badge">수업 기간 밖</span> 쓰지 않는 시간</td>';
     else if(dead) h+='<td colspan="2" class="muted"><span class="badge off">결손</span> '+esc(L.reason||'')+'</td>';
     else h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
@@ -1067,47 +1075,81 @@ function renderProgress(){
     const pct = st.total ? Math.min(100, Math.round(st.prog/st.total*100)) : 0;
     /* 전체 차시를 정해 둔 경우에는 뒤쪽 빈 칸이 결손을 자동으로 메우므로,
        실제로 차시가 모자랄 때만 빨갛게 표시한다 */
-    const covered = st.plan && !st.short;
-    const low = st.short>0 || (!st.plan && st.unfixed.length>0);
+    const low = st.unfixed.length>0;
     const bits=[];
+    if(st.ranged){
+      bits.push('<b style="font-weight:700">'+
+        (st.from? MD(parseD(st.from)) : '시작')+'~'+(st.to? MD(parseD(st.to)) : '끝')+'</b>');
+    }
     if(st.lost) bits.push('결손 '+st.lost);
     if(st.mk) bits.push('보강 '+st.mk);
-    if(st.unfixed.length) bits.push(covered ? '보강 필요 '+st.unfixed.length+' (차시는 채워짐)'
-                                            : '<em>보강 필요 '+st.unfixed.length+'</em>');
-    if(st.short) bits.push('<em>'+st.short+'차시 모자람</em>');
-    else if(st.over) bits.push('뒤쪽 '+st.over+'칸 비움');
-    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 전체 차시를 정합니다">'+
-      '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+
-        (st.plan?'':' <span style="font-size:10px">자동</span>')+'</i></span></div>'+
+    if(st.unfixed.length) bits.push('<em>보강 필요 '+st.unfixed.length+'</em>');
+    if(st.over) bits.push('기간 밖 '+st.over+'칸');
+    return '<div class="pitem'+(low?' low':'')+'" data-plan="'+esc(n)+'" title="누르면 수업 기간을 정합니다">'+
+      '<div class="t"><b>'+esc(n)+'</b><span>'+st.prog+' <i>/ '+st.total+'</i></span></div>'+
       '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
       (bits.length?'<div class="sub">'+bits.join(' · ')+'</div>':'')+
       '</div>';
   }).join('');
 }
 
+/* 전체 차시를 정해 둔 학급이 있으면 표 위에 알린다 (칸이 비는 이유를 바로 알 수 있게) */
+function renderCapNote(){
+  const el=$('#capNote');
+  const capped=classNames().filter(n=>(STATS[n]||{}).ranged && (STATS[n]||{}).over>0);
+  if(!capped.length){ el.hidden=true; return; }
+  const total=capped.reduce((a,n)=>a+STATS[n].over,0);
+  el.hidden=false;
+  el.innerHTML='<b>빗금 친 칸은 «수업 기간»을 정해 둔 학급의 기간 밖 칸입니다.</b>'+
+    capped.map(n=>{ const st=STATS[n];
+      return esc(n)+' '+(st.from||'시작')+'~'+(st.to||'끝')+' ('+st.over+'칸)'; }).join(' · ')+
+    ' — 모두 '+total+'칸. 수업이 지워진 것이 아니라 그 기간만 쓰도록 정해 둔 것입니다.'+
+    '<div class="row"><button class="btn sm" id="capUndo">전부 «전체 기간»으로 되돌리기</button></div>';
+  $('#capUndo').onclick=()=>{
+    if(!confirm('학급마다 정해 둔 수업 기간을 모두 지우고 전체 기간을 쓰도록 되돌립니다.')) return;
+    state.classes.forEach(c=>{ c.from=''; c.to=''; });
+    touch();
+  };
+}
+
 function openPlan(name){
-  const st=STATS[name]||{filled:0,plan:0,over:0,prog:0};
-  const auto=st.filled+st.over;      /* 계획을 안 걸었을 때 나오는 차시 수 */
-  let h='<div class="okbox">지금 시간표대로라면 <b>'+auto+'차시</b>가 나옵니다.'+
-        (st.plan?' (지금 전체 차시: '+st.plan+')':'')+'</div>'+
-    '<div class="field"><label class="f">전체 차시</label>'+
-    '<input type="number" id="pVal" min="0" max="400" inputmode="numeric" style="width:120px" value="'+
-      (st.plan||'')+'" placeholder="예: 34"></div>'+
+  const st=STATS[name]||{from:'',to:'',total:0,over:0};
+  let h='<div class="okbox">이 학급이 수업하는 기간을 정합니다. '+
+        '비워 두면 전체 기간(<b>'+state.start+' ~ '+state.end+'</b>)을 그대로 씁니다.</div>'+
+    '<div class="row" style="margin-bottom:12px">'+
+    '<div><label class="f">시작일</label><input type="date" id="pFrom" min="'+state.start+
+      '" max="'+state.end+'" value="'+(st.from||'')+'"></div>'+
+    '<div><label class="f">종료일</label><input type="date" id="pTo" min="'+state.start+
+      '" max="'+state.end+'" value="'+(st.to||'')+'"></div></div>'+
     '<p class="muted" style="font-size:12.5px;line-height:1.7;margin-bottom:14px">'+
-    '앞(이른 날짜)에서부터 이 차시까지만 채우고, 남는 칸은 연간 표 <b>아래쪽부터 비웁니다.</b> '+
-    '비워 둔 칸은 눌러서 다른 학급을 넣을 수 있습니다. 비워두면 시간표에 있는 대로 전부 셉니다.</p>'+
-    '<div class="acts"><button class="btn" id="pAuto">자동으로 (입력 안 함)</button>'+
+    '<b id="pPrev"></b><br>기간 밖의 칸은 연간 표에서 빗금 친 «쓰지 않는 칸»이 됩니다. '+
+    '수업이 지워지는 것은 아니고, 그 칸을 눌러 다른 학급을 넣을 수 있습니다.</p>'+
+    '<div class="acts"><button class="btn" id="pAuto">전체 기간으로</button>'+
     '<button class="btn primary" id="pSave">저장</button></div>';
-  modal(esc(name)+' 전체 차시', h, root=>{
-    const set=v=>{
+  modal(esc(name)+' 수업 기간', h, root=>{
+    const f=$('#pFrom',root), t=$('#pTo',root);
+    const prev=()=>{
+      const a=f.value||state.start, b2=t.value||state.end;
+      let n=0;
+      for(const L of LESSONS){
+        if(L.cls!==name) continue;
+        if(L.status!=='ok' && L.status!=='over') continue;
+        if(L.date>=a && L.date<=b2) n++;
+      }
+      $('#pPrev',root).textContent = (b2<a) ? '종료일이 시작일보다 빠릅니다.'
+        : '이 기간이면 '+n+'차시가 됩니다.';
+    };
+    f.oninput=prev; t.oninput=prev; prev();
+    const set=(from,to)=>{
       const c=state.classes.find(x=>x.name===name); if(!c) return;
-      c.plan = v>0 ? v : 0;
+      c.from=from||''; c.to=to||'';
       closeModal(); touch();
     };
-    $('#pSave',root).onclick=()=>set(Math.max(0, Math.floor(Number($('#pVal',root).value)||0)));
-    $('#pAuto',root).onclick=()=>set(0);
-    const inp=$('#pVal',root); inp.focus(); inp.select();
-    inp.onkeydown=e=>{ if(e.key==='Enter') $('#pSave',root).click(); };
+    $('#pSave',root).onclick=()=>{
+      if(f.value && t.value && t.value<f.value){ alert('종료일이 시작일보다 빠릅니다.'); return; }
+      set(f.value, t.value);
+    };
+    $('#pAuto',root).onclick=()=>set('','');
   });
 }
 $('#progWrap').onclick=e=>{
@@ -1155,7 +1197,7 @@ function renderClass(){
        '<td>'+L.period+'교시'+(L.kind==='extra'?' <span class="badge mk">보강</span>':'')+'</td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>';
     if(over){
-      h+='<td colspan="2" class="muted"><span class="badge">전체 차시 밖</span> 비어 있는 시간</td>';
+      h+='<td colspan="2" class="muted"><span class="badge">수업 기간 밖</span> 쓰지 않는 시간</td>';
     }else if(dead){
       h+='<td colspan="2" class="muted"><span class="badge off">결손</span> '+esc(L.reason||'')+'</td>';
     }else{
@@ -1173,17 +1215,18 @@ function renderAllStats(){
   $('#clsStats').innerHTML='';
   const names=classNames();
   let h='<thead><tr><th>학급</th><th>오늘까지</th><th>전체 차시</th><th>남은</th>'+
-        '<th>결손</th><th>보강</th><th>보강 미배치</th><th>비고</th></tr></thead><tbody>';
+        '<th>결손</th><th>보강</th><th>보강 미배치</th><th>수업 기간</th></tr></thead><tbody>';
   for(const n of names){
     const s=STATS[n]||{};
-    const flag = s.plan ? s.short>0 : (s.unfixed && s.unfixed.length>0);
+    const flag = s.unfixed && s.unfixed.length>0;
     h+='<tr><td><b>'+esc(n)+'</b></td><td>'+(s.prog||0)+'</td>'+
        '<td><b'+(flag?' style="color:#d05252"':'')+'>'+(s.total||0)+'</b></td>'+
        '<td>'+Math.max(0,(s.total||0)-(s.prog||0))+'</td>'+
        '<td>'+(s.lost||0)+'</td><td>'+(s.mk||0)+'</td>'+
        '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td>'+
-       '<td class="muted">'+(s.short?'<span class="badge off">'+s.short+'차시 모자람</span>'
-                            :(s.over?'뒤쪽 '+s.over+'칸 비움':(s.plan?'':'자동')))+'</td></tr>';
+       '<td class="muted">'+(s.ranged
+          ? esc((s.from||'시작')+'~'+(s.to||'끝'))+(s.over?' · 기간 밖 '+s.over+'칸':'')
+          : '전체 기간')+'</td></tr>';
   }
   h+='</tbody>';
   $('#clsTable').innerHTML=h;
@@ -1668,7 +1711,7 @@ function csvYear(){
   const rows=[['날짜','요일','교시','학급','장소','차시','상태','사유','진도/수업내용','특이사항','구분']];
   for(const L of LESSONS){
     rows.push([L.date, DOWK[L.dow], L.period, L.cls, placeOf(L.place).name, L.ord||'',
-      L.status==='ok'?'수업':(L.status==='over'?'전체 차시 밖':'결손'),
+      L.status==='ok'?'수업':(L.status==='over'?'수업 기간 밖':'결손'),
       L.reason||'', L.rec.prog||'', L.rec.special||'',
       L.kind==='extra'?'보강':'정규']);
   }
@@ -1681,7 +1724,7 @@ function csvRecords(cls){
     rows.push([L.ord||'', L.date, DOWK[L.dow], L.period, placeOf(L.place).name,
       L.rec.prog||'', L.rec.special||'',
       L.status==='ok'?(L.kind==='extra'?'보강':'')
-        :(L.status==='over'?'전체 차시 밖':'결손 '+(L.reason||''))]);
+        :(L.status==='over'?'수업 기간 밖':'결손 '+(L.reason||''))]);
   }
   csvDL('PE-records-'+safeName(cls||'all')+'-'+TODAY+'.csv', rows);
 }
