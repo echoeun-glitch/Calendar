@@ -188,6 +188,12 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .slot.dead{opacity:.55}
 .slot.dead .big{text-decoration:line-through}
 
+.rng{display:flex;align-items:center;gap:4px}
+.rng input[type=date]{padding:4px 6px;font-size:12.5px}
+.rng i{font-style:normal;color:var(--muted)}
+.rnote{display:block;font-size:11px;color:var(--muted);margin-top:3px;font-weight:600}
+.rnote b{color:#d05252}
+
 /* ---------- 학급별 차시 요약 ---------- */
 .progwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:9px}
 .pitem{border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--panel);cursor:pointer}
@@ -465,9 +471,11 @@ tr.dead .ord{text-decoration:line-through}
             기간 안의 공휴일을 채웁니다. 추석·설날은 학사일정과 한 번 대조해 주세요.</span>
         </div>
         <div class="row" style="margin-bottom:6px;align-items:flex-end">
-          <div><label class="f">날짜</label><input type="date" id="hDate"></div>
-          <div style="flex:1;min-width:150px"><label class="f">이름</label>
-            <input type="text" id="hName" placeholder="예: 가을 체육대회" style="width:100%"></div>
+          <div><label class="f">시작일</label><input type="date" id="hDate"></div>
+          <div><label class="f">종료일 <span style="font-weight:400">(하루면 비워두세요)</span></label>
+            <input type="date" id="hDate2"></div>
+          <div style="flex:1;min-width:140px"><label class="f">이름</label>
+            <input type="text" id="hName" placeholder="예: 겨울방학 / 가을 체육대회" style="width:100%"></div>
           <label class="chk" style="padding-bottom:8px">
             <input type="checkbox" id="hOff" checked> 수업 없음</label>
           <button class="btn sm" id="hAdd" style="margin-bottom:1px">추가</button>
@@ -486,6 +494,7 @@ tr.dead .ord{text-decoration:line-through}
           <button class="btn warn" id="resetBtn">전부 초기화</button>
         </div>
         <p class="muted" style="font-size:12.5px;margin-top:10px;line-height:1.7">
+          앱 버전 <b id="appVer">—</b> · 이 숫자가 제가 알려드린 날짜와 다르면 예전 파일을 열고 계신 겁니다.<br>
           백업 파일은 브라우저의 <b>다운로드 폴더</b>에 <b>PE-backup-날짜.json</b> 이름으로 저장됩니다.<br>
           지금은 <b>이 브라우저 안에만</b> 저장됩니다. 학기 중에는 한 달에 한 번쯤 백업 파일을 내보내
           두시면 안전합니다. PC와 폰이 자동으로 같은 데이터를 보게 하는 동기화는 다음 단계에서 붙입니다.
@@ -499,6 +508,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
+const APP_VER = '2026-09-23';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -864,30 +874,6 @@ function legendHTML(){
     '<span style="opacity:.7"><i style="background:#8a94a4"></i>결손</span>'+
     '<span style="opacity:.7">╌ 보강</span>';
 }
-function renderLostCard(){
-  let list=[];
-  for(const k in STATS) for(const L of STATS[k].unfixed) list.push(L);
-  list.sort((a,b)=> a.date<b.date?-1:a.date>b.date?1:a.period-b.period);
-  let el=$('#lostCard');
-  if(!list.length){ if(el) el.remove(); return; }
-  if(!el){
-    el=document.createElement('div'); el.id='lostCard'; el.className='card noprint';
-    $('#view-year').appendChild(el);
-  }
-  el.innerHTML='<h2>보강이 필요한 결손 <span class="hint">'+list.length+'건 — 누르면 바로 보강을 잡습니다</span></h2>'+
-    '<div class="scroll"><table><thead><tr><th>날짜</th><th>교시</th><th>학급</th><th>사유</th><th></th></tr></thead><tbody>'+
-    list.slice(0,40).map(L=>'<tr><td>'+L.date.slice(5)+' ('+DOWK[L.dow]+')</td><td>'+L.period+'교시</td>'+
-      '<td><b>'+esc(L.cls)+'</b></td><td class="muted">'+esc(L.reason||'-')+'</td>'+
-      '<td style="text-align:right"><button class="btn sm" data-mk="'+L.id+'">보강 잡기</button></td></tr>').join('')+
-    '</tbody></table></div>'+
-    (list.length>40?'<p class="tip">그 외 '+(list.length-40)+'건 더 있습니다.</p>':'')+
-    '<p class="tip" style="padding-bottom:14px">보강을 안 잡을 결손은 수업을 열어 «수업함»으로 되돌리거나 그대로 두면 됩니다. 남겨두면 그만큼 시수가 모자란 것으로 집계됩니다.</p>';
-  el.onclick=e=>{
-    const id=e.target.dataset && e.target.dataset.mk; if(!id) return;
-    const L=BYID[id];
-    openMakeup({cls:L.cls, place:L.place, forId:id, from:L, date:L.date, period:L.period});
-  };
-}
 
 /* ================= render: year (한 장 배열표) ================= */
 const MD = d => (d.getMonth()+1)+'.'+d.getDate();
@@ -985,7 +971,6 @@ function renderYear(){
   closePick();
   $('#emptyHint').hidden = Object.keys(state.base).length>0;
   renderProgress();
-  renderLostCard();
 }
 
 /* ================= render: week ================= */
@@ -1258,19 +1243,52 @@ function renderSetup(){
   $('#timeSetup').innerHTML=t+'</tbody>';
 }
 
-function renderDayList(){
-  const keys=Object.keys(state.days).sort();
-  let h='<thead><tr><th style="width:150px">날짜</th><th>이름</th>'+
-        '<th style="width:96px">수업</th><th style="width:68px"></th></tr></thead><tbody>';
+/* 주말을 건너뛰고 이어지는 다음 수업일인지 */
+function nextSchoolDay(iso){
+  let d=addD(parseD(iso),1);
+  while(d.getDay()===0||d.getDay()===6) d=addD(d,1);
+  return isoOf(d);
+}
+/* 이름·구분이 같고 연달아 붙어 있는 날들을 한 기간으로 묶는다 */
+function dayGroups(){
+  const keys=Object.keys(state.days).sort(), out=[];
   for(const k of keys){
-    const d=parseD(k), v=state.days[k], out=(k<state.start||k>state.end);
-    h+='<tr'+(out?' class="dead"':'')+'><td>'+k+' ('+DOWK[d.getDay()]+')'+
-       (out?' <span class="badge">기간 밖</span>':'')+'</td>'+
-       '<td><input class="ntin" data-d="'+k+'" value="'+esc(v.label||'')+'" placeholder="이름"></td>'+
-       '<td>'+(v.off?'<span class="badge off">수업 없음</span>':'<span class="badge mk">수업 있음</span>')+'</td>'+
-       '<td style="text-align:right"><button class="btn sm warn" data-deld="'+k+'">삭제</button></td></tr>';
+    const v=state.days[k], last=out[out.length-1];
+    if(last && last.label===(v.label||'') && last.off===!!v.off && nextSchoolDay(last.to)===k){
+      last.to=k; last.keys.push(k);
+    }else out.push({from:k, to:k, label:v.label||'', off:!!v.off, keys:[k]});
   }
-  if(!keys.length) h+='<tr><td colspan="4" class="muted" style="padding:16px;text-align:center">'+
+  return out;
+}
+/* 기간에 걸쳐 지정. 주말은 원래 수업이 없으므로 건너뛴다 */
+function setRange(from, to, label, off){
+  if(to<from){ const t=from; from=to; to=t; }
+  const end=parseD(to); let n=0;
+  for(let d=parseD(from); d<=end; d=addD(d,1)){
+    const dw=d.getDay(); if(dw===0||dw===6) continue;
+    state.days[isoOf(d)]={label:label, off:off}; n++;
+  }
+  return n;
+}
+let DAYGROUPS=[];
+function renderDayList(){
+  DAYGROUPS=dayGroups();
+  let h='<thead><tr><th style="width:290px">기간</th><th>이름</th>'+
+        '<th style="width:104px">수업</th><th style="width:68px"></th></tr></thead><tbody>';
+  DAYGROUPS.forEach((g,i)=>{
+    const out=(g.to<state.start||g.from>state.end);
+    const one=g.keys.length===1;
+    h+='<tr'+(out?' class="dead"':'')+' data-g="'+i+'">'+
+       '<td><span class="rng"><input type="date" class="gfrom" value="'+g.from+'">'+
+         '<i>~</i><input type="date" class="gto" value="'+g.to+'"></span>'+
+         '<span class="rnote">'+DOWK[parseD(g.from).getDay()]+
+         (one?'요일' : '~'+DOWK[parseD(g.to).getDay()]+'요일 · '+g.keys.length+'일')+
+         (out?' · <b>기간 밖</b>':'')+'</span></td>'+
+       '<td><input class="ntin gname" value="'+esc(g.label)+'" placeholder="이름"></td>'+
+       '<td><button class="btn sm gtog">'+(g.off?'수업 없음':'수업 있음')+'</button></td>'+
+       '<td style="text-align:right"><button class="btn sm warn gdel">삭제</button></td></tr>';
+  });
+  if(!DAYGROUPS.length) h+='<tr><td colspan="4" class="muted" style="padding:16px;text-align:center">'+
     '아직 지정한 행사·휴업일이 없습니다. 위에서 «공휴일 한 번에 넣기»를 누르거나 직접 추가하세요.</td></tr>';
   $('#dayList').innerHTML=h+'</tbody>';
 }
@@ -1562,21 +1580,49 @@ $('#timeSetup').addEventListener('change', e=>{
 });
 $('#hAdd').onclick=()=>{
   const d=$('#hDate').value;
-  if(!d){ alert('날짜를 먼저 고르세요.'); return; }
+  if(!d){ alert('시작일을 먼저 고르세요.'); return; }
+  const d2=$('#hDate2').value || d;
   const off=$('#hOff').checked;
   const name=$('#hName').value.trim() || (off?'휴업일':'행사');
-  state.days[d]={label:name, off:off};
-  $('#hName').value='';
+  const n=setRange(d, d2, name, off);
+  if(!n){ alert('고르신 기간이 주말뿐입니다. 주말은 원래 수업이 없어 지정하지 않습니다.'); return; }
+  $('#hName').value=''; $('#hDate2').value='';
   touch();
 };
+function groupOf(el){
+  const tr=el.closest('tr[data-g]'); return tr ? DAYGROUPS[Number(tr.dataset.g)] : null;
+}
 $('#dayList').addEventListener('input', e=>{
-  const k=e.target.dataset.d; if(!k||!state.days[k]) return;
-  state.days[k].label=e.target.value.trim();
+  if(!e.target.classList.contains('gname')) return;
+  const g=groupOf(e.target); if(!g) return;
+  const v=e.target.value.trim();
+  g.keys.forEach(k=>{ if(state.days[k]) state.days[k].label=v; });
+  g.label=v;
   save(); rebuild();          /* 입력 중인 칸은 다시 그리지 않습니다 */
 });
+$('#dayList').addEventListener('change', e=>{
+  const t=e.target;
+  if(!t.classList.contains('gfrom') && !t.classList.contains('gto')) return;
+  const g=groupOf(t); if(!g) return;
+  const tr=t.closest('tr');
+  const from=$('.gfrom',tr).value, to=$('.gto',tr).value;
+  if(!from || !to){ renderDayList(); return; }
+  g.keys.forEach(k=>{ delete state.days[k]; });          /* 옛 기간을 비우고 */
+  if(!setRange(from, to, g.label, g.off)){               /* 새 기간으로 다시 */
+    alert('고르신 기간이 주말뿐입니다.');
+  }
+  touch();
+});
 $('#dayList').addEventListener('click', e=>{
-  const k=e.target.dataset.deld; if(!k) return;
-  delete state.days[k]; touch();
+  const g=groupOf(e.target); if(!g) return;
+  if(e.target.classList.contains('gdel')){
+    g.keys.forEach(k=>{ delete state.days[k]; });
+    touch();
+  }else if(e.target.classList.contains('gtog')){
+    const v=!g.off;
+    g.keys.forEach(k=>{ if(state.days[k]) state.days[k].off=v; });
+    touch();
+  }
 });
 $('#startD').onchange=e=>{ state.start=e.target.value; touch(); };
 $('#endD').onchange=e=>{ state.end=e.target.value; touch(); };
@@ -1737,6 +1783,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush();
   weekCur = (now<sd) ? sd : now;
   if(TODAY < state.start || TODAY > state.end) logDate = state.start;
   rebuild(); render();
+  $('#appVer').textContent = APP_VER;
   setSaveState(STORAGE==='ok' ? '저장됨' : '저장 안 됨', STORAGE!=='ok');
   storageNotice();
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
