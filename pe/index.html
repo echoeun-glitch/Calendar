@@ -511,7 +511,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-23b';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-23c';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1079,7 +1079,7 @@ function renderProgress(){
     const bits=[];
     if(st.ranged){
       bits.push('<b style="font-weight:700">'+
-        (st.from? MD(parseD(st.from)) : '시작')+'~'+(st.to? MD(parseD(st.to)) : '끝')+'</b>');
+        MD(parseD(st.from||state.start))+'~'+MD(parseD(st.to||state.end))+'</b>');
     }
     if(st.lost) bits.push('결손 '+st.lost);
     if(st.mk) bits.push('보강 '+st.mk);
@@ -1102,7 +1102,7 @@ function renderCapNote(){
   el.hidden=false;
   el.innerHTML='<b>빗금 친 칸은 «수업 기간»을 정해 둔 학급의 기간 밖 칸입니다.</b>'+
     capped.map(n=>{ const st=STATS[n];
-      return esc(n)+' '+(st.from||'시작')+'~'+(st.to||'끝')+' ('+st.over+'칸)'; }).join(' · ')+
+      return esc(n)+' '+(st.from||state.start)+'~'+(st.to||state.end)+' ('+st.over+'칸)'; }).join(' · ')+
     ' — 모두 '+total+'칸. 수업이 지워진 것이 아니라 그 기간만 쓰도록 정해 둔 것입니다.'+
     '<div class="row"><button class="btn sm" id="capUndo">전부 «전체 기간»으로 되돌리기</button></div>';
   $('#capUndo').onclick=()=>{
@@ -1114,13 +1114,14 @@ function renderCapNote(){
 
 function openPlan(name){
   const st=STATS[name]||{from:'',to:'',total:0,over:0};
-  let h='<div class="okbox">이 학급이 수업하는 기간을 정합니다. '+
-        '비워 두면 전체 기간(<b>'+state.start+' ~ '+state.end+'</b>)을 그대로 씁니다.</div>'+
+  let h='<div class="okbox">이 학급이 수업하는 기간입니다. '+
+        '설정에 넣으신 전체 기간(<b>'+state.start+' ~ '+state.end+'</b>)이 기본값이고, '+
+        '한 학기만 하는 학급이면 줄여서 쓰시면 됩니다.</div>'+
     '<div class="row" style="margin-bottom:12px">'+
     '<div><label class="f">시작일</label><input type="date" id="pFrom" min="'+state.start+
-      '" max="'+state.end+'" value="'+(st.from||'')+'"></div>'+
+      '" max="'+state.end+'" value="'+(st.from||state.start)+'"></div>'+
     '<div><label class="f">종료일</label><input type="date" id="pTo" min="'+state.start+
-      '" max="'+state.end+'" value="'+(st.to||'')+'"></div></div>'+
+      '" max="'+state.end+'" value="'+(st.to||state.end)+'"></div></div>'+
     '<p class="muted" style="font-size:12.5px;line-height:1.7;margin-bottom:14px">'+
     '<b id="pPrev"></b><br>기간 밖의 칸은 연간 표에서 빗금 친 «쓰지 않는 칸»이 됩니다. '+
     '수업이 지워지는 것은 아니고, 그 칸을 눌러 다른 학급을 넣을 수 있습니다.</p>'+
@@ -1130,6 +1131,7 @@ function openPlan(name){
     const f=$('#pFrom',root), t=$('#pTo',root);
     const prev=()=>{
       const a=f.value||state.start, b2=t.value||state.end;
+      const whole=(a===state.start && b2===state.end);
       let n=0;
       for(const L of LESSONS){
         if(L.cls!==name) continue;
@@ -1137,19 +1139,21 @@ function openPlan(name){
         if(L.date>=a && L.date<=b2) n++;
       }
       $('#pPrev',root).textContent = (b2<a) ? '종료일이 시작일보다 빠릅니다.'
-        : '이 기간이면 '+n+'차시가 됩니다.';
+        : '이 기간이면 '+n+'차시가 됩니다.'+(whole?' (전체 기간)':'');
     };
     f.oninput=prev; t.oninput=prev; prev();
     const set=(from,to)=>{
       const c=state.classes.find(x=>x.name===name); if(!c) return;
-      c.from=from||''; c.to=to||'';
+      /* 전체 기간과 같으면 비워 둔다 — 나중에 설정의 기간을 바꿔도 따라오도록 */
+      c.from = (from && from!==state.start) ? from : '';
+      c.to   = (to   && to  !==state.end)   ? to   : '';
       closeModal(); touch();
     };
     $('#pSave',root).onclick=()=>{
       if(f.value && t.value && t.value<f.value){ alert('종료일이 시작일보다 빠릅니다.'); return; }
       set(f.value, t.value);
     };
-    $('#pAuto',root).onclick=()=>set('','');
+    $('#pAuto',root).onclick=()=>{ f.value=state.start; t.value=state.end; set('',''); };
   });
 }
 $('#progWrap').onclick=e=>{
@@ -1225,7 +1229,7 @@ function renderAllStats(){
        '<td>'+(s.lost||0)+'</td><td>'+(s.mk||0)+'</td>'+
        '<td>'+(s.unfixed&&s.unfixed.length?'<span class="badge off">'+s.unfixed.length+'</span>':'-')+'</td>'+
        '<td class="muted">'+(s.ranged
-          ? esc((s.from||'시작')+'~'+(s.to||'끝'))+(s.over?' · 기간 밖 '+s.over+'칸':'')
+          ? esc((s.from||state.start)+'~'+(s.to||state.end))+(s.over?' · 기간 밖 '+s.over+'칸':'')
           : '전체 기간')+'</td></tr>';
   }
   h+='</tbody>';
