@@ -362,6 +362,22 @@ tr.dead .ord{text-decoration:line-through}
   <span id="saveState"></span>
 </header>
 
+<section id="cloudPanel" class="card noprint" style="max-width:1148px;margin:14px auto;padding:14px" aria-label="계정과 동기화">
+  <div class="row" style="flex-wrap:wrap">
+    <b id="cloudAccount">내 체육 일지</b>
+    <span id="cloudStatus" role="status" aria-live="polite">이 기기에만 저장 중</span>
+    <button class="btn primary sm" id="cloudLogin" disabled>Google로 로그인</button>
+    <button class="btn sm" id="cloudLogout" hidden>로그아웃</button>
+    <button class="btn sm" id="cloudRetry" hidden>동기화 다시 시도</button>
+    <button class="btn sm" id="cloudMigrate" hidden>이 기기의 기존 일지 가져오기</button>
+  </div>
+  <p id="cloudHelp" class="muted" style="font-size:13px;margin-top:8px">로그인 연결을 준비하고 있습니다. 기존 일지는 이 브라우저에 계속 저장됩니다.</p>
+  <div id="cloudConflict" hidden style="margin-top:10px">
+    <p>다른 기기에서 수정한 내용이 있습니다. 현재 입력을 백업한 다음 온라인 일지를 불러와 주세요. 필요한 내용은 백업 불러오기로 다시 옮길 수 있습니다.</p>
+    <button class="btn sm" id="cloudBackup">현재 입력 백업</button>
+    <button class="btn sm" id="cloudReload">온라인 일지 불러오기</button>
+  </div>
+</section>
 <main>
   <div id="printHead"></div>
   <div id="storeWarn" class="warnbanner noprint" hidden></div>
@@ -573,14 +589,14 @@ tr.dead .ord{text-decoration:line-through}
         <p class="muted" style="font-size:12.5px;line-height:1.7;margin-bottom:12px">
           엑셀(.xlsx)·나이스에서 내려받은 .xls·CSV를 읽습니다. 번호와 이름 칸을 알아서 찾고,
           올린 뒤 확인 화면에서 고칠 수 있습니다.
-          <b>학생 이름은 이 브라우저 안에만 저장되고 밖으로 나가지 않습니다.</b>
+          <b>로그인한 일지의 명렬표와 기록은 내 계정의 온라인 저장소에도 저장됩니다. 다른 선생님에게 공개되지 않습니다.</b>
         </p>
         <div class="scroll"><table id="rosList"></table></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>6. 데이터 <span class="hint">이 기기 브라우저에 저장됩니다</span></h2>
+      <h2>6. 데이터 <span class="hint">로그인하면 내 계정으로 동기화됩니다</span></h2>
       <div class="pad">
         <div class="row">
           <button class="btn" id="expBtn">백업 파일 내보내기</button>
@@ -591,8 +607,8 @@ tr.dead .ord{text-decoration:line-through}
         <p class="muted" style="font-size:12.5px;margin-top:10px;line-height:1.7">
           앱 버전 <b id="appVer">—</b> · 이 숫자가 제가 알려드린 날짜와 다르면 예전 파일을 열고 계신 겁니다.<br>
           백업 파일은 브라우저의 <b>다운로드 폴더</b>에 <b>PE-backup-날짜.json</b> 이름으로 저장됩니다.<br>
-          지금은 <b>이 브라우저 안에만</b> 저장됩니다. 학기 중에는 한 달에 한 번쯤 백업 파일을 내보내
-          두시면 안전합니다. PC와 폰이 자동으로 같은 데이터를 보게 하는 동기화는 다음 단계에서 붙입니다.
+          로그인하지 않으면 <b>이 브라우저 안에만</b> 저장됩니다. 로그인 후에는 같은 Google 계정으로 PC와 폰에서 이어서 작성할 수 있습니다.
+          다른 기기로 옮기기 전에 위쪽에 <b>온라인 저장 완료</b>가 표시되는지 확인해 주세요. 백업 파일도 정기적으로 보관해 주세요.
         </p>
       </div>
     </div>
@@ -603,7 +619,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-24b';      /* 화면에 표시되는 버전 — 최신 파일인지 확인용 */
+const APP_VER = '2026-09-27-cloud'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -688,12 +704,14 @@ function load(){
   }catch(e){ return defState(); }
 }
 let state = load();
+let journalGeneration = 0;
 
 let saveTimer=null;
 function setSaveState(txt, bad){
   const el=$('#saveState'); el.textContent=txt; el.classList.toggle('bad', !!bad);
 }
 function save(){
+  if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   clearTimeout(saveTimer);
   if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
   setSaveState('…');
@@ -1884,11 +1902,13 @@ $('#wgrid').onclick=e=>{
 /* --- 명렬표 --- */
 $('#rosPick').onclick=()=>$('#rosFile').click();
 $('#rosFile').onchange=async e=>{
+  const generation = journalGeneration;
   const f=e.target.files[0]; e.target.value='';
   if(!f) return;
   const cls=$('#rosCls').value;
   try{
     const list=await parseRosterFile(f);
+    if(generation !== journalGeneration) return;
     openRosterCheck(cls, list);
   }catch(err){
     if(String(err.message)==='old-xls')
@@ -2174,9 +2194,11 @@ function exportBackup(){
 $('#expBtn').onclick=exportBackup;
 $('#impBtn').onclick=()=>$('#impFile').click();
 $('#impFile').onchange=e=>{
+  const generation = journalGeneration;
   const f=e.target.files[0]; if(!f) return;
   const rd=new FileReader();
   rd.onload=()=>{
+    if(generation !== journalGeneration) return;
     try{
       const s=JSON.parse(rd.result);
       if(!s || !s.classes) throw 0;
@@ -2235,6 +2257,7 @@ function storageNotice(extra){
 
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
+  if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   if(STORAGE!=='ok') return;
   try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
 }
@@ -2264,5 +2287,34 @@ document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush();
   }
 })();
 </script>
+<script>
+function refreshJournal(){
+  journalGeneration++;
+  clearTimeout(saveTimer); clearTimeout(yClickTimer);
+  closePick();
+  teamCls=''; teamOut=null; teamExcl={}; curCls='';
+  $('#modalRoot').innerHTML=''; $('#printHead').textContent='';
+  $('#teamPool').innerHTML='';
+  rebuild();
+  // Clear every view, including hidden views, when changing account or snapshot.
+  renderYear(); renderWeek(); renderLog(); renderTeam(); renderClass(); renderSetup();
+  render();
+}
+window.PEJournal = {
+  localKey: LSKEY,
+  get: () => JSON.stringify(state),
+  empty: () => JSON.stringify(defState()),
+  replace: payload => {
+    state = payload ? Object.assign(defState(), JSON.parse(payload)) : defState();
+    refreshJournal();
+  },
+  showLocal: () => { state = load(); refreshJournal(); },
+  backup: exportBackup,
+  status: setSaveState,
+  flushLocal: flush
+};
+</script>
+<script src="firebase-config.js"></script>
+<script type="module" src="cloud.js"></script>
 </body>
 </html>
