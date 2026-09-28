@@ -499,7 +499,8 @@ tr.dead .ord{text-decoration:line-through}
         </div>
         <div class="row" style="gap:6px">
           <span class="muted" style="font-size:12.5px;font-weight:700">오늘 빠지는 학생</span>
-          <span class="muted" style="font-size:11.5px">이름을 눌러 빼두면 뽑기에서 제외됩니다</span>
+          <span class="muted" style="font-size:11.5px">이름을 눌러 빼두면 뽑기에서 제외됩니다 ·
+            기능(상·중·하)과 성별이 팀마다 고루 섞이도록 나눕니다</span>
         </div>
         <div class="namepick" id="teamPool"></div>
       </div>
@@ -642,7 +643,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-28'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-28c'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1417,21 +1418,84 @@ function renderTeamOut(){
   box.innerHTML='<div class="card"><h2>'+esc(teamCls)+' · '+teamOut.teams.length+'팀 '+
     '<span class="hint">'+teamOut.total+'명 · '+teamOut.when+'</span></h2>'+
     '<div class="pad"><div class="teams">'+
-    teamOut.teams.map((t,i)=>'<div class="team"><h3>'+(i+1)+'팀<span>'+t.length+'명</span></h3>'+
+    teamOut.teams.map((t,i)=>'<div class="team"><h3>'+(i+1)+'팀<span>'+teamMix(t)+'</span></h3>'+
       '<ol>'+t.map(p=>'<li><i>'+p.no+'</i>'+esc(p.name)+'</li>').join('')+'</ol></div>').join('')+
     '</div></div></div>';
+}
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    const t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+/* 기능(상·중·하)과 성별이 팀마다 고루 섞이도록 나눈다.
+   같은 기능·성별끼리 묶어 섞은 뒤, 뱀 순서(1→n, n→1)로 돌아가며 담는다. */
+function teamMix(t){
+  const m={};
+  t.forEach(p=>{ if(p.sex) m[p.sex]=(m[p.sex]||0)+1; if(p.skill) m[p.skill]=(m[p.skill]||0)+1; });
+  const sx=['남','여'].filter(k=>m[k]).map(k=>k+m[k]).join(' ');
+  const sk=['상','중','하'].filter(k=>m[k]).map(k=>k+m[k]).join(' ');
+  return t.length+'명'+(sx?' · '+sx:'')+(sk?' · '+sk:'');
 }
 function drawTeams(){
   const ex=teamExcl[teamCls]||{};
   const pool=roster(teamCls).filter(p=>!ex[p.name]);
   if(!pool.length){ alert('뽑을 학생이 없습니다.'); return; }
-  for(let i=pool.length-1;i>0;i--){            /* 무작위로 섞는다 */
-    const j=Math.floor(Math.random()*(i+1));
-    const t=pool[i]; pool[i]=pool[j]; pool[j]=t;
-  }
   const n=Math.min(teamN, pool.length);
-  const teams=Array.from({length:n},()=>[]);
-  pool.forEach((p,i)=>teams[i%n].push(p));     /* 인원이 고르게 나뉘도록 */
+
+  /* 기능·성별 묶음마다 섞은 뒤, 팀을 한 바퀴씩 계속 돌면서 담는다.
+     묶음이 끝나도 돌던 자리에서 이어받기 때문에 어느 한 팀에 쏠리지 않는다. */
+  const deal = ()=>{
+    const t=Array.from({length:n},()=>[]);
+    const slot=shuffle(Array.from({length:n},(_,i)=>i));  /* 어느 팀부터 받을지도 무작위 */
+    let cursor=Math.floor(Math.random()*n);
+    for(const sk of ['상','중','하','']){
+      for(const sx of ['남','여','']){
+        const g=pool.filter(p=>(p.skill||'')===sk && (p.sex||'')===sx);
+        for(const person of shuffle(g)){ t[slot[cursor % n]].push(person); cursor++; }
+      }
+    }
+    return t;
+  };
+  /* 팀마다 얼마나 고른지 점수를 매긴다(낮을수록 고름).
+     팀 인원에 비례한 '이상적인 수'와의 차이를 제곱해 더한다.
+     최대-최소만 보면 한 번 바꿔서는 점수가 안 줄어 제자리에 갇히는데, 이 방식은 조금씩 줄어든다. */
+  const count = (team,key) => team.reduce((a,p)=>a+((p.sex===key||p.skill===key)?1:0),0);
+  const totals = {};
+  for(const key of ['남','여','상','중','하']) totals[key]=count(pool,key);
+  const spread = t => {
+    const N=pool.length;
+    let sum=0;
+    for(const key in totals){
+      if(!totals[key]) continue;
+      for(const team of t){
+        const d = count(team,key) - totals[key]*team.length/N;
+        sum += d*d;
+      }
+    }
+    return sum;
+  };
+  let teams=deal(), best=spread(teams);
+  for(let i=0;i<24 && best>1e-9;i++){
+    const t=deal(), sc=spread(t);
+    if(sc<best){ teams=t; best=sc; }
+  }
+  /* 두 팀의 학생을 하나씩 맞바꿔 보고 더 고르면 바꾼다 (인원 수는 그대로 유지된다) */
+  for(let pass=0; pass<40 && best>1e-9; pass++){
+    let moved=false;
+    for(let a=0;a<n && !moved;a++) for(let b=a+1;b<n && !moved;b++){
+      for(let i=0;i<teams[a].length && !moved;i++) for(let j=0;j<teams[b].length;j++){
+        const x=teams[a][i], y=teams[b][j];
+        if(x.sex===y.sex && x.skill===y.skill) continue;
+        teams[a][i]=y; teams[b][j]=x;
+        const sc=spread(teams);
+        if(sc < best-1e-9){ best=sc; moved=true; break; }
+        teams[a][i]=x; teams[b][j]=y;
+      }
+    }
+    if(!moved) break;
+  }
   teams.forEach(t=>t.sort((a,b)=>a.no-b.no));
   const d=new Date();
   teamOut={cls:teamCls, teams:teams, total:pool.length,
