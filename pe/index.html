@@ -228,6 +228,13 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 #gradeTable input:hover,#gradeTable select:hover{border-color:var(--line)}
 #gradeTable input:focus,#gradeTable select:focus{border-color:var(--accent);background:var(--panel);outline:none}
 #gradeTable .gh{text-align:center;font-weight:800;color:var(--accent);font-size:13px}
+#gradeTable .grade-place{padding:3px;background:color-mix(in srgb,var(--place-color) 16%,var(--panel));
+  border-left:4px solid var(--place-color);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.grade-place-button{display:block;width:100%;min-height:48px;padding:5px 3px;border:0;
+  border-radius:6px;background:transparent;color:var(--ink);font-weight:800}
+.grade-place-button small{display:block;font-size:10.5px;font-weight:500;white-space:nowrap}
+.grade-place-button:hover{background:var(--panel)}
+.grade-place-button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 #gradeTable .gu select{font-weight:700}
 #gradeTable tfoot td{font-weight:700;background:var(--line2)}
 .gradewarn{color:#d05252;font-weight:700}
@@ -548,7 +555,7 @@ tr.dead .ord{text-decoration:line-through}
       <div class="pad row" style="padding-bottom:4px">
         <label class="f" style="margin:0">전체 차시</label>
         <input type="number" id="gradeN" min="1" max="200" style="width:84px">
-        <span class="muted" style="font-size:12px">숫자를 바꾸면 아래 표의 줄 수가 맞춰집니다</span>
+        <span class="muted" style="font-size:12px">숫자를 바꾸면 아래 표의 줄 수가 맞춰집니다 · 차시를 누르면 장소를 선택합니다</span>
       </div>
       <div class="scroll"><table id="gradeTable"></table></div>
       <div class="pad row" style="padding-top:10px">
@@ -685,7 +692,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-28g'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-28h'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1427,7 +1434,7 @@ function gradeRows(g){
     const out=[];
     rows.forEach(r=>{
       const n=Math.max(1, Math.min(200, Number(r.hours)||1));
-      for(let i=0;i<n;i++) out.push({unit:r.unit||'', act:r.act||'', note:r.note||''});
+      for(let i=0;i<n;i++) out.push({unit:r.unit||'', act:r.act||'', note:r.note||'', place:r.place||''});
     });
     rows=out;
   }
@@ -1451,11 +1458,16 @@ function renderGrade(){
 
   $('#gradeTitle').textContent = curGrade+'학년 수업 계획';
   const rows=gradeRows(curGrade), units=gradeUnits(curGrade);
-  let h='<thead><tr><th style="width:62px">차시</th><th style="width:150px">단원</th>'+
+  let h='<thead><tr><th style="width:82px">차시 · 장소</th><th style="width:150px">단원</th>'+
         '<th>주요 활동</th><th style="width:26%">비고</th><th style="width:46px"></th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
+    const place=state.places.find(p=>p.id===r.place);
+    const name=place ? place.name : '장소 선택';
+    const color=place && /^#[0-9a-f]{6}$/i.test(place.color) ? place.color : '#8a94a4';
     h+='<tr data-i="'+i+'">'+
-      '<td class="gh"><b>'+(i+1)+'</b></td>'+
+      '<td class="gh grade-place" style="--place-color:'+color+'">'+
+        '<button type="button" class="grade-place-button" aria-label="'+(i+1)+'차시 장소 선택: '+esc(name)+'">'+
+        '<b>'+(i+1)+'</b><small>'+esc(name)+'</small></button></td>'+
       '<td class="gu"><select class="gun">'+
         [''].concat(units).map(u=>'<option'+(u===(r.unit||'')?' selected':'')+'>'+esc(u)+'</option>').join('')+
         (r.unit && units.indexOf(r.unit)<0 ? '<option selected>'+esc(r.unit)+'</option>' : '')+
@@ -1509,7 +1521,31 @@ function renderGradeSum(){        /* 합계줄만 고쳐 쓴다 (입력 중 커�
   const foot=$('#gradeFoot');
   if(foot) foot.innerHTML=gradeFootText(state.grades[curGrade]||[]);
 }
+function openGradePlace(index){
+  const grade=curGrade, row=state.grades[grade]?.[index];
+  if(!row) return;
+  const choices=[{id:'',name:'장소 미지정',color:'#8a94a4'},...state.places];
+  const body='<p class="muted" style="margin-bottom:12px">장소를 선택하면 차시 칸의 색이 바뀌고 자동 저장됩니다.</p>'+
+    '<div class="row" style="flex-wrap:wrap">'+choices.map(p=>{
+      const color=/^#[0-9a-f]{6}$/i.test(p.color)?p.color:'#8a94a4';
+      return '<button type="button" class="btn" data-grade-place="'+esc(p.id)+'" aria-pressed="'+((row.place||'')===p.id)+'">'+
+        '<span class="dot" style="background:'+color+'"></span>'+esc(p.name)+(((row.place||'')===p.id)?' ✓':'')+'</button>';
+    }).join('')+'</div>';
+  modal(esc(grade)+'학년 '+(index+1)+'차시 · 장소 선택',body,root=>{
+    $$('[data-grade-place]',root).forEach(button=>button.onclick=()=>{
+      row.place=button.dataset.gradePlace;
+      save(); closeModal(); renderGrade();
+      $('#gradeTable tr[data-i="'+index+'"] .grade-place-button')?.focus();
+    });
+    $('[data-grade-place][aria-pressed="true"]',root)?.focus();
+  });
+}
 $('#gradeTable').addEventListener('click', e=>{
+  const placeButton=e.target.closest('.grade-place-button');
+  if(placeButton){
+    const g=gradeRow(placeButton); if(g) openGradePlace(g.i);
+    return;
+  }
   if(!e.target.classList.contains('gdl')) return;
   const g=gradeRow(e.target); if(!g) return;
   if(g.rows.length<=1){ alert('마지막 차시는 지울 수 없습니다.'); return; }

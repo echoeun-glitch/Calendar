@@ -38,6 +38,21 @@ try {
   assert.equal(await progress.inputValue(),plan1);
   await progress.fill('학급별 별도 진도');await progress.press('Tab');
   await page.getByRole('button',{name:'학년별',exact:true}).click();
+  const placeButton=page.locator('#gradeTable .grade-place-button').first();
+  for(const [id,name] of [['p1','체육관'],['p3','예지관'],['p2','운동장']]){
+    await placeButton.click();
+    await page.locator('[data-grade-place="'+id+'"]').click();
+    assert.match(await placeButton.innerText(),new RegExp(name));
+    assert.equal(await page.evaluate(()=>state.grades['3'][0].place),id);
+    assert.equal(await page.locator('#gradeTable .grade-place').first().evaluate(e=>e.style.getPropertyValue('--place-color')),
+      await page.evaluate(id=>state.places.find(p=>p.id===id).color,id));
+  }
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pe-annual-v1'))?.grades?.['3']?.[0]?.place==='p2');
+  await page.evaluate(()=>window.PEJournal.replace(window.PEJournal.get()));
+  assert.match(await placeButton.innerText(),/운동장/);
+  await placeButton.press('Enter');
+  await page.locator('[data-grade-place=""]').click();
+  assert.match(await placeButton.innerText(),/장소 선택/);
   await page.locator('#gradeTable .gac').first().fill('농구');
   await page.getByRole('button',{name:'일지',exact:true}).click();
   assert.equal(await progress.inputValue(),'학급별 별도 진도');
