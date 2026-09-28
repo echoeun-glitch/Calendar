@@ -221,6 +221,17 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .pitem.low{border-color:rgba(214,69,69,.45)}
 .pitem.low .bar i{background:#d64545}
 
+/* ---------- 학년별 ---------- */
+#gradeTable td{padding:4px 6px;vertical-align:middle}
+#gradeTable input,#gradeTable select{width:100%;border:1px solid transparent;background:none;
+  border-radius:6px;padding:5px 7px;font-size:13.5px}
+#gradeTable input:hover,#gradeTable select:hover{border-color:var(--line)}
+#gradeTable input:focus,#gradeTable select:focus{border-color:var(--accent);background:var(--panel);outline:none}
+#gradeTable .gh input{text-align:center;font-weight:800;color:var(--accent)}
+#gradeTable .gu select{font-weight:700}
+#gradeTable tfoot td{font-weight:700;background:var(--line2)}
+.gradewarn{color:#d05252;font-weight:700}
+
 /* ---------- 명렬표 · 팀뽑기 ---------- */
 .roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:5px}
 .rname{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;
@@ -279,6 +290,13 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .clsbar button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:1px;background:var(--line2)}
 .stat{background:var(--panel);padding:12px 14px}
+/* 그리드 칸 안에서는 기본으로 늘어난다. width:100%를 주면 열 너비 계산이 꼬여
+   칸이 0px로 무너지고 타일이 서로 겹친다. */
+button.stat{border:0;text-align:left;cursor:pointer;font:inherit;color:inherit;
+  border-top:3px solid transparent}
+button.stat:hover{background:var(--line2)}
+button.stat.on{border-top-color:var(--accent);background:var(--accent-soft)}
+button.stat.on b{color:var(--accent)}
 .stat b{display:block;font-size:22px;letter-spacing:-.5px}
 .stat span{font-size:11.5px;color:var(--muted);font-weight:600}
 .dot{width:8px;height:8px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:0}
@@ -366,6 +384,7 @@ tr.dead .ord{text-decoration:line-through}
     <button data-view="week">주간</button>
     <button data-view="log">일지</button>
     <button data-view="team">팀뽑기</button>
+    <button data-view="grade">학년별</button>
     <button data-view="class">학급별</button>
     <button data-view="setup">설정</button>
   </nav>
@@ -517,6 +536,23 @@ tr.dead .ord{text-decoration:line-through}
     </div>
   </section>
 
+  <!-- ================= GRADE ================= -->
+  <section id="view-grade" hidden>
+    <div class="toolbar">
+      <div class="clsbar" id="gradeBar" style="margin:0"></div>
+      <button class="btn sm" id="gradePrint" style="margin-left:auto">인쇄</button>
+    </div>
+    <div class="card">
+      <h2><span id="gradeTitle">학년별 수업 계획</span>
+        <span class="hint">같은 학년은 수업 내용이 같으므로 한 번만 적으면 됩니다</span></h2>
+      <div class="scroll"><table id="gradeTable"></table></div>
+      <div class="pad row" style="padding-top:10px">
+        <button class="btn sm" id="gradeAdd">줄 추가</button>
+        <span class="muted" style="font-size:12px" id="gradeSum"></span>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= CLASS ================= -->
   <section id="view-class" hidden>
     <div class="clsbar" id="clsbar"></div>
@@ -532,7 +568,8 @@ tr.dead .ord{text-decoration:line-through}
       </div>
     </div>
     <div class="card">
-      <h2>수업 기록 <span class="hint">내용·메모 칸은 바로 입력하면 저장됩니다</span></h2>
+      <h2><span id="clsTableTitle">수업 기록</span>
+        <span class="hint">내용·메모 칸은 바로 입력하면 저장됩니다 · 위의 숫자를 다시 누르면 접힙니다</span></h2>
       <div class="scroll"><table id="clsTable"></table></div>
     </div>
     <div class="row noprint" style="margin-top:18px;opacity:.55;font-size:12px">
@@ -643,7 +680,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-28c'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-28e'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -702,6 +739,7 @@ function defState(){
     rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
     logs: {},     // iso -> 그날의 일지 (자유 입력)
     roster: {},   // 학급 -> [{no, name}] 명렬표
+    grades: {},   // 학년 -> [{hours, unit, act, note}] 학년별 수업 계획
     extras: []    // {id,date,period,cls,place}
   };
 }
@@ -724,6 +762,7 @@ function load(){
     }
     (st.extras||[]).forEach(e=>{ delete e.forId; });
     if(!st.roster) st.roster={};
+    if(!st.grades) st.grades={};
     for(const k in st.roster){                 /* 예전 명렬표에 성별·기능·비고 칸을 더한다 */
       st.roster[k]=(st.roster[k]||[]).map(x=>({
         no:x.no, name:x.name, sex:x.sex||'', skill:x.skill||'', note:x.note||''}));
@@ -1322,6 +1361,112 @@ function renderWeek(){
   $('#wgrid').innerHTML=h+'</tbody>';
 }
 
+/* ================= 학년별 수업 계획 =================
+   같은 학년은 수업 내용이 같아 학년 단위로 한 번만 적는다. */
+const GRADE_UNITS = {
+  low:  ['1. 교과서', '2. 교과서 외'],                 /* 1·2학년 */
+  high: ['1. 운동', '2. 스포츠', '3. 표현']             /* 3학년 이상 */
+};
+const DEF_GRADE_HOURS = {'1':34, '2':34, '3':32, '5':49};
+
+/* 담당 학급에서 학년을 뽑아낸다 (1-1, 3-2 → 1, 3) */
+function gradeList(){
+  const set={};
+  classNames().forEach(n=>{ const g=String(n).split('-')[0].trim(); if(g) set[g]=1; });
+  return Object.keys(set).sort((a,b)=>Number(a)-Number(b));
+}
+const gradeUnits = g => Number(g)<=2 ? GRADE_UNITS.low : GRADE_UNITS.high;
+function gradeRows(g){
+  if(!state.grades) state.grades={};
+  if(!state.grades[g]) state.grades[g]=[{hours:DEF_GRADE_HOURS[g]||0, unit:'', act:'', note:''}];
+  return state.grades[g];
+}
+let curGrade='';
+function renderGrade(){
+  const list=gradeList();
+  if(list.indexOf(curGrade)<0) curGrade = list[0]||'';
+  $('#gradeBar').innerHTML = list.map(g=>
+    '<button class="'+(g===curGrade?'on':'')+'" data-g="'+esc(g)+'">'+esc(g)+'학년</button>').join('');
+  if(!curGrade){ $('#gradeTable').innerHTML=''; $('#gradeSum').textContent=''; return; }
+
+  $('#gradeTitle').textContent = curGrade+'학년 수업 계획';
+  const rows=gradeRows(curGrade), units=gradeUnits(curGrade);
+  let h='<thead><tr><th style="width:86px">시수</th><th style="width:150px">단원</th>'+
+        '<th>주요 활동</th><th style="width:24%">비고</th><th style="width:46px"></th></tr></thead><tbody>';
+  rows.forEach((r,i)=>{
+    h+='<tr data-i="'+i+'">'+
+      '<td class="gh"><input class="ghr" type="number" min="0" max="400" value="'+(r.hours||'')+'" placeholder="0"></td>'+
+      '<td class="gu"><select class="gun">'+
+        [''].concat(units).map(u=>'<option'+(u===(r.unit||'')?' selected':'')+'>'+esc(u)+'</option>').join('')+
+        (r.unit && units.indexOf(r.unit)<0 ? '<option selected>'+esc(r.unit)+'</option>' : '')+
+        '</select></td>'+
+      '<td><input class="gac" value="'+esc(r.act||'')+'" placeholder="예: 줄넘기, 티볼"></td>'+
+      '<td><input class="gnt" value="'+esc(r.note||'')+'" placeholder="—"></td>'+
+      '<td style="text-align:right"><button class="btn sm ghost gdl" title="이 줄 삭제">✕</button></td></tr>';
+  });
+  const sum=rows.reduce((a,r)=>a+(Number(r.hours)||0),0);
+  const goal=DEF_GRADE_HOURS[curGrade]||0;
+  h+='</tbody><tfoot><tr><td class="gh" style="text-align:center">'+sum+'</td>'+
+     '<td colspan="4" class="muted" style="font-weight:600">단원 시수 합계'+
+     (goal? ' · 기준 '+goal+'시간'+(sum!==goal?' <span class="gradewarn">('+(sum>goal?'+':'')+(sum-goal)+')</span>':' ✓'):'')+
+     '</td></tr></tfoot>';
+  $('#gradeTable').innerHTML=h;
+
+  /* 그 학년 학급들이 실제로 몇 차시인지 함께 보여준다 */
+  const mine=classNames().filter(n=>String(n).split('-')[0]===curGrade);
+  $('#gradeSum').innerHTML = mine.length
+    ? esc(curGrade)+'학년 학급 편성: '+mine.map(n=>esc(n)+' '+((STATS[n]||{}).sched||0)+'차시').join(' · ')
+    : '';
+}
+function gradeRow(el){
+  const tr=el.closest('tr[data-i]'); if(!tr) return null;
+  const rows=state.grades && state.grades[curGrade];
+  return rows ? {i:Number(tr.dataset.i), rows:rows} : null;
+}
+$('#gradeBar').onclick=e=>{
+  const b=e.target.closest('[data-g]'); if(!b) return;
+  curGrade=b.dataset.g; renderGrade();
+};
+$('#gradeTable').addEventListener('input', e=>{
+  const t=e.target, g=gradeRow(t); if(!g) return;
+  const r=g.rows[g.i]; if(!r) return;
+  if(t.classList.contains('ghr')){ r.hours=Number(t.value)||0; save(); renderGradeSum(); }
+  else if(t.classList.contains('gac')){ r.act=t.value; save(); }
+  else if(t.classList.contains('gnt')){ r.note=t.value; save(); }
+});
+$('#gradeTable').addEventListener('change', e=>{
+  const t=e.target, g=gradeRow(t); if(!g) return;
+  const r=g.rows[g.i]; if(!r) return;
+  if(t.classList.contains('gun')){ r.unit=t.value; save(); }
+});
+function renderGradeSum(){        /* 합계만 고쳐 쓴다 (입력 중 커서 유지) */
+  const rows=state.grades[curGrade]||[];
+  const sum=rows.reduce((a,r)=>a+(Number(r.hours)||0),0);
+  const goal=DEF_GRADE_HOURS[curGrade]||0;
+  const foot=$('#gradeTable').querySelector('tfoot tr');
+  if(!foot) return;
+  foot.cells[0].textContent=sum;
+  foot.cells[1].innerHTML='단원 시수 합계'+
+    (goal? ' · 기준 '+goal+'시간'+(sum!==goal?' <span class="gradewarn">('+(sum>goal?'+':'')+(sum-goal)+')</span>':' ✓'):'');
+}
+$('#gradeTable').addEventListener('click', e=>{
+  if(!e.target.classList.contains('gdl')) return;
+  const g=gradeRow(e.target); if(!g) return;
+  if(g.rows.length<=1){ alert('마지막 줄은 지울 수 없습니다.'); return; }
+  g.rows.splice(g.i,1); save(); renderGrade();
+});
+$('#gradeAdd').onclick=()=>{
+  const rows=gradeRows(curGrade);
+  rows.push({hours:0, unit:'', act:'', note:''});
+  save(); renderGrade();
+  const last=$$('#gradeTable tbody tr').pop();
+  if(last){ $('.gac',last).focus(); last.scrollIntoView({block:'nearest'}); }
+};
+$('#gradePrint').onclick=()=>{
+  $('#printHead').textContent=curGrade+'학년 수업 계획';
+  window.print();
+};
+
 /* ================= 명렬표 · 팀뽑기 ================= */
 function roster(cls){ return (state.roster && state.roster[cls]) || []; }
 
@@ -1685,7 +1830,7 @@ function renderRecent(){
 }
 
 /* ================= render: class ================= */
-let curCls='';
+let curCls='', clsFilter='';   /* '' | done | all | left */
 function renderClass(){
   const names=classNames();
   if(names.indexOf(curCls)<0){
@@ -1696,27 +1841,37 @@ function renderClass(){
     '<button class="'+(n===curCls?'on':'')+'" data-cls="'+esc(n)+'">'+esc(n)+'</button>').join('');
   const st=STATS[curCls]||{prog:0,total:0,sched:0,short:0,plan:0};
   $('#clsStats').innerHTML=
-    stat(st.prog,'오늘까지 한 차시') + stat(st.total, st.plan>0?'전체 차시(목표)':'전체 차시') +
-    stat(Math.max(0,st.total-st.prog),'남은 차시') +
+    stat(st.prog,'오늘까지 한 차시','done') +
+    stat(st.total, st.plan>0?'전체 차시(목표)':'전체 차시','all') +
+    stat(Math.max(0,st.total-st.prog),'남은 차시','left') +
     (st.short ? stat(st.short,'목표보다 모자람') : '');
 
-  const rows=LESSONS.filter(L=>L.cls===curCls && L.status==='ok');
-  let h='<thead><tr><th style="width:52px">차시</th><th style="width:118px">날짜</th><th style="width:70px">교시</th>'+
-        '<th style="width:82px">장소</th><th>진도 · 수업 내용</th><th>특이사항</th></tr></thead><tbody>';
+  const card=$('#clsTable').closest('.card');
+  card.hidden = !clsFilter;
+  $('#clsTableTitle').textContent =
+    clsFilter==='done' ? '했던 수업 기록' :
+    clsFilter==='left' ? '앞으로의 수업 계획' : '전체 수업 기록';
+  const rows=LESSONS.filter(L=>{
+    if(L.cls!==curCls || L.status!=='ok') return false;
+    if(clsFilter==='done') return L.date<=TODAY;
+    if(clsFilter==='left') return L.date>TODAY;
+    return true;
+  });
+  let h='<thead><tr><th style="width:52px">차시</th><th style="width:124px">날짜</th>'+
+        '<th style="width:86px">장소</th><th>진도 · 수업 내용</th><th>특이사항</th></tr></thead><tbody>';
   for(const L of rows){
     const pl=placeOf(L.place);
     h+='<tr data-id="'+L.id+'">'+
        '<td class="ord"><b>'+(L.ord||'-')+'</b></td>'+
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 4px">'+
           L.date.slice(5)+' ('+DOWK[L.dow]+')</button></td>'+
-       '<td>'+L.period+'교시</td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>';
     h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
        '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
   }
-  if(!rows.length) h+='<tr><td colspan="6" class="muted" style="padding:20px;text-align:center">'+
-    '설정에서 기초 시간표를 먼저 넣어주세요.</td></tr>';
+  if(!rows.length) h+='<tr><td colspan="5" class="muted" style="padding:20px;text-align:center">'+
+    (Object.keys(state.base).length? '해당하는 수업이 없습니다.' : '설정에서 기초 시간표를 먼저 넣어주세요.')+'</td></tr>';
   $('#clsTable').innerHTML=h+'</tbody>';
 
   renderClassRoster();
@@ -1788,7 +1943,11 @@ $('#rosAdd').onclick=()=>{
   if(last){ const inp=$('.rnm',last); inp.focus(); last.scrollIntoView({block:'nearest'}); }
 };
 
-function stat(v,l){ return '<div class="stat"><b>'+v+'</b><span>'+l+'</span></div>'; }
+function stat(v,l,f){
+  if(!f) return '<div class="stat"><b>'+v+'</b><span>'+l+'</span></div>';
+  return '<button class="stat statbtn'+(clsFilter===f?' on':'')+'" data-f="'+f+'">'+
+    '<b>'+v+'</b><span>'+l+'</span></button>';
+}
 
 /* ================= render: setup ================= */
 function renderBaseTable(){
@@ -1895,11 +2054,12 @@ let view='year';
 function render(){
   $('#rangeLabel').textContent = state.start+' ~ '+state.end;
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
-  ['year','week','log','team','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
+  ['year','week','log','team','grade','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
   if(view==='year')  renderYear();
   if(view==='week')  renderWeek();
   if(view==='log')   renderLog();
   if(view==='team')  renderTeam();
+  if(view==='grade') renderGrade();
   if(view==='class') renderClass();
   if(view==='setup') renderSetup();
 }
@@ -2179,6 +2339,11 @@ $('#gCsv').onclick=()=>{
   csvDL('PE-journal-'+TODAY+'.csv', rows);
 };
 
+$('#clsStats').onclick=e=>{
+  const b=e.target.closest('[data-f]'); if(!b) return;
+  clsFilter = (clsFilter===b.dataset.f) ? '' : b.dataset.f;   /* 다시 누르면 접는다 */
+  renderClass();
+};
 $('#clsbar').onclick=e=>{
   const b=e.target.closest('button'); if(!b) return;
   curCls = b.dataset.cls || curCls;
@@ -2382,6 +2547,7 @@ $('#impFile').onchange=e=>{
       state=Object.assign(defState(), s);
       if(!state.logs) state.logs={};
       if(!state.roster) state.roster={};
+      if(!state.grades) state.grades={};
       touch();
       alert('불러왔습니다.');
     }catch(err){ alert('백업 파일이 아닌 것 같습니다.'); }
