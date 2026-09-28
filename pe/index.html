@@ -246,6 +246,16 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .team li:last-child{border-bottom:0}
 .team li i{font-style:normal;color:var(--muted);font-size:11.5px;min-width:18px}
 .rosrow input{width:100%}
+#clsRoster td{padding:4px 6px}
+#clsRoster input,#clsRoster select{width:100%;border:1px solid transparent;background:none;
+  border-radius:6px;padding:4px 6px;font-size:13.5px}
+#clsRoster input:hover,#clsRoster select:hover{border-color:var(--line)}
+#clsRoster input:focus,#clsRoster select:focus{border-color:var(--accent);background:var(--panel);outline:none}
+#clsRoster .cno input{text-align:center;font-weight:700;color:var(--muted)}
+#clsRoster .cnm input{font-weight:700}
+#clsRoster .sk-상{color:#c2680a;font-weight:700}
+#clsRoster .sk-중{color:#15803d;font-weight:700}
+#clsRoster .sk-하{color:#2563eb;font-weight:700}
 
 /* ---------- 일지 ---------- */
 .logbox{min-height:210px;font-size:14px;line-height:1.8;padding:12px 13px}
@@ -372,6 +382,15 @@ tr.dead .ord{text-decoration:line-through}
     <button class="btn sm" id="cloudMigrate" hidden>이 기기의 기존 일지 가져오기</button>
   </div>
   <p id="cloudHelp" class="muted" style="font-size:13px;margin-top:8px">로그인 연결을 준비하고 있습니다. 기존 일지는 이 브라우저에 계속 저장됩니다.</p>
+  <script>
+  /* 파일을 직접 열면(file://) 브라우저가 모듈 스크립트를 막아 로그인이 아예 불가능하다.
+     기다리면 될 것처럼 보이지 않도록 바로 알린다. */
+  if(location.protocol === 'file:'){
+    document.getElementById('cloudHelp').textContent =
+      '파일을 직접 열면 로그인할 수 없습니다. 인터넷 주소로 열어야 Google 로그인과 동기화가 됩니다. 지금은 이 브라우저에만 저장됩니다.';
+    document.getElementById('cloudLogin').hidden = true;
+  }
+  </script>
   <div id="cloudConflict" hidden style="margin-top:10px">
     <p>다른 기기에서 수정한 내용이 있습니다. 현재 입력을 백업한 다음 온라인 일지를 불러와 주세요. 필요한 내용은 백업 불러오기로 다시 옮길 수 있습니다.</p>
     <button class="btn sm" id="cloudBackup">현재 입력 백업</button>
@@ -503,13 +522,17 @@ tr.dead .ord{text-decoration:line-through}
     <div class="card">
       <div class="stats" id="clsStats"></div>
     </div>
+    <div class="card" id="clsRosterCard">
+      <h2>명렬표 <span class="hint" id="clsRosterN"></span></h2>
+      <div class="scroll"><table id="clsRoster"></table></div>
+      <div class="pad row" style="padding-top:10px">
+        <button class="btn sm" id="rosAdd">학생 추가</button>
+        <span class="muted" style="font-size:12px">이름·성별·기능·비고는 바로 입력하면 저장됩니다</span>
+      </div>
+    </div>
     <div class="card">
       <h2>수업 기록 <span class="hint">내용·메모 칸은 바로 입력하면 저장됩니다</span></h2>
       <div class="scroll"><table id="clsTable"></table></div>
-    </div>
-    <div class="card" id="clsRosterCard">
-      <h2>명렬표 <span class="hint" id="clsRosterN"></span></h2>
-      <div class="pad"><div class="roster" id="clsRoster"></div></div>
     </div>
     <div class="row noprint" style="margin-top:18px;opacity:.55;font-size:12px">
       <button class="btn sm ghost" id="clsPrint">인쇄</button>
@@ -619,7 +642,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-27-cloud'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-28'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -700,6 +723,10 @@ function load(){
     }
     (st.extras||[]).forEach(e=>{ delete e.forId; });
     if(!st.roster) st.roster={};
+    for(const k in st.roster){                 /* 예전 명렬표에 성별·기능·비고 칸을 더한다 */
+      st.roster[k]=(st.roster[k]||[]).map(x=>({
+        no:x.no, name:x.name, sex:x.sex||'', skill:x.skill||'', note:x.note||''}));
+    }
     return st;
   }catch(e){ return defState(); }
 }
@@ -1077,15 +1104,31 @@ function readDelimited(text){
 
 /* 표에서 번호·이름을 찾아낸다 */
 const NAMEISH = v => /^[가-힣]{2,5}$/.test(v) || /^[A-Za-z][A-Za-z .'-]{1,20}$/.test(v);
+/* 두 글자 성은 두 글자를 뗀다 */
+const SURNAME2 = ['남궁','황보','제갈','사공','선우','서문','독고','동방','수봉','어금','장곡','부여'];
+function givenName(full){
+  const v=String(full||'').replace(/\s+/g,'');
+  if(!/^[가-힣]{2,6}$/.test(v)) return v;                 /* 한글 이름이 아니면 그대로 */
+  const cut = SURNAME2.some(x=>v.indexOf(x)===0) ? 2 : 1;
+  const rest = v.slice(cut);
+  return rest || v;                                        /* 한 글자 이름이면 그대로 */
+}
+const SEXOF = v => {
+  const t=String(v||'').replace(/\s/g,'');
+  if(/^(남|남자|M|male)$/i.test(t)) return '남';
+  if(/^(여|여자|F|female)$/i.test(t)) return '여';
+  return '';
+};
 function pickRoster(rows){
   if(!rows || !rows.length) return [];
-  let hRow=-1, cName=-1, cNo=-1;
+  let hRow=-1, cName=-1, cNo=-1, cSex=-1;
   for(let r=0; r<Math.min(rows.length, 15); r++){
     const row = rows[r]||[];
     for(let c=0; c<row.length; c++){
       const v = (row[c]||'').replace(/\s/g,'');
       if(cName<0 && /^(이름|성명|학생명|성 명)$/.test(v)){ hRow=r; cName=c; }
       if(cNo<0 && /^(번호|번|학번|출석번호)$/.test(v) && hRow<=r){ cNo=c; }
+      if(cSex<0 && /^(성별|성)$/.test(v)){ cSex=c; }
     }
     if(cName>=0){ break; }
   }
@@ -1109,7 +1152,8 @@ function pickRoster(rows){
     if(!no) no = String(out.length+1);
     const key = no+'/'+nm;
     if(seen[key]) continue; seen[key]=1;
-    out.push({no:Number(no)||out.length+1, name:nm});
+    out.push({no:Number(no)||out.length+1, name:givenName(nm), full:nm,
+              sex: cSex>=0 ? SEXOF(row[cSex]) : '', skill:'', note:''});
     if(out.length>=60) break;
   }
   return out;
@@ -1314,11 +1358,15 @@ function openRosterCheck(cls, list){
         '</select><span class="muted" style="font-size:12.5px">'+list.length+'명을 찾았습니다</span></div>'+
     '<div class="scroll" style="max-height:44vh"><table id="rcTable"><tbody>'+
     list.map((x,i)=>'<tr data-i="'+i+'">'+
-      '<td style="width:64px"><input class="rcno" type="number" min="0" value="'+x.no+'" style="width:56px"></td>'+
+      '<td style="width:62px"><input class="rcno" type="number" min="0" value="'+x.no+'" style="width:54px"></td>'+
       '<td class="rosrow"><input class="rcname" value="'+esc(x.name)+'"></td>'+
-      '<td style="width:52px;text-align:right"><button class="btn sm ghost rcdel">✕</button></td></tr>').join('')+
+      '<td style="width:66px"><select class="rcsex">'+
+        ['','남','여'].map(v=>'<option'+(v===x.sex?' selected':'')+'>'+v+'</option>').join('')+'</select></td>'+
+      '<td class="muted" style="width:76px;font-size:11.5px">'+esc(x.full||'')+'</td>'+
+      '<td style="width:44px;text-align:right"><button class="btn sm ghost rcdel">✕</button></td></tr>').join('')+
     '</tbody></table></div>'+
-    '<p class="muted" style="font-size:12px;margin:10px 0 12px">잘못 읽힌 줄은 고치거나 ✕로 빼세요.</p>'+
+    '<p class="muted" style="font-size:12px;margin:10px 0 12px">'+
+    '이름은 성을 뺀 뒤 저장됩니다(오른쪽이 원래 이름). 잘못 읽힌 줄은 고치거나 ✕로 빼세요.</p>'+
     '<div class="acts"><button class="btn" data-close="1">취소</button>'+
     '<button class="btn primary" id="rcSave">이 학급 명렬표로 저장</button></div>';
   modal('명렬표 확인', h, root=>{
@@ -1330,7 +1378,8 @@ function openRosterCheck(cls, list){
       $$('#rcTable tr',root).forEach(tr=>{
         const nm=$('.rcname',tr).value.trim();
         if(!nm) return;
-        out.push({no:Number($('.rcno',tr).value)||out.length+1, name:nm});
+        out.push({no:Number($('.rcno',tr).value)||out.length+1, name:nm,
+                  sex:$('.rcsex',tr).value, skill:'', note:''});
       });
       if(!state.roster) state.roster={};
       if(out.length) state.roster[target]=out; else delete state.roster[target];
@@ -1606,12 +1655,75 @@ function renderClass(){
     '설정에서 기초 시간표를 먼저 넣어주세요.</td></tr>';
   $('#clsTable').innerHTML=h+'</tbody>';
 
-  const r=roster(curCls);
-  $('#clsRosterN').textContent = r.length ? r.length+'명' : '설정 → 5. 명렬표에서 올리세요';
-  $('#clsRoster').innerHTML = r.length
-    ? r.map(p=>'<div class="rname"><i>'+p.no+'</i><b>'+esc(p.name)+'</b></div>').join('')
-    : '<span class="muted" style="font-size:13px">아직 올린 명렬표가 없습니다.</span>';
+  renderClassRoster();
 }
+const SKILLS=['','상','중','하'];
+function renderClassRoster(){
+  const r=roster(curCls);
+  $('#clsRosterN').textContent = r.length ? r.length+'명'
+    : '설정 → 5. 명렬표에서 올리거나, 아래 «학생 추가»로 한 명씩 넣으세요';
+  let h='<thead><tr><th style="width:62px">번호</th><th style="width:130px">이름</th>'+
+        '<th style="width:82px">성별</th><th style="width:82px">기능</th><th>비고</th>'+
+        '<th style="width:46px"></th></tr></thead><tbody>';
+  r.forEach((p,i)=>{
+    h+='<tr data-i="'+i+'">'+
+      '<td class="cno"><input class="rno" type="number" min="0" value="'+(p.no||'')+'"></td>'+
+      '<td class="cnm"><input class="rnm" value="'+esc(p.name||'')+'" placeholder="이름"></td>'+
+      '<td><select class="rsx">'+['','남','여'].map(v=>
+        '<option'+(v===(p.sex||'')?' selected':'')+'>'+v+'</option>').join('')+'</select></td>'+
+      '<td><select class="rsk sk-'+esc(p.skill||'')+'">'+SKILLS.map(v=>
+        '<option'+(v===(p.skill||'')?' selected':'')+'>'+v+'</option>').join('')+'</select></td>'+
+      '<td><input class="rnt" value="'+esc(p.note||'')+'" placeholder="—"></td>'+
+      '<td style="text-align:right"><button class="btn sm ghost rdel" title="이 학생 삭제">✕</button></td></tr>';
+  });
+  if(!r.length) h+='<tr><td colspan="6" class="muted" style="padding:16px;text-align:center">'+
+    '아직 명렬표가 없습니다.</td></tr>';
+  $('#clsRoster').innerHTML=h+'</tbody>';
+}
+function rosterRow(el){
+  const tr=el.closest('tr[data-i]'); if(!tr) return null;
+  const list=state.roster && state.roster[curCls];
+  return list ? {tr:tr, i:Number(tr.dataset.i), list:list} : null;
+}
+$('#clsRoster').addEventListener('input', e=>{
+  const t=e.target, g=rosterRow(t); if(!g) return;
+  const p=g.list[g.i]; if(!p) return;
+  if(t.classList.contains('rno')) p.no=Number(t.value)||0;
+  else if(t.classList.contains('rnm')) p.name=t.value.trim();
+  else if(t.classList.contains('rnt')) p.note=t.value;
+  else return;
+  save();                       /* 입력 중이라 다시 그리지 않는다 */
+});
+$('#clsRoster').addEventListener('change', e=>{
+  const t=e.target, g=rosterRow(t); if(!g) return;
+  const p=g.list[g.i]; if(!p) return;
+  if(t.classList.contains('rsx')) p.sex=t.value;
+  else if(t.classList.contains('rsk')){
+    p.skill=t.value;
+    t.className='rsk sk-'+p.skill;
+  }else return;
+  save();
+});
+$('#clsRoster').addEventListener('click', e=>{
+  if(!e.target.classList.contains('rdel')) return;
+  const g=rosterRow(e.target); if(!g) return;
+  const p=g.list[g.i];
+  if(!confirm((p.name||'이 학생')+' 을(를) 명렬표에서 지울까요?')) return;
+  g.list.splice(g.i,1);
+  if(!g.list.length) delete state.roster[curCls];
+  save(); rebuild(); renderClassRoster();
+});
+$('#rosAdd').onclick=()=>{
+  if(!state.roster) state.roster={};
+  const list=state.roster[curCls]=state.roster[curCls]||[];
+  const maxNo=list.reduce((a,p)=>Math.max(a, Number(p.no)||0), 0);
+  list.push({no:maxNo+1, name:'', sex:'', skill:'', note:''});
+  save(); renderClassRoster();
+  const rows=$$('#clsRoster tbody tr');
+  const last=rows[rows.length-1];
+  if(last){ const inp=$('.rnm',last); inp.focus(); last.scrollIntoView({block:'nearest'}); }
+};
+
 function stat(v,l){ return '<div class="stat"><b>'+v+'</b><span>'+l+'</span></div>'; }
 
 /* ================= render: setup ================= */
