@@ -39,20 +39,17 @@ try {
   await progress.fill('학급별 별도 진도');await progress.press('Tab');
   await page.getByRole('button',{name:'학년별',exact:true}).click();
   const placeButton=page.locator('#gradeTable .grade-place-button').first();
-  for(const [id,name] of [['p1','체육관'],['p3','예지관'],['p2','운동장']]){
-    await placeButton.click();
-    await page.locator('[data-grade-place="'+id+'"]').click();
-    assert.match(await placeButton.innerText(),new RegExp(name));
-    assert.equal(await page.evaluate(()=>state.grades['3'][0].place),id);
-    assert.equal(await page.locator('#gradeTable .grade-place').first().evaluate(e=>e.style.getPropertyValue('--place-color')),
-      await page.evaluate(id=>state.places.find(p=>p.id===id).color,id));
-  }
-  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pe-annual-v1'))?.grades?.['3']?.[0]?.place==='p2');
-  await page.evaluate(()=>window.PEJournal.replace(window.PEJournal.get()));
+  assert.match(await placeButton.innerText(),/체육관/);
+  await page.evaluate(()=>{state.grades['3'][0].place='p3';renderGrade();});
+  assert.doesNotMatch(await placeButton.innerText(),/예지관/);
+  await page.evaluate(()=>{state.rec['2026-09-02#1']={place:'p2'};rebuild();renderGrade();});
+  assert.match(await placeButton.innerText(),/체육관/);
   assert.match(await placeButton.innerText(),/운동장/);
   await placeButton.press('Enter');
-  await page.locator('[data-grade-place=""]').click();
-  assert.match(await placeButton.innerText(),/장소 선택/);
+  assert.match(await page.locator('#modalRoot').innerText(),/3-2/);
+  assert.match(await page.locator('#modalRoot').innerText(),/2026-09-02/);
+  assert.equal(await page.locator('[data-grade-place]').count(),0);
+  await page.getByRole('button',{name:'닫기',exact:true}).click();
   await page.locator('#gradeTable .gac').first().fill('농구');
   await page.getByRole('button',{name:'일지',exact:true}).click();
   assert.equal(await progress.inputValue(),'학급별 별도 진도');
@@ -68,6 +65,8 @@ try {
   assert.equal(await page.evaluate(()=>state.rec['2026-09-01#1'].special),'개별 특이사항');
   await page.evaluate(()=>{state.days['2026-09-01']={off:true,label:'휴업'};rebuild();});
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-08#1'])),'2. 스포츠 · 농구');
+  assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',1).find(p=>p.cls==='3-1').lesson.date),'2026-09-08');
+  assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',100)[0].name),'미편성');
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-15#1'])),'1. 운동 · 달리기');
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-22#1'])),'');
   await page.evaluate(()=>{state.grades['3']=[{hours:2,unit:'표현',act:'춤',note:''}];});
