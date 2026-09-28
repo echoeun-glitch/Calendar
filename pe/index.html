@@ -685,7 +685,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-28f'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-28g'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -948,6 +948,37 @@ function openDay(dateISO){
 }
 
 /* ---- 수업 모달 ---- */
+// Resolve plans when displaying a lesson so later plan edits remain linked.
+function lessonPlan(L){
+  if(!L || L.status!=='ok' || !L.ord) return null;
+  const grade=String(L.cls).split('-')[0].trim();
+  const rows=state.grades && state.grades[grade];
+  if(!Array.isArray(rows)) return null;
+  if(state.gradeN && state.gradeN[grade] && L.ord>Number(state.gradeN[grade])) return null;
+  let index=L.ord-1;
+  for(const row of rows){
+    const count=row && row.hours!==undefined ? Math.max(1,Math.min(200,Number(row.hours)||1)) : 1;
+    if(index<count) return row || null;
+    index-=count;
+  }
+  return null;
+}
+function lessonPlanText(L){
+  const plan=lessonPlan(L);
+  return plan ? [plan.unit,plan.act].filter(v=>v && String(v).trim()).join(' · ') : '';
+}
+function lessonProgress(L){ return (L.rec.prog||'').trim() || lessonPlanText(L); }
+function lessonPlanHint(L){
+  const plan=lessonPlan(L), text=lessonPlanText(L);
+  if(!text && !(plan && plan.note)) return '';
+  return '<small class="muted" style="display:block;font-size:11px;white-space:normal">'+
+    (L.rec.prog ? '개별 기록 우선 · 학년 계획: '+esc(text) : '학년 계획 연동 · 개별 입력을 비우면 다시 연동')+
+    (plan.note ? '<br>계획 비고: '+esc(plan.note) : '')+'</small>';
+}
+function lessonProgressInput(L){
+  return '<input class="ntin" data-f="prog" value="'+esc(lessonProgress(L))+'" placeholder="진도 · 수업 내용">'+
+    '<div data-planhint>'+lessonPlanHint(L)+'</div>';
+}
 function openLesson(id){
   const L=BYID[id]; if(!L) return;
   const dayOff = L.status==='off';
@@ -961,7 +992,7 @@ function openLesson(id){
         state.places.map(p=>'<option value="'+p.id+'"'+(p.id===L.place?' selected':'')+'>'+esc(p.name)+'</option>').join('')+
        '</select></div></div>';
   h += '<div class="field"><label class="f">진도 · 수업 내용</label>'+
-       '<input type="text" id="rProg" placeholder="예: 티볼 - 던지고 받기" value="'+esc(L.rec.prog||'')+'"></div>'+
+       '<input type="text" id="rProg" placeholder="예: 티볼 - 던지고 받기" value="'+esc(lessonProgress(L))+'">'+lessonPlanHint(L)+'</div>'+
        '<div class="field"><label class="f">특이사항</label>'+
        '<textarea id="rSpecial" placeholder="수업 중 있었던 일">'+esc(L.rec.special||'')+'</textarea></div>';
   h += '<div class="acts">';
@@ -983,7 +1014,11 @@ function openLesson(id){
         if(cls!==b.cls) r.cls=cls; else delete r.cls;
         if(place!==b.place) r.place=place; else delete r.place;
       }
-      r.prog=$('#rProg',root).value.trim();
+      const progress=$('#rProg',root).value.trim();
+      // Saving another field must not turn the inherited plan into a fixed record.
+      if(progress!==lessonProgress(L)){
+        if(progress) r.prog=progress; else delete r.prog;
+      }
       r.special=$('#rSpecial',root).value.trim();
       if(!Object.keys(r).some(k=>r[k])) delete state.rec[id];
     };
@@ -1354,7 +1389,8 @@ function renderWeek(){
           h+='<button class="slot filled'+(over?' dead':'')+'" style="--c:'+pl.color+'" data-id="'+L.id+'">'+
              '<span class="big">'+esc(L.cls)+(L.ord?' <span style="font-size:11px;font-weight:600">'+L.ord+'차시</span>':'')+'</span>'+
              '<span class="pl" style="color:'+pl.color+'">'+esc(pl.name)+'</span>'+
-             (L.rec.prog?'<span class="nt">'+esc(L.rec.prog)+'</span>':'')+
+             (lessonProgress(L)?'<span class="nt">'+esc(lessonProgress(L))+'</span>':'')+
+             (lessonPlan(L)?.note?'<span class="nt">계획 비고: '+esc(lessonPlan(L).note)+'</span>':'')+
              (over?'<span class="nt">수업 기간 밖</span>':'')+
              '</button>';
         }
@@ -1708,7 +1744,7 @@ function renderLog(){
          esc(L.cls)+'</button></td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>'+
        '<td>'+(L.ord?L.ord+'차시':'-')+'</td>';
-    h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
+    h+='<td>'+lessonProgressInput(L)+'</td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
   }
@@ -1899,7 +1935,7 @@ function renderClass(){
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 4px">'+
           L.date.slice(5)+' ('+DOWK[L.dow]+')</button></td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>';
-    h+='<td><input class="ntin" data-f="prog" value="'+esc(L.rec.prog||'')+'" placeholder="—"></td>'+
+    h+='<td>'+lessonProgressInput(L)+'</td>'+
        '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
   }
@@ -2387,15 +2423,27 @@ function writeRec(inp){
   const tr=inp.closest('tr'); if(!tr) return false;
   const id=tr.dataset.id, f=inp.dataset.f;
   const r=state.rec[id]=state.rec[id]||{};
-  r[f]=inp.value.trim();
+  const value=inp.value.trim();
+  if(f==='prog' && (!value || value===lessonPlanText(BYID[id]))) delete r.prog;
+  else r[f]=value;
   if(!Object.keys(r).some(k=>r[k])) delete state.rec[id];
   save(); rebuild();          /* 화면은 다시 그리지 않아 입력 중 커서가 유지됩니다 */
+  const hint=tr.querySelector('[data-planhint]');
+  if(hint) hint.innerHTML=lessonPlanHint(BYID[id]);
   return true;
 }
 /* 입력 중에도, 칸을 벗어날 때도 저장만 합니다. 화면을 다시 그리면 그 순간 누른
    버튼이 사라져 클릭이 먹히지 않기 때문에 여기서는 절대 다시 그리지 않습니다. */
 $('#clsTable').addEventListener('input',  e=>{ writeRec(e.target); });
 $('#clsTable').addEventListener('change', e=>{ writeRec(e.target); });
+for(const table of [$('#clsTable'),$('#logTable')]){
+  table.addEventListener('focusout', e=>{
+    const input=e.target;
+    if(input.dataset.f!=='prog' || input.value.trim()) return;
+    const lesson=BYID[input.closest('tr').dataset.id];
+    if(lesson) input.value=lessonProgress(lesson);
+  });
+}
 $('#clsTable').addEventListener('click', e=>{
   const b=e.target.closest('[data-open]'); if(b) openLesson(b.dataset.open);
 });
@@ -2528,7 +2576,7 @@ function csvYear(){
   for(const L of LESSONS){
     if(L.status!=='ok') continue;
     rows.push([L.date, DOWK[L.dow], L.period, L.cls, placeOf(L.place).name, L.ord||'',
-      L.rec.prog||'', L.rec.special||'', L.kind==='extra'?'추가 수업':'']);
+      lessonProgress(L), L.rec.special||'', L.kind==='extra'?'추가 수업':'']);
   }
   csvDL('PE-annual-timetable-'+TODAY+'.csv', rows);
 }
@@ -2538,7 +2586,7 @@ function csvRecords(cls){
     if(L.status!=='ok') continue;
     if(cls && L.cls!==cls) continue;
     rows.push([L.ord||'', L.date, DOWK[L.dow], L.period, placeOf(L.place).name,
-      L.rec.prog||'', L.rec.special||'']);
+      lessonProgress(L), L.rec.special||'']);
   }
   csvDL('PE-records-'+safeName(cls||'all')+'-'+TODAY+'.csv', rows);
 }
@@ -2668,12 +2716,14 @@ function refreshJournal(){
   journalGeneration++;
   clearTimeout(saveTimer); clearTimeout(yClickTimer);
   closePick();
-  teamCls=''; teamOut=null; teamExcl={}; curCls='';
+  teamCls=''; teamOut=null; teamExcl={}; curCls=''; curGrade='';
   $('#modalRoot').innerHTML=''; $('#printHead').textContent='';
   $('#teamPool').innerHTML='';
   rebuild();
   // Clear every view, including hidden views, when changing account or snapshot.
   renderYear(); renderWeek(); renderLog(); renderTeam(); renderClass(); renderSetup();
+  $('#gradeBar').innerHTML=''; $('#gradeTable').innerHTML='';
+  $('#gradeTitle').textContent='학년별 수업 계획'; $('#gradeN').value=''; $('#gradeSum').textContent='';
   render();
 }
 window.PEJournal = {
