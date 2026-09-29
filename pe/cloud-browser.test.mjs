@@ -58,6 +58,10 @@ try {
   await page.locator('#cloudLogin').click();
   await page.waitForFunction(()=>document.getElementById('cloudStatus').textContent==='온라인 저장 완료');
   assert.equal(await page.evaluate(()=>state.logs['2026-09-27']),undefined);
+  assert.equal(await page.locator('#cloudPanel').isVisible(),false);
+  assert.equal(await page.locator('.account-controls #cloudLogout').isVisible(),true);
+  await page.setViewportSize({width:1280,height:800});
+  await page.getByRole('button',{name:'설정',exact:true}).click();
   await page.locator('#cloudMigrate').click();
   await page.waitForFunction(()=>window.__backend.docs.A?.payload.includes('기존 브라우저 일지'));
   await page.evaluate(()=>{state.logs['2026-09-28']='계정 A 기록';touch();});
@@ -76,6 +80,7 @@ try {
   await page.waitForFunction(()=>window.__backend.docs.B?.payload.includes('오프라인 초안'));
   await page.evaluate(()=>{state.logs['2026-09-30']='충돌 전 입력';touch();window.__backend.docs.B={revision:2,payload:window.PEJournal.empty()};});
   await page.waitForFunction(()=>!document.getElementById('cloudConflict').hidden);
+  assert.equal(await page.locator('#cloudPanel').isVisible(),true);
   assert.equal(await page.locator('main').evaluate(e=>e.inert),true);
   assert.equal(await page.evaluate(()=>state.logs['2026-09-30']),'충돌 전 입력');
   await page.locator('#cloudReload').click();

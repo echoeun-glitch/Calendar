@@ -20,6 +20,16 @@ function lock(value) {
   el('tabs').inert = value;
   el('modalRoot').inert = value;
 }
+function notice(text) {
+  el('cloudHelp').textContent=text;
+  el('cloudHelp').hidden=false;
+  el('cloudPanel').hidden=false;
+}
+function clearNotice() {
+  el('cloudHelp').textContent='';
+  el('cloudHelp').hidden=true;
+  el('cloudPanel').hidden=true;
+}
 function message(text, bad = false) {
   el('cloudStatus').textContent = text;
   journal.status(text, bad);
@@ -38,10 +48,12 @@ function errorText(error) {
 function report(kind, error) {
   const labels = {saved:'온라인 저장 완료', pending:'이 기기에 보관 · 동기화 대기', saving:'온라인 저장 중…', conflict:'다른 기기의 수정 확인 필요', error:'온라인 저장 실패 · 입력 보관 중'};
   message(persistenceFailed ? '기기 백업 실패 · 온라인 저장 상태 확인 필요' : labels[kind], persistenceFailed || kind === 'error' || kind === 'conflict');
+  if (kind === 'saved' && !persistenceFailed) clearNotice();
+  if (kind === 'conflict') { el('cloudPanel').hidden=false; el('cloudHelp').hidden=true; }
   el('cloudConflict').hidden = kind !== 'conflict';
   el('cloudRetry').hidden = !['pending','error'].includes(kind);
   lock(kind === 'conflict');
-  if (error) el('cloudHelp').textContent = errorText(error);
+  if (error) notice(errorText(error));
   if (kind === 'pending' && navigator.onLine) schedule();
 }
 function schedule() {
@@ -74,7 +86,7 @@ function persist(draft) {
     persistenceFailed = false;
   } catch {
     persistenceFailed = true;
-    el('cloudHelp').textContent = '브라우저에 임시 저장할 수 없습니다. 온라인 저장 완료를 확인하고, 실패하면 현재 입력을 백업해 주세요.';
+    notice('브라우저에 임시 저장할 수 없습니다. 온라인 저장 완료를 확인하고, 실패하면 현재 입력을 백업해 주세요.');
   }
 }
 function recoverDraft(uid) {
@@ -120,8 +132,8 @@ async function openUser(user) {
   if (!user) {
     window.PECloud.active = false;
     journal.showLocal();
-    el('cloudAccount').textContent = '내 체육 일지';
-    el('cloudHelp').textContent = '같은 Google 계정으로 로그인하면 다른 기기에서도 내 일지를 이어서 작성합니다. 선생님마다 별도의 개인 일지를 사용합니다.';
+    el('cloudAccount').textContent = '게스트';
+    clearNotice();
     message('이 기기에만 저장 중');
     lock(false);
     return;
@@ -153,7 +165,7 @@ async function openUser(user) {
       }
     });
     ready = true;
-    el('cloudHelp').textContent = '이 계정의 시간표·일지·명렬표가 자동으로 동기화됩니다. 다른 선생님은 자신의 Google 계정으로 로그인하면 됩니다.';
+    clearNotice();
     engine.start(remote, draft);
     let legacy = null;
     try { legacy = localStorage.getItem(journal.localKey); } catch {}
@@ -174,7 +186,7 @@ async function openUser(user) {
   } catch (error) {
     if (generation !== epoch) return;
     message('온라인 일지를 불러오지 못했습니다', true);
-    el('cloudHelp').textContent = errorText(error);
+    notice(errorText(error));
     el('cloudRetry').hidden = false;
     lock(true);
   }
@@ -188,7 +200,7 @@ el('cloudReload').onclick = async () => {
     const generation = epoch, remote = await readRemote();
     if (generation !== epoch) return;
     engine.useRemote(remote);
-  } catch (error) { el('cloudHelp').textContent = errorText(error); }
+  } catch (error) { notice(errorText(error)); }
 };
 el('cloudRetry').onclick = () => ready ? engine?.flush() : currentUser && openUser(currentUser);
 el('cloudMigrate').onclick = () => {
@@ -201,18 +213,18 @@ el('cloudMigrate').onclick = () => {
     journal.backup();
     apply(legacy); save(journal.get());
     // The guest copy stays intact so migration can always be undone locally.
-  } catch { el('cloudHelp').textContent = '기존 자료를 읽지 못했습니다. 설정의 백업 불러오기를 사용해 주세요.'; }
+  } catch { notice('기존 자료를 읽지 못했습니다. 설정의 백업 불러오기를 사용해 주세요.'); }
 };
 el('cloudLogout').onclick = async () => {
-  if (engine?.busy) { el('cloudHelp').textContent = '온라인 저장을 마친 후 로그아웃해 주세요.'; return; }
-  if (engine?.dirty) { el('cloudHelp').textContent = '아직 온라인에 저장되지 않은 입력이 있습니다. 동기화를 완료하거나 현재 입력을 백업하고 온라인 일지를 불러온 뒤 로그아웃해 주세요.'; el('cloudConflict').hidden = false; return; }
-  try { await sdk.signOut(auth); } catch (error) { el('cloudHelp').textContent = errorText(error); }
+  if (engine?.busy) { notice('온라인 저장을 마친 후 로그아웃해 주세요.'); return; }
+  if (engine?.dirty) { notice('아직 온라인에 저장되지 않은 입력이 있습니다. 동기화를 완료하거나 현재 입력을 백업하고 온라인 일지를 불러온 뒤 로그아웃해 주세요.'); el('cloudConflict').hidden = false; return; }
+  try { await sdk.signOut(auth); } catch (error) { notice(errorText(error)); }
 };
 window.addEventListener('online', () => {
   if (ready) engine?.flush();
   else if (currentUser) openUser(currentUser);
 });
-window.addEventListener('offline', () => { if (currentUser) message('오프라인 · 이 기기에 임시 저장'); });
+window.addEventListener('offline', () => { if (currentUser) { message('오프라인 · 이 기기에 임시 저장'); notice('오프라인입니다. 연결되면 다시 저장합니다.'); } });
 window.addEventListener('beforeunload', event => {
   if (engine?.dirty || engine?.busy) { event.preventDefault(); event.returnValue = ''; }
 });
@@ -230,7 +242,7 @@ document.addEventListener('focusout', () => setTimeout(() => {
 
 async function boot() {
   if (!config?.apiKey || !config?.authDomain || !config?.projectId || !config?.appId) {
-    el('cloudHelp').textContent = '온라인 저장 연결 전입니다. 관리자가 Firebase 설정을 완료하면 Google 로그인을 사용할 수 있습니다. 지금 작성하는 내용은 이 브라우저에 저장됩니다.';
+    notice('온라인 저장 연결 전입니다. 관리자가 Firebase 설정을 완료하면 Google 로그인을 사용할 수 있습니다. 지금 작성하는 내용은 이 브라우저에 저장됩니다.');
     return;
   }
   journal.flushLocal();
@@ -257,7 +269,7 @@ async function boot() {
       provider.setCustomParameters({prompt:'select_account'});
       el('cloudLogin').disabled = true;
       try { await sdk.signInWithPopup(auth, provider); }
-      catch (error) { el('cloudHelp').textContent = errorText(error); }
+      catch (error) { notice(errorText(error)); }
       finally { el('cloudLogin').disabled = false; }
     };
     let first = true;
@@ -268,7 +280,7 @@ async function boot() {
     window.PECloud.active = false;
     lock(false);
     message('이 기기에만 저장 중');
-    el('cloudHelp').textContent = '로그인 연결에 실패했습니다. 인터넷 연결과 Firebase 설정을 확인한 후 페이지를 새로고침해 주세요. 기존 일지는 이 브라우저에서 계속 쓸 수 있습니다.';
+    notice('로그인 연결에 실패했습니다. 인터넷 연결과 Firebase 설정을 확인한 후 페이지를 새로고침해 주세요. 기존 일지는 이 브라우저에서 계속 쓸 수 있습니다.');
   }
 }
 boot();

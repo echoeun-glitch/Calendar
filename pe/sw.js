@@ -1,6 +1,6 @@
 /* 오프라인에서도 열리도록 앱 파일만 캐시합니다. 계정 데이터/API는 캐시하지 않습니다.
    캐시 이름을 바꾸면 예전 캐시는 전부 지워지고 새 파일을 받습니다. */
-const CACHE = 'pe-timetable-v20-desktop-journal';
+const CACHE = 'pe-timetable-2026-09-29f';
 const SHELL = ['./', './index.html', './firebase-config.js', './cloud.js', './cloud-sync.mjs', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

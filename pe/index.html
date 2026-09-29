@@ -198,7 +198,7 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 /* 주간 표는 중앙에 두고, 교시 열을 뺀 월~금 5열은 같은 너비로 나눕니다. */
 /* 주간은 한 화면 안에 들어오도록 표 폭을 줄이고, 행 높이는 화면에 맞춰 계산한다. */
 #view-week{width:90%;max-width:936px;margin:0 auto}
-body:has(#view-week:not([hidden])) #cloudPanel{display:none}
+
 #view-week:not([hidden]){min-height:calc(90vh - 16px)}
 #view-week:not([hidden]) .scroll{overflow:visible}
 #view-week:not([hidden]) .wgrid{min-width:0}
@@ -471,10 +471,19 @@ tr.dead .ord{text-decoration:line-through}
   #printHead{display:block!important;font-size:17px;font-weight:800;margin:0 0 8px;text-align:center}
 }
 #printHead{display:none}
+.account-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:5px 16px;min-height:34px;font-size:11px;background:var(--panel)}
+#cloudAccount{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:400}
+.account-controls .btn{font-size:11px;padding:3px 7px}
+@media(max-width:560px){#cloudAccount{max-width:180px}.account-controls{padding:4px 12px}}
 </style>
 </head>
 <body>
 
+<div class="account-controls noprint" aria-label="계정">
+  <span id="cloudAccount">게스트</span>
+  <button class="btn sm" id="cloudLogin" disabled>Google 로그인</button>
+  <button class="btn sm" id="cloudLogout" hidden>로그아웃</button>
+</div>
 <header class="topbar">
   <div class="brand">
     <div class="mark">체</div>
@@ -493,23 +502,25 @@ tr.dead .ord{text-decoration:line-through}
     <button data-view="setup">설정</button>
     <button type="button" class="mobile-more" id="mobileMore" aria-expanded="false">더보기</button>
   </nav>
-  <span id="saveState"></span>
+
 </header>
 
-<section id="cloudPanel" class="card noprint" style="max-width:1148px;margin:14px auto;padding:14px" aria-label="계정과 동기화">
+<section id="cloudPanel" class="card noprint" style="max-width:1148px;margin:14px auto;padding:14px" aria-label="저장 문제 알림" hidden>
   <div class="row" style="flex-wrap:wrap">
-    <b id="cloudAccount">내 체육 일지</b>
+
     <span id="cloudStatus" role="status" aria-live="polite">이 기기에만 저장 중</span>
-    <button class="btn primary sm" id="cloudLogin" disabled>Google로 로그인</button>
-    <button class="btn sm" id="cloudLogout" hidden>로그아웃</button>
+
+
     <button class="btn sm" id="cloudRetry" hidden>동기화 다시 시도</button>
-    <button class="btn sm" id="cloudMigrate" hidden>이 기기의 기존 일지 가져오기</button>
+
   </div>
-  <p id="cloudHelp" class="muted" style="font-size:13px;margin-top:8px">로그인 연결을 준비하고 있습니다. 기존 일지는 이 브라우저에 계속 저장됩니다.</p>
+  <p id="cloudHelp" class="muted" style="font-size:12px;margin-top:6px" hidden></p>
   <script>
   /* 파일을 직접 열면(file://) 브라우저가 모듈 스크립트를 막아 로그인이 아예 불가능하다.
      기다리면 될 것처럼 보이지 않도록 바로 알린다. */
   if(location.protocol === 'file:'){
+    document.getElementById('cloudPanel').hidden=false;
+    document.getElementById('cloudHelp').hidden=false;
     document.getElementById('cloudHelp').textContent =
       '파일을 직접 열면 로그인할 수 없습니다. 인터넷 주소로 열어야 Google 로그인과 동기화가 됩니다. 지금은 이 브라우저에만 저장됩니다.';
     document.getElementById('cloudLogin').hidden = true;
@@ -771,6 +782,8 @@ tr.dead .ord{text-decoration:line-through}
       <h2>6. 데이터 <span class="hint">로그인하면 내 계정으로 동기화됩니다</span></h2>
       <div class="pad">
         <div class="row">
+          <span id="saveState" role="status"></span>
+          <button class="btn" id="cloudMigrate" hidden>이 기기의 기존 일지 가져오기</button>
           <button class="btn" id="expBtn">백업 파일 내보내기</button>
           <button class="btn" id="impBtn">백업 불러오기</button>
           <input type="file" id="impFile" hidden>
@@ -780,7 +793,7 @@ tr.dead .ord{text-decoration:line-through}
           앱 버전 <b id="appVer">—</b> · 이 숫자가 제가 알려드린 날짜와 다르면 예전 파일을 열고 계신 겁니다.<br>
           백업 파일은 브라우저의 <b>다운로드 폴더</b>에 <b>PE-backup-날짜.json</b> 이름으로 저장됩니다.<br>
           로그인하지 않으면 <b>이 브라우저 안에만</b> 저장됩니다. 로그인 후에는 같은 Google 계정으로 PC와 폰에서 이어서 작성할 수 있습니다.
-          다른 기기로 옮기기 전에 위쪽에 <b>온라인 저장 완료</b>가 표시되는지 확인해 주세요. 백업 파일도 정기적으로 보관해 주세요.
+          다른 기기로 옮기기 전에 이 데이터 메뉴에 <b>온라인 저장 완료</b>가 표시되는지 확인해 주세요. 백업 파일도 정기적으로 보관해 주세요.
         </p>
       </div>
     </div>
@@ -791,7 +804,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-29e'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-29f'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
