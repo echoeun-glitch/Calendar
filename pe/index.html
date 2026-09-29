@@ -250,13 +250,28 @@ body:has(#view-week:not([hidden])) #cloudPanel{display:none}
   .mobile-week-off{padding:11px 12px;color:#d05252;font-size:13px;font-weight:700}
   .mobile-week-add{color:var(--muted);font-size:13px;font-weight:700}
   /* 일지에서 일기 입력을 첫 화면의 가장 큰 영역으로 둔다. */
+  /* 일간 계획표를 먼저 두고, 모바일에서는 수업 정보를 두 칸으로 압축한다. */
   #view-log{display:flex;flex-direction:column}
-  #view-log .toolbar{order:0}
-  #view-log .card:nth-of-type(2){order:1}
-  #view-log .card:nth-of-type(1){order:2}
-  #view-log #gRecentCard{order:3}
-  #view-log .logbox{min-height:42vh;font-size:16px;line-height:1.7}
+  #view-log .logbox{min-height:34vh;font-size:16px;line-height:1.7}
   #view-log .card > h2{font-size:15px}
+  #logTable thead{display:none}
+  #logTable,#logTable tbody{display:block;border:0}
+  #logTable tbody{display:grid;gap:8px}
+  #logTable tr{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.2fr);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+  #logTable td{display:none;border:0;padding:9px 10px}
+  #logTable td.log-period,#logTable td.log-content{display:block}
+  #logTable td.log-period{background:var(--line2);font-size:12px;line-height:1.5}
+  #logTable td.log-content{min-width:0}
+  #logTable .desktop-log-cell{display:none}
+  #logTable .mobile-log-info{display:block}
+  #logTable .mobile-log-info b{font-size:15px}
+  #logTable .mobile-log-info span{display:block}
+  #logTable .mobile-log-info .dot{display:inline-block}
+  #logTable .ntin{font-size:14px;padding:7px}
+  #logTable [data-planhint]{font-size:10.5px;line-height:1.35}
+  #logTable tr:has(td[colspan]){display:block}
+  #logTable tr:has(td[colspan]) td{display:block;text-align:center}
   #view-week .scroll{margin-inline:-10px}
   .wgrid{min-width:640px}
   .wgrid col.week-period{width:46px}
@@ -1966,13 +1981,14 @@ function renderLog(){
         '<th>진도 · 수업 내용</th><th style="width:30%">특이사항</th></tr></thead><tbody>';
   for(const L of ls){
     const pl=placeOf(L.place), t=state.times[L.period-1];
-    h+='<tr data-id="'+L.id+'">'+
-       '<td><b>'+L.period+'</b>교시'+(t&&t.s?'<div class="muted" style="font-size:10.5px">'+esc(t.s)+'</div>':'')+'</td>'+
+    h+='<tr data-id="'+L.id+'>'+
+       '<td class="log-period"><span class="desktop-log-cell"><b>'+L.period+'</b>교시'+(t&&t.s?'<div class="muted" style="font-size:10.5px">'+esc(t.s)+'</div>':'')+'</span>'+
+       '<div class="mobile-log-info"><b>'+L.period+'교시</b><span>'+esc(L.cls)+'</span><span><i class="dot" style="background:'+pl.color+'"></i>'+esc(pl.name)+'</span></div></td>'+
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 5px;font-weight:800">'+
          esc(L.cls)+'</button></td>'+
        '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>'+
        '<td>'+(L.ord?L.ord+'차시':'-')+'</td>';
-    h+='<td>'+lessonProgressInput(L)+'</td>'+
+    h+='<td class="log-content">'+lessonProgressInput(L)+'</td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
   }
@@ -2347,7 +2363,7 @@ function renderDayList(){
 }
 
 /* ================= render ================= */
-let view='year';
+let view=window.matchMedia('(max-width:760px)').matches ? 'log' : 'year';
 function render(){
   $('#rangeLabel').textContent = state.start+' ~ '+state.end;
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
