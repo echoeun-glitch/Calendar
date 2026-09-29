@@ -227,6 +227,14 @@ body:has(#view-week:not([hidden])) #cloudPanel{display:none}
 .slot .nt{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mobile-week-list{display:none}
 .mobile-more{display:none}
+/* 웹 일지 표는 항상 여섯 열을 유지한다. 모바일 전용 규칙의 영향을 받지 않는다. */
+@media(min-width:761px){
+  #logTable{display:table}
+  #logTable thead{display:table-header-group}
+  #logTable tbody{display:table-row-group}
+  #logTable tr{display:table-row}
+  #logTable th,#logTable td{display:table-cell}
+}
 @media(max-width:760px){
   /* 모바일 핵심 메뉴만 먼저 보이고 나머지는 더보기에 넣는다. */
   .tabs button[data-view="year"],.tabs button[data-view="grade"],
@@ -783,7 +791,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-29d'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-29e'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
