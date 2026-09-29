@@ -819,7 +819,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-29h'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-29i'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1141,16 +1141,17 @@ function weekLessonText(L){
   if(saved) return saved;
   return String(lessonPlan(L)?.act||'').trim();
 }
-function lessonPlanHint(L){
+function lessonPlanHint(L,showLink=true){
   const plan=lessonPlan(L), text=lessonPlanText(L);
   if(!text && !(plan && plan.note)) return '';
-  return '<small class="muted" style="display:block;font-size:11px;white-space:normal">'+
-    (L.rec.prog ? '개별 기록 우선 · 학년 계획: '+esc(text) : '학년 계획 연동 · 개별 입력을 비우면 다시 연동')+
-    (plan.note ? '<br>계획 비고: '+esc(plan.note) : '')+'</small>';
+  const lines=[];
+  if(showLink) lines.push(L.rec.prog ? '개별 기록 우선 · 학년 계획: '+esc(text) : '학년 계획 연동 · 개별 입력을 비우면 다시 연동');
+  if(plan.note) lines.push('계획 비고: '+esc(plan.note));
+  return lines.length ? '<small class="muted" style="display:block;font-size:11px;white-space:normal">'+lines.join('<br>')+'</small>' : '';
 }
-function lessonProgressInput(L){
+function lessonProgressInput(L,showLink=true){
   return '<input class="ntin" data-f="prog" value="'+esc(lessonProgress(L))+'" placeholder="진도 · 수업 내용">'+
-    '<div data-planhint>'+lessonPlanHint(L)+'</div>';
+    '<div data-planhint data-show-link="'+showLink+'">'+lessonPlanHint(L,showLink)+'</div>';
 }
 function openLesson(id){
   const L=BYID[id]; if(!L) return;
@@ -2029,7 +2030,7 @@ function renderLog(){
          esc(L.cls)+'</button><div class="log-class-meta">'+
          '<span><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</span>'+
          '<span>'+(L.ord?L.ord+'차시':'-')+'</span></div></td>';
-    h+='<td>'+lessonProgressInput(L)+'</td>'+
+    h+='<td>'+lessonProgressInput(L,false)+'</td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
   }
@@ -2733,7 +2734,7 @@ function writeRec(inp){
   if(!Object.keys(r).some(k=>r[k])) delete state.rec[id];
   save(); rebuild();          /* 화면은 다시 그리지 않아 입력 중 커서가 유지됩니다 */
   const hint=tr.querySelector('[data-planhint]');
-  if(hint) hint.innerHTML=lessonPlanHint(BYID[id]);
+  if(hint) hint.innerHTML=lessonPlanHint(BYID[id],hint.dataset.showLink!=='false');
   return true;
 }
 /* 입력 중에도, 칸을 벗어날 때도 저장만 합니다. 화면을 다시 그리면 그 순간 누른
