@@ -196,7 +196,14 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 
 /* ---------- week grid ---------- */
 /* 주간 표는 중앙에 두고, 교시 열을 뺀 월~금 5열은 같은 너비로 나눕니다. */
-#view-week{max-width:1040px;margin:0 auto}
+/* 주간은 한 화면 안에 들어오도록 표 폭을 줄이고, 행 높이는 화면에 맞춰 계산한다. */
+#view-week{width:90%;max-width:936px;margin:0 auto}
+body:has(#view-week:not([hidden])) #cloudPanel{display:none}
+#view-week:not([hidden]){min-height:calc(90vh - 16px)}
+#view-week:not([hidden]) .scroll{overflow:visible}
+#view-week:not([hidden]) .wgrid{min-width:0}
+#view-week:not([hidden]) .wgrid td{height:var(--week-row-height,90px)}
+#view-week:not([hidden]) .slot{min-height:calc(var(--week-row-height,90px) - 10px)}
 .wgrid{width:100%;min-width:740px;table-layout:fixed;border-collapse:collapse;background:var(--panel);
   border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
 .wgrid col.week-period{width:58px}
@@ -1444,6 +1451,11 @@ function renderYear(){
 /* ================= render: week ================= */
 let weekCur=new Date();
 function monday(d){ const x=new Date(d.getTime()); const n=(x.getDay()+6)%7; return addD(x,-n); }
+function fitWeekGrid(){
+  /* 머리글·도구줄·안내문을 뺀 90% 화면 높이를 교시 수만큼 나눈다. */
+  const rowHeight=Math.max(50,Math.floor((window.innerHeight*.9-112)/Math.max(1,state.periods)));
+  $('#wgrid').style.setProperty('--week-row-height',rowHeight+'px');
+}
 function renderWeek(){
   const mo=monday(weekCur), fr=addD(mo,4);
   $('#wLabel').textContent=(mo.getMonth()+1)+'/'+mo.getDate()+' – '+(fr.getMonth()+1)+'/'+fr.getDate();
@@ -1485,7 +1497,9 @@ function renderWeek(){
     h+='</tr>';
   }
   $('#wgrid').innerHTML=h+'</tbody>';
+  fitWeekGrid();
 }
+window.addEventListener('resize',()=>{ if(view==='week') fitWeekGrid(); });
 
 /* ================= 학년별 수업 계획 =================
    같은 학년은 수업 내용이 같아 학년 단위로 한 번만 적는다. */
