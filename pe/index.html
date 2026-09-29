@@ -270,6 +270,13 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 
 /* ---------- 학년별 ---------- */
 #gradeTable td{padding:4px 6px;vertical-align:middle}
+#gradeTable tbody tr[draggable="true"]{cursor:grab}
+#gradeTable tbody tr.grade-dragging{opacity:.42}
+#gradeTable tbody tr.grade-drop-before td{box-shadow:inset 0 3px 0 var(--accent)}
+#gradeTable tbody tr.grade-drop-after td{box-shadow:inset 0 -3px 0 var(--accent)}
+.grade-drag{display:inline-block;cursor:grab;color:var(--muted);font-size:16px;line-height:1;
+  padding:4px 5px;margin:-4px 1px -4px -3px;vertical-align:middle;touch-action:none}
+.grade-drag:active{cursor:grabbing;color:var(--accent)}
 #gradeTable tr.current-grade-lesson td{background:var(--accent-soft)}
 #gradeTable tr.current-grade-lesson .grade-place{background:color-mix(in srgb,var(--place-color) 28%,var(--accent-soft))}
 #gradeTable tr.current-grade-lesson td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
@@ -1548,8 +1555,9 @@ function renderGrade(){
     const name=unique.map(p=>p.name).join(' / ') || '미편성';
     const color=unique.length===1?unique[0].color:'#8a94a4';
     const labels=unique.map(p=>'<small><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</small>').join('');
-    h+='<tr data-i="'+i+'"'+(currentOrdinals.has(i+1)?' class="current-grade-lesson"':'')+'>'+
+    h+='<tr data-i="'+i+'" draggable="true"'+(currentOrdinals.has(i+1)?' class="current-grade-lesson"':'')+'>'+
       '<td class="gh grade-place" style="--place-color:'+color+'">'+
+        '<span class="grade-drag" title="이 차시를 끌어 순서 바꾸기" aria-hidden="true">⠿</span>'+
         '<button type="button" class="grade-place-button" aria-label="'+(i+1)+'차시 시간표 장소 확인: '+esc(name)+'">'+
         '<b>'+(i+1)+'</b>'+(labels||'<small>미편성</small>')+'</button></td>'+
       '<td class="gu"><select class="gun">'+
@@ -1580,6 +1588,50 @@ $('#gradeBar').onclick=e=>{
   const b=e.target.closest('[data-g]'); if(!b) return;
   curGrade=b.dataset.g; renderGrade();
 };
+
+/* 왼쪽 ⠿ 손잡이를 끌어 차시 행 순서를 바꾼다. */
+let gradeDragIndex=null;
+function clearGradeDragMarks(){
+  $('#gradeTable tbody tr').forEach(tr=>tr.classList.remove('grade-dragging','grade-drop-before','grade-drop-after'));
+}
+$('#gradeTable').addEventListener('dragstart', e=>{
+  const tr=e.target.closest('tr[data-i]');
+  if(!tr || !e.target.closest('.grade-drag')){ e.preventDefault(); return; }
+  gradeDragIndex=Number(tr.dataset.i);
+  tr.classList.add('grade-dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',String(gradeDragIndex));
+});
+$('#gradeTable').addEventListener('dragover', e=>{
+  const tr=e.target.closest('tr[data-i]');
+  if(!tr || gradeDragIndex===null) return;
+  e.preventDefault();
+  clearGradeDragMarks();
+  const after=e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2;
+  tr.classList.add(after?'grade-drop-after':'grade-drop-before');
+  e.dataTransfer.dropEffect='move';
+});
+$('#gradeTable').addEventListener('dragleave', e=>{
+  if(!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) clearGradeDragMarks();
+});
+$('#gradeTable').addEventListener('drop', e=>{
+  const tr=e.target.closest('tr[data-i]');
+  if(!tr || gradeDragIndex===null) return;
+  e.preventDefault();
+  let insertAt=Number(tr.dataset.i);
+  if(e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2) insertAt++;
+  const rows=state.grades[curGrade];
+  if(rows && insertAt!==gradeDragIndex && insertAt!==gradeDragIndex+1){
+    const [moved]=rows.splice(gradeDragIndex,1);
+    if(gradeDragIndex<insertAt) insertAt--;
+    rows.splice(insertAt,0,moved);
+    save(); renderGrade();
+  }
+  gradeDragIndex=null; clearGradeDragMarks();
+});
+$('#gradeTable').addEventListener('dragend', ()=>{
+  gradeDragIndex=null; clearGradeDragMarks();
+});
 $('#gradeTable').addEventListener('input', e=>{
   const t=e.target, g=gradeRow(t); if(!g) return;
   const r=g.rows[g.i]; if(!r) return;
