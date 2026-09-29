@@ -540,6 +540,10 @@ tr.dead .ord{text-decoration:line-through}
 
   <!-- ================= YEAR (한 장 배열표) ================= -->
   <section id="view-year" hidden>
+    <div class="row noprint" id="yearTerms" style="margin-bottom:12px" aria-label="연간 시간표 학기">
+      <button class="btn" data-term="1">1학기</button><button class="btn" data-term="2">2학기</button>
+      <span class="muted" id="yearTermRange"></span>
+    </div>
     <div class="toolbar">
       <div class="legend" id="legend3"></div>
       <label class="chk"><input type="checkbox" id="yOrd"> 차시 번호 함께 보기</label>
@@ -561,7 +565,7 @@ tr.dead .ord{text-decoration:line-through}
     <div id="capNote" class="warnbanner soft noprint" hidden></div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
     <div class="card noprint" id="progCard">
-      <h2>학급별 차시 <span class="hint">오늘까지 한 차시 / 전체 차시 — 칸에 바로 넣으세요. 카드를 누르면 수업 기간까지 정합니다</span></h2>
+      <h2>학급별 차시 <span class="hint">1·2학기 합계 · 오늘까지 한 차시 / 전체 차시 — 칸에 바로 넣으세요. 카드를 누르면 수업 기간까지 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
     </div>
     <p class="tip" style="padding-left:0">
@@ -709,6 +713,9 @@ tr.dead .ord{text-decoration:line-through}
     <div class="card">
       <h2>1. 기초 시간표 <span class="hint">매주 반복되는 기본 시간표. 여기만 채우면 연간이 만들어집니다</span></h2>
       <div class="pad">
+        <div class="row" id="baseTerms" style="margin-bottom:12px" aria-label="기초 시간표 학기">
+          <button class="btn" data-term="1">1학기</button><button class="btn" data-term="2">2학기</button>
+        </div>
         <div class="row" style="margin-bottom:10px">
           <label class="f" style="margin:0">하루 교시 수</label>
           <select id="periodsSel"></select>
@@ -729,13 +736,19 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>3. 기간과 교시 시각</h2>
+      <h2>3. 수업 기간</h2>
       <div class="pad">
-        <div class="row" style="margin-bottom:14px">
-          <div><label class="f">시작일</label><input type="date" id="startD"></div>
-          <div><label class="f">종료일</label><input type="date" id="endD"></div>
+        <div class="row" style="margin-bottom:14px" aria-label="1학기 수업 기간">
+          <b>1학기</b>
+          <div><label class="f" for="startD">시작일</label><input type="date" id="startD"></div>
+          <div><label class="f" for="endD">종료일</label><input type="date" id="endD"></div>
         </div>
-        <div class="scroll"><table id="timeSetup"></table></div>
+        <div class="row" aria-label="2학기 수업 기간">
+          <b>2학기</b>
+          <div><label class="f" for="startD2">시작일</label><input type="date" id="startD2"></div>
+          <div><label class="f" for="endD2">종료일</label><input type="date" id="endD2"></div>
+        </div>
+        <p class="muted" style="margin-top:12px">각 학기의 시작일과 종료일을 모두 입력해 주세요. 차시는 두 학기를 이어서 계산합니다.</p>
       </div>
     </div>
 
@@ -806,7 +819,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-29g'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-29h'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -855,6 +868,8 @@ const STANDARD_PLACE_COLORS = {
   '운동장':'#DF8AA0'    // 연분홍
 };
 function applyStateMigrations(st){
+  // Keep legacy start/end/base as semester 1 so existing dates and lesson IDs stay intact.
+  if(!st.semester2) st.semester2={start:'',end:'',base:{}};
   if(Number(st.v||1) < 2){
     (st.places||[]).forEach(p=>{ if(STANDARD_PLACE_COLORS[p.name]) p.color=STANDARD_PLACE_COLORS[p.name]; });
     st.v=2;
@@ -873,6 +888,7 @@ function defState(){
              {id:'p3',name:'예지관',color:STANDARD_PLACE_COLORS['예지관']}],
     classes: DEF_CLASSES.map(n=>({name:n, plan:0, capOn:false, from:'', to:''})),
     base: {},     // 'dow-period' -> {cls, place}
+    semester2: {start:'', end:'', base:{}},
     days: {},     // iso -> {label, off}
     rec: {},      // lessonId -> {status,cls,place,reason,prog,special}
     logs: {},     // iso -> 그날의 일지 (자유 입력)
@@ -911,6 +927,22 @@ function load(){
   }catch(e){ return defState(); }
 }
 let state = load();
+let yearTerm=1, baseTerm=1;
+function semester(n){ return n===2 ? state.semester2 : state; }
+function validSemester(t){ return !!(t.start && t.end && t.start<=t.end); }
+function semesterForDate(date){ return [state,state.semester2].find(t=>validSemester(t) && date>=t.start && date<=t.end); }
+function baseForDate(date){ return semesterForDate(date)?.base || {}; }
+function schoolRange(){
+  const terms=[state,state.semester2].filter(validSemester);
+  return {start:terms.map(t=>t.start).sort()[0]||state.start||TODAY,
+    end:terms.map(t=>t.end).sort().at(-1)||state.end||TODAY};
+}
+function renderTermButtons(id,selected){
+  $$('#'+id+' button').forEach(b=>{
+    b.classList.toggle('primary',Number(b.dataset.term)===selected);
+    b.setAttribute('aria-pressed',String(Number(b.dataset.term)===selected));
+  });
+}
 let journalGeneration = 0;
 
 let saveTimer=null;
@@ -943,13 +975,15 @@ function classNames(){ return state.classes.map(c=>c.name); }
 function rebuild(){
   LESSONS=[]; BYID={}; BYDATE={};
   const s=state;
-  if(s.start && s.end && s.start <= s.end){
-    const ed = parseD(s.end);
-    for(let d=parseD(s.start); d<=ed; d=addD(d,1)){
+  for(const term of [s,s.semester2]){
+    if(!validSemester(term)) continue;
+    const ed = parseD(term.end);
+    for(let d=parseD(term.start); d<=ed; d=addD(d,1)){
       const dw=d.getDay(); if(dw===0||dw===6) continue;
       const key=isoOf(d), day=s.days[key], dayOff=!!(day&&day.off);
       for(let p=1;p<=s.periods;p++){
-        const b=s.base[dw+'-'+p];
+        if(semesterForDate(key)!==term) continue;
+        const b=term.base[dw+'-'+p];
         if(!b || !b.cls) continue;
         const id=key+'#'+p, r=s.rec[id]||{};
         if(r.del) continue;                 /* 이 날짜만 지운 칸 */
@@ -964,7 +998,7 @@ function rebuild(){
     }
   }
   for(const e of s.extras){
-    if(e.date < s.start || e.date > s.end) continue;
+    if(!semesterForDate(e.date)) continue;
     const r=s.rec[e.id]||{};
     LESSONS.push({
       id:e.id, date:e.date, dow:parseD(e.date).getDay(), period:e.period, kind:'extra',
@@ -1149,7 +1183,7 @@ function openLesson(id){
         const e=state.extras.find(x=>x.id===id); if(e){ e.cls=cls; e.place=place; }
         delete r.cls; delete r.place;
       }else{
-        const b=state.base[L.dow+'-'+L.period]||{};
+        const b=baseForDate(L.date)[L.dow+'-'+L.period]||{};
         if(cls!==b.cls) r.cls=cls; else delete r.cls;
         if(place!==b.place) r.place=place; else delete r.place;
       }
@@ -1178,7 +1212,7 @@ function openMakeup(opt){
   let h='';
   h += '<div class="row" style="margin-bottom:12px">'+
        '<div style="flex:1;min-width:150px"><label class="f">날짜</label>'+
-       '<input type="date" id="kDate" value="'+def+'" min="'+state.start+'" max="'+state.end+'"></div>'+
+       '<input type="date" id="kDate" value="'+def+'" min="'+schoolRange().start+'" max="'+schoolRange().end+'"></div>'+
        '<div style="width:96px"><label class="f">교시</label><select id="kPeriod">'+
         Array.from({length:state.periods},(_,i)=>'<option value="'+(i+1)+'"'+
           ((opt.period||0)===i+1?' selected':'')+'>'+(i+1)+'교시</option>').join('')+
@@ -1214,6 +1248,7 @@ function openMakeup(opt){
     check();
     $('#kSave',root).onclick=()=>{
       const d=$('#kDate',root).value; if(!d) return;
+      if(!semesterForDate(d)){ alert('설정한 수업 기간 안의 날짜를 선택해 주세요.'); return; }
       state.extras.push({
         id:'x'+Date.now().toString(36)+Math.floor(Math.random()*900+100),
         date:d, period:Number($('#kPeriod',root).value),
@@ -1407,7 +1442,9 @@ function slotLessons(k,p){
     .sort((a,b)=> (RANK[a.status]||1)-(RANK[b.status]||1));
 }
 function yearWeeks(){
-  const sd=parseD(state.start), ed=parseD(state.end), out=[];
+  const term=semester(yearTerm), out=[];
+  if(!validSemester(term)) return out;
+  const sd=parseD(term.start), ed=parseD(term.end);
   if(!(sd<=ed)) return out;
   for(let w=monday(sd); w<=ed; w=addD(w,7)){
     const days=[0,1,2,3,4].map(i=>addD(w,i));
@@ -1418,16 +1455,20 @@ function yearWeeks(){
 }
 /* 어느 교시에 수업이 하나라도 있는지 — 빈 열은 접어서 표를 좁게 만듭니다 */
 function usedPeriods(){
+  const term=semester(yearTerm);
   const use={};
-  for(const k in state.base) if(state.base[k].cls) use[k.split('-')[1]]=true;
-  for(const e of state.extras) use[e.period]=true;
+  for(const k in term.base) if(term.base[k].cls) use[k.split('-')[1]]=true;
+  for(const e of state.extras) if(e.date>=term.start && e.date<=term.end) use[e.period]=true;
   const out=[];
   for(let p=1;p<=state.periods;p++) if(use[p]) out.push(p);
   return out.length? out : [1];
 }
 function renderYear(){
+  renderTermButtons('yearTerms',yearTerm);
+  const term=semester(yearTerm);
+  $('#yearTermRange').textContent=validSemester(term)?term.start+' ~ '+term.end:'설정에서 수업 기간을 입력해 주세요';
   $('#legend3').innerHTML = legendHTML();
-  const weeks=yearWeeks(), sd=parseD(state.start), ed=parseD(state.end);
+  const weeks=yearWeeks(), sd=parseD(term.start), ed=parseD(term.end);
   const showOrd=$('#yOrd').checked;
   const cols = $('#yHide').checked ? usedPeriods()
              : Array.from({length:state.periods},(_,i)=>i+1);
@@ -1493,7 +1534,7 @@ function renderYear(){
   if(!weeks.length) h+='<tr><td class="muted" style="padding:20px">설정에서 기간과 기초 시간표를 먼저 넣어주세요.</td></tr>';
   $('#ygrid').innerHTML=h+'</tbody>';
   closePick();
-  $('#emptyHint').hidden = Object.keys(state.base).length>0;
+  $('#emptyHint').hidden = Object.keys(term.base).length>0;
   renderCapNote();
   renderProgress();
 }
@@ -2003,7 +2044,7 @@ function renderLog(){
 function cardBits(st){
   const bits=[];
   if(st.ranged) bits.push('<b style="font-weight:700">'+
-      MD(parseD(st.from||state.start))+'~'+MD(parseD(st.to||state.end))+'</b>');
+      MD(parseD(st.from||schoolRange().start))+'~'+MD(parseD(st.to||schoolRange().end))+'</b>');
   if(st.plan>0 && st.sched!==st.plan) bits.push('편성 '+st.sched+'차시');
   if(st.short) bits.push('<em>'+st.short+'차시 모자람</em>');
   if(st.over) bits.push('쓰지 않는 칸 '+st.over);
@@ -2039,7 +2080,7 @@ function renderCapNote(){
   el.hidden=false;
   el.innerHTML='<b>빗금 친 칸은 쓰지 않도록 정해 둔 칸입니다. 수업이 지워진 것이 아닙니다.</b>'+
     capped.map(n=>{ const st=STATS[n];
-      const why = st.ranged ? (st.from||state.start)+'~'+(st.to||state.end)
+      const why = st.ranged ? (st.from||schoolRange().start)+'~'+(st.to||schoolRange().end)
                             : '전체 차시 '+st.plan+'까지';
       return esc(n)+' '+why+' ('+st.over+'칸)'; }).join(' · ')+
     ' — 모두 '+total+'칸.'+
@@ -2060,10 +2101,10 @@ function openPlan(name){
     '<label class="chk" style="margin-bottom:14px"><input type="checkbox" id="pCap"'+
       (st.capOn?' checked':'')+'> 이 차시를 채우면 뒤쪽 칸은 쓰지 않기</label>'+
     '<div class="row" style="margin-bottom:6px">'+
-    '<div><label class="f">수업 시작일</label><input type="date" id="pFrom" min="'+state.start+
-      '" max="'+state.end+'" value="'+(st.from||state.start)+'"></div>'+
-    '<div><label class="f">수업 종료일</label><input type="date" id="pTo" min="'+state.start+
-      '" max="'+state.end+'" value="'+(st.to||state.end)+'"></div></div>'+
+    '<div><label class="f">수업 시작일</label><input type="date" id="pFrom" min="'+schoolRange().start+
+      '" max="'+schoolRange().end+'" value="'+(st.from||schoolRange().start)+'"></div>'+
+    '<div><label class="f">수업 종료일</label><input type="date" id="pTo" min="'+schoolRange().start+
+      '" max="'+schoolRange().end+'" value="'+(st.to||schoolRange().end)+'"></div></div>'+
     '<p class="muted" style="font-size:12.5px;line-height:1.7;margin:8px 0 14px">'+
     '<b id="pPrev"></b><br>기간을 줄이면 그 밖의 칸은 연간 표에서 빗금 친 «쓰지 않는 칸»이 됩니다. '+
     '수업이 지워지는 것은 아니고, 눌러서 다른 학급을 넣을 수 있습니다.</p>'+
@@ -2072,7 +2113,7 @@ function openPlan(name){
   modal(esc(name)+' 차시와 기간', h, root=>{
     const f=$('#pFrom',root), t=$('#pTo',root), v=$('#pVal',root), cp=$('#pCap',root);
     const prev=()=>{
-      const a=f.value||state.start, b2=t.value||state.end;
+      const a=f.value||schoolRange().start, b2=t.value||schoolRange().end;
       if(b2<a){ $('#pPrev',root).textContent='종료일이 시작일보다 빠릅니다.'; return; }
       let n=0;
       for(const L of LESSONS){
@@ -2097,8 +2138,8 @@ function openPlan(name){
       c.plan  = Math.max(0, Math.floor(Number(v.value)||0));
       c.capOn = cp.checked && c.plan>0;
       /* 전체 기간과 같으면 비워 둔다 — 나중에 설정의 기간을 바꾸면 따라오도록 */
-      c.from = (f.value && f.value!==state.start) ? f.value : '';
-      c.to   = (t.value && t.value!==state.end)   ? t.value : '';
+      c.from = (f.value && f.value!==schoolRange().start) ? f.value : '';
+      c.to   = (t.value && t.value!==schoolRange().end)   ? t.value : '';
       closeModal(); touch();
     };
     v.focus(); v.select();
@@ -2184,7 +2225,7 @@ function renderClass(){
     h+='</tr>';
   }
   if(!rows.length) h+='<tr><td colspan="5" class="muted" style="padding:20px;text-align:center">'+
-    (Object.keys(state.base).length? '해당하는 수업이 없습니다.' : '설정에서 기초 시간표를 먼저 넣어주세요.')+'</td></tr>';
+    ([state,state.semester2].some(t=>Object.keys(t.base).length)? '해당하는 수업이 없습니다.' : '설정에서 기초 시간표를 먼저 넣어주세요.')+'</td></tr>';
   $('#clsTable').innerHTML=h+'</tbody>';
 
   renderClassRoster();
@@ -2264,11 +2305,12 @@ function stat(v,l,f){
 
 /* ================= render: setup ================= */
 function renderBaseTable(){
+  renderTermButtons('baseTerms',baseTerm);
   let h='<thead><tr><th class="ph"></th>'+[1,2,3,4,5].map(i=>'<th>'+DOWK[i]+'</th>').join('')+'</tr></thead><tbody>';
   for(let p=1;p<=state.periods;p++){
     h+='<tr><td class="ph">'+p+'교시</td>';
     for(let dw=1;dw<=5;dw++){
-      const b=state.base[dw+'-'+p]||{};
+      const b=semester(baseTerm).base[dw+'-'+p]||{};
       const col=b.cls?placeOf(b.place).color:'';
       h+='<td'+(b.cls?' class="has" style="--c:'+col+'"':'')+'>'+
          '<select data-b="'+dw+'-'+p+'" data-k="cls"><option value="">—</option>'+
@@ -2286,6 +2328,7 @@ function renderBaseTable(){
 function renderSetup(){
   $('#periodsSel').innerHTML=[4,5,6,7].map(n=>'<option'+(n===state.periods?' selected':'')+'>'+n+'</option>').join('');
   $('#startD').value=state.start; $('#endD').value=state.end;
+  $('#startD2').value=state.semester2.start; $('#endD2').value=state.semester2.end;
 
   renderBaseTable();
 
@@ -2301,15 +2344,6 @@ function renderSetup(){
   renderDayList();
   renderRosterSetup();
 
-  /* 교시 시각 */
-  let t='<thead><tr><th style="width:70px">교시</th><th>시작</th><th>끝</th></tr></thead><tbody>';
-  for(let i=0;i<state.periods;i++){
-    const x=state.times[i]||{s:'',e:''};
-    t+='<tr><td>'+(i+1)+'교시</td>'+
-       '<td><input type="time" data-t="'+i+'" data-k="s" value="'+x.s+'"></td>'+
-       '<td><input type="time" data-t="'+i+'" data-k="e" value="'+x.e+'"></td></tr>';
-  }
-  $('#timeSetup').innerHTML=t+'</tbody>';
 }
 
 /* 주말을 건너뛰고 이어지는 다음 수업일인지 */
@@ -2345,7 +2379,7 @@ function renderDayList(){
   let h='<thead><tr><th style="width:290px">기간</th><th>이름</th>'+
         '<th style="width:104px">수업</th><th style="width:68px"></th></tr></thead><tbody>';
   DAYGROUPS.forEach((g,i)=>{
-    const out=(g.to<state.start||g.from>state.end);
+    const out=(g.to<schoolRange().start||g.from>schoolRange().end);
     const one=g.keys.length===1;
     h+='<tr'+(out?' class="dead"':'')+' data-g="'+i+'">'+
        '<td><span class="rng"><input type="date" class="gfrom" value="'+g.from+'">'+
@@ -2365,7 +2399,7 @@ function renderDayList(){
 /* ================= render ================= */
 let view=window.matchMedia('(max-width:760px)').matches ? 'log' : 'year';
 function render(){
-  $('#rangeLabel').textContent = state.start+' ~ '+state.end;
+  $('#rangeLabel').textContent = schoolRange().start+' ~ '+schoolRange().end;
   $$('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
   ['year','week','log','team','grade','class','setup'].forEach(v=> $('#view-'+v).hidden = (v!==view));
   if(view==='year')  renderYear();
@@ -2390,7 +2424,7 @@ $('#tabs').onclick=e=>{
   if(v){ view=v; $('#tabs').classList.remove('mobile-expanded'); $('#mobileMore').textContent='더보기'; render(); }
 };
 
-$('#goSetup').onclick=()=>{ view='setup'; render(); window.scrollTo(0,0); };
+$('#goSetup').onclick=()=>{ baseTerm=yearTerm; view='setup'; render(); window.scrollTo(0,0); };
 /* 한 번 누르면 학급만 바로 바꾸는 작은 창 */
 function closePick(){ const el=$('#pickBox'); if(el) el.remove(); }
 document.addEventListener('mousedown', e=>{
@@ -2439,7 +2473,7 @@ function openPick(td){
       if(L.kind==='extra'){
         const e2=state.extras.find(x=>x.id===L.id); if(e2) e2.cls=cls;
       }else{
-        const base=state.base[L.dow+'-'+L.period]||{};
+        const base=baseForDate(L.date)[L.dow+'-'+L.period]||{};
         const rec=state.rec[L.id]=state.rec[L.id]||{};
         if(cls===base.cls) delete rec.cls; else rec.cls=cls;
         if(!Object.keys(rec).some(k=>rec[k])) delete state.rec[L.id];
@@ -2447,7 +2481,7 @@ function openPick(td){
     }else{
       /* 지웠던 기본 시간표 칸이면 되살리고, 아니면 새 수업으로 넣는다 */
       const dw=parseD(date).getDay(), bk=dw+'-'+per, rid=date+'#'+per;
-      const base=state.base[bk], hidden=state.rec[rid];
+      const base=baseForDate(date)[bk], hidden=state.rec[rid];
       if(base && base.cls && hidden && hidden.del){
         delete hidden.del;
         if(cls===base.cls) delete hidden.cls; else hidden.cls=cls;
@@ -2467,7 +2501,7 @@ function openPick(td){
 /* 기간 칸 → 그 주의 요일을 골라 행사·휴업일 지정 */
 function openWeekPick(th){
   closePick();
-  const mon=parseD(th.dataset.week), sd=state.start, ed=state.end;
+  const mon=parseD(th.dataset.week), sd=semester(yearTerm).start, ed=semester(yearTerm).end;
   const box=document.createElement('div');
   box.id='pickBox'; box.className='pick'; box.style.minWidth='210px';
   let inner='';
@@ -2514,9 +2548,17 @@ $('#ygrid').ondblclick=e=>{
   }
 };
 $('#yOrd').onchange=renderYear;
+$('#yearTerms').onclick=e=>{
+  const b=e.target.closest('[data-term]'); if(!b) return;
+  yearTerm=Number(b.dataset.term); renderYear();
+};
+$('#baseTerms').onclick=e=>{
+  const b=e.target.closest('[data-term]'); if(!b) return;
+  baseTerm=Number(b.dataset.term); renderBaseTable();
+};
 $('#yHide').onchange=renderYear;
 $('#yPrint').onclick=()=>{
-  $('#printHead').textContent='연간 시간표  '+state.start+' ~ '+state.end;
+  $('#printHead').textContent='연간 시간표 · '+yearTerm+'학기  '+semester(yearTerm).start+' ~ '+semester(yearTerm).end;
   const st=document.createElement('style');
   st.id='landscape'; st.textContent='@page{size:A4 landscape;margin:8mm}';
   document.head.appendChild(st);
@@ -2528,7 +2570,7 @@ $('#yCsv').onclick=()=>{
              : Array.from({length:state.periods},(_,i)=>i+1);
   const head=['주','기간'];
   for(let i=1;i<=5;i++) for(const p of cols) head.push(DOWK[i]+p);
-  const rows=[head], sd=parseD(state.start), ed=parseD(state.end);
+  const rows=[head], sd=parseD(semester(yearTerm).start), ed=parseD(semester(yearTerm).end);
   yearWeeks().forEach((W,wi)=>{
     const r=[wi+1, MD(W.from)+'–'+MD(W.to)];
     for(const d of W.days){
@@ -2543,7 +2585,7 @@ $('#yCsv').onclick=()=>{
     }
     rows.push(r);
   });
-  csvDL('PE-year-grid-'+TODAY+'.csv', rows);
+  csvDL('PE-year-grid-term'+yearTerm+'-'+TODAY+'.csv', rows);
 };
 $('#wPrev').onclick=()=>{ weekCur=addD(weekCur,-7); renderWeek(); };
 $('#wNext').onclick=()=>{ weekCur=addD(weekCur,7); renderWeek(); };
@@ -2718,9 +2760,10 @@ $('#periodsSel').onchange=e=>{
 };
 $('#btTable').addEventListener('change', e=>{
   const sel=e.target, key=sel.dataset.b; if(!key) return;
-  const b=state.base[key]=state.base[key]||{};
+  const base=semester(baseTerm).base;
+  const b=base[key]=base[key]||{};
   if(sel.dataset.k==='cls'){
-    if(!sel.value){ delete state.base[key]; }
+    if(!sel.value){ delete base[key]; }
     else { b.cls=sel.value; if(!b.place) b.place=state.places[0]?state.places[0].id:''; }
   }else b.place=sel.value;
   touch();
@@ -2742,11 +2785,6 @@ $('#addPlace').onclick=()=>{
     color:PALETTE[state.places.length%PALETTE.length]});
   $('#newPlace').value=''; touch();
 };
-$('#timeSetup').addEventListener('change', e=>{
-  const i=e.target.dataset.t; if(i===undefined) return;
-  state.times[Number(i)]=state.times[Number(i)]||{s:'',e:''};
-  state.times[Number(i)][e.target.dataset.k]=e.target.value; save();
-});
 $('#hAdd').onclick=()=>{
   const d=$('#hDate').value;
   if(!d){ alert('시작일을 먼저 고르세요.'); return; }
@@ -2793,16 +2831,28 @@ $('#dayList').addEventListener('click', e=>{
     touch();
   }
 });
-$('#startD').onchange=e=>{ state.start=e.target.value; touch(); };
-$('#endD').onchange=e=>{ state.end=e.target.value; touch(); };
+function updateSemesterDate(n,key,input){
+  const term=semester(n), other=semester(n===1?2:1);
+  const next={...term,[key]:input.value};
+  let error='';
+  if(next.start && next.end && next.start>next.end) error='종료일은 시작일 이후로 입력해 주세요.';
+  else if(validSemester(next) && validSemester(other) && next.start<=other.end && other.start<=next.end)
+    error='1학기와 2학기 수업 기간이 겹칩니다. 기간을 확인해 주세요.';
+  if(error){ alert(error); input.value=term[key]; return; }
+  term[key]=input.value; touch();
+}
+$('#startD').onchange=e=>updateSemesterDate(1,'start',e.target);
+$('#endD').onchange=e=>updateSemesterDate(1,'end',e.target);
+$('#startD2').onchange=e=>updateSemesterDate(2,'start',e.target);
+$('#endD2').onchange=e=>updateSemesterDate(2,'end',e.target);
 $('#fillHoliday').onclick=()=>{
-  const sd=parseD(state.start), ed=parseD(state.end);
+  const sd=parseD(schoolRange().start), ed=parseD(schoolRange().end);
   const added=[], skipped=[];
   for(let y=sd.getFullYear(); y<=ed.getFullYear(); y++){
     const list=FIXED_HOLIDAYS.map(h=>[y+'-'+h[0], h[1]])
       .concat((YEAR_HOLIDAYS[y]||[]).map(h=>[y+'-'+h[0], h[1]]));
     for(const [k,name] of list){
-      if(k<state.start||k>state.end) continue;
+      if(!semesterForDate(k)) continue;
       const dw=parseD(k).getDay();
       if(dw===0||dw===6) continue;            /* 주말은 원래 수업이 없습니다 */
       if(state.days[k]){ skipped.push(k+' '+name); continue; }
@@ -2857,7 +2907,7 @@ function csvHours(){
   for(const n of classNames()){
     const s2=STATS[n]||{};
     rows.push([n, s2.prog||0, s2.total||0, Math.max(0,(s2.total||0)-(s2.prog||0)),
-      s2.sched||0, s2.ranged? (s2.from||state.start)+'~'+(s2.to||state.end) : '전체 기간']);
+      s2.sched||0, s2.ranged? (s2.from||schoolRange().start)+'~'+(s2.to||schoolRange().end) : '전체 기간']);
   }
   csvDL('PE-hours-'+TODAY+'.csv', rows);
 }
@@ -2866,7 +2916,7 @@ $('#csvHours').onclick=csvHours;
 $('#csvYear').onclick=csvYear;
 $('#clsPrint').onclick=()=>{
   $('#printHead').textContent = (curCls==='ALL'? '학급별 시수 집계' : curCls+' 수업 기록')+
-    ' ('+state.start+' ~ '+state.end+')';
+    ' ('+schoolRange().start+' ~ '+schoolRange().end+')';
   window.print();
 };
 function exportBackup(){
@@ -2887,7 +2937,7 @@ $('#impFile').onchange=e=>{
       const s=JSON.parse(rd.result);
       if(!s || !s.classes) throw 0;
       if(!confirm('현재 데이터를 백업 파일로 바꿉니다. 계속할까요?')) return;
-      state=Object.assign(defState(), s);
+      state=applyStateMigrations(Object.assign(defState(), s));
       if(!state.logs) state.logs={};
       if(!state.roster) state.roster={};
       if(!state.grades) state.grades={};
@@ -2951,10 +3001,11 @@ window.addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush(); });
 
 (function init(){
-  /* 첫 실행이면 달력을 시작월로 */
-  const sd=parseD(state.start), now=new Date();
+  /* 첫 실행이면 오늘에 해당하는 학기를 선택합니다. */
+  yearTerm=semesterForDate(TODAY)===state.semester2?2:1; baseTerm=yearTerm;
+  const sd=parseD(schoolRange().start), now=new Date();
   weekCur = (now<sd) ? sd : now;
-  if(TODAY < state.start || TODAY > state.end) logDate = state.start;
+  if(TODAY < schoolRange().start || TODAY > schoolRange().end) logDate = schoolRange().start;
   rebuild(); render();
   $('#appVer').textContent = APP_VER;
   setSaveState(STORAGE==='ok' ? '저장됨' : '저장 안 됨', STORAGE!=='ok');
@@ -2976,6 +3027,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush();
 <script>
 function refreshJournal(){
   journalGeneration++;
+  yearTerm=semesterForDate(TODAY)===state.semester2?2:1; baseTerm=yearTerm;
   clearTimeout(saveTimer); clearTimeout(yClickTimer);
   closePick();
   teamCls=''; teamOut=null; teamExcl={}; curCls=''; curGrade='';
