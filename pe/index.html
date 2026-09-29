@@ -225,7 +225,38 @@ body:has(#view-week:not([hidden])) #cloudPanel{display:none}
 .slot .content{font-size:16px;font-weight:800;line-height:1.3;letter-spacing:-.15px;
   overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
 .slot .nt{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mobile-week-list{display:none}
+.mobile-more{display:none}
 @media(max-width:760px){
+  /* 모바일 핵심 메뉴만 먼저 보이고 나머지는 더보기에 넣는다. */
+  .tabs button[data-view="year"],.tabs button[data-view="grade"],
+  .tabs button[data-view="class"],.tabs button[data-view="setup"]{display:none}
+  .tabs .mobile-more{display:block}
+  .tabs.mobile-expanded button[data-view="year"],.tabs.mobile-expanded button[data-view="grade"],
+  .tabs.mobile-expanded button[data-view="class"],.tabs.mobile-expanded button[data-view="setup"]{display:block}
+  #view-week{width:100%;max-width:none}
+  #view-week .scroll{display:none}
+  .mobile-week-list{display:grid;gap:10px}
+  .mobile-week-day{border:1px solid var(--line);border-radius:11px;background:var(--panel);overflow:hidden}
+  .mobile-week-head{width:100%;border:0;border-bottom:1px solid var(--line2);background:var(--line2);
+    text-align:left;padding:9px 11px;font-weight:800;font-size:13.5px}
+  .mobile-week-lesson,.mobile-week-add{width:100%;border:0;background:var(--panel);text-align:left;
+    display:block;padding:10px 12px;border-bottom:1px solid var(--line2)}
+  .mobile-week-lesson:last-child,.mobile-week-add:last-child{border-bottom:0}
+  .mobile-week-lesson{box-shadow:inset 4px 0 0 var(--c)}
+  .mobile-week-lesson.dead{opacity:.5}
+  .mobile-week-lesson strong{display:block;font-size:16px;line-height:1.35;margin-top:2px}
+  .mobile-week-meta,.mobile-week-lesson small{display:block;font-size:11.5px;color:var(--muted)}
+  .mobile-week-off{padding:11px 12px;color:#d05252;font-size:13px;font-weight:700}
+  .mobile-week-add{color:var(--muted);font-size:13px;font-weight:700}
+  /* 일지에서 일기 입력을 첫 화면의 가장 큰 영역으로 둔다. */
+  #view-log{display:flex;flex-direction:column}
+  #view-log .toolbar{order:0}
+  #view-log .card:nth-of-type(2){order:1}
+  #view-log .card:nth-of-type(1){order:2}
+  #view-log #gRecentCard{order:3}
+  #view-log .logbox{min-height:42vh;font-size:16px;line-height:1.7}
+  #view-log .card > h2{font-size:15px}
   #view-week .scroll{margin-inline:-10px}
   .wgrid{min-width:640px}
   .wgrid col.week-period{width:46px}
@@ -458,6 +489,7 @@ tr.dead .ord{text-decoration:line-through}
     <button data-view="class">학급별</button>
     <button data-view="team">팀뽑기</button>
     <button data-view="setup">설정</button>
+    <button type="button" class="mobile-more" id="mobileMore" aria-expanded="false">더보기</button>
   </nav>
   <span id="saveState"></span>
 </header>
@@ -535,6 +567,7 @@ tr.dead .ord{text-decoration:line-through}
       <button class="btn sm" id="wToday">이번 주</button>
       <div class="legend" id="legend2"></div>
     </div>
+    <div class="mobile-week-list" id="mobileWeekList"></div>
     <div class="scroll"><table class="wgrid" id="wgrid"></table></div>
     <p class="tip" style="padding-left:0">빈 칸을 누르면 그 자리에 <b>수업을 추가</b>할 수 있습니다.</p>
   </section>
@@ -1497,6 +1530,25 @@ function renderWeek(){
     h+='</tr>';
   }
   $('#wgrid').innerHTML=h+'</tbody>';
+  /* 휴대폰에서는 표 대신 요일별 수업 카드를 보여 준다. */
+  $('#mobileWeekList').innerHTML=days.map(d=>{
+    const k=isoOf(d), day=state.days[k];
+    const lessons=(day&&day.off) ? [] : (BYDATE[k]||[]).filter(L=>L.status!=='cancel');
+    const heading=DOWK[d.getDay()]+'요일 · '+(d.getMonth()+1)+'/'+d.getDate();
+    const body=(day&&day.off)
+      ? '<p class="mobile-week-off">'+esc(day.label||'휴업일')+'</p>'
+      : lessons.length
+        ? lessons.map(L=>{
+            const pl=placeOf(L.place), over=L.status==='over';
+            return '<button class="mobile-week-lesson'+(over?' dead':'')+'" data-id="'+L.id+'" style="--c:'+pl.color+'">'+
+              '<span class="mobile-week-meta">'+esc(L.period)+'교시 · '+esc(L.cls)+' · <b style="color:'+pl.color+'">'+esc(pl.name)+'</b></span>'+
+              '<strong>'+esc(weekLessonText(L)||'수업 내용 미정')+'</strong>'+
+              (over?'<small>수업 기간 밖</small>':'')+'</button>';
+          }).join('')
+        : '<button class="mobile-week-add" data-add="'+k+'#1">＋ 수업 추가</button>';
+    return '<article class="mobile-week-day"><button class="mobile-week-head" data-mobile-day="'+k+'">'+
+      heading+(day&&day.label?' · '+esc(day.label):'')+'</button><div>'+body+'</div></article>';
+  }).join('');
   fitWeekGrid();
 }
 window.addEventListener('resize',()=>{ if(view==='week') fitWeekGrid(); });
@@ -2310,7 +2362,17 @@ function render(){
 }
 
 /* ================= events ================= */
-$('#tabs').onclick=e=>{ const v=e.target.dataset.view; if(v){ view=v; render(); } };
+$('#tabs').onclick=e=>{
+  const more=e.target.closest('#mobileMore');
+  if(more){
+    const tabs=$('#tabs'), open=tabs.classList.toggle('mobile-expanded');
+    more.setAttribute('aria-expanded',String(open));
+    more.textContent=open ? '접기' : '더보기';
+    return;
+  }
+  const v=e.target.dataset.view;
+  if(v){ view=v; $('#tabs').classList.remove('mobile-expanded'); $('#mobileMore').textContent='더보기'; render(); }
+};
 
 $('#goSetup').onclick=()=>{ view='setup'; render(); window.scrollTo(0,0); };
 /* 한 번 누르면 학급만 바로 바꾸는 작은 창 */
@@ -2470,6 +2532,14 @@ $('#yCsv').onclick=()=>{
 $('#wPrev').onclick=()=>{ weekCur=addD(weekCur,-7); renderWeek(); };
 $('#wNext').onclick=()=>{ weekCur=addD(weekCur,7); renderWeek(); };
 $('#wToday').onclick=()=>{ weekCur=new Date(); renderWeek(); };
+$('#mobileWeekList').onclick=e=>{
+  const day=e.target.closest('[data-mobile-day]');
+  if(day){ openDay(day.dataset.mobileDay); return; }
+  const lesson=e.target.closest('[data-id]');
+  if(lesson){ openLesson(lesson.dataset.id); return; }
+  const add=e.target.closest('[data-add]');
+  if(add){ const parts=add.dataset.add.split('#'); openMakeup({date:parts[0],period:Number(parts[1])}); }
+};
 $('#wgrid').onclick=e=>{
   const th=e.target.closest('th.dayhead');
   if(th){ openDay(th.dataset.day); return; }
