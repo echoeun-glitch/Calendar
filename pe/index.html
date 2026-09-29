@@ -1606,7 +1606,7 @@ $('#gradeBar').onclick=e=>{
 /* 왼쪽 ⠿ 손잡이를 끌어 차시 행 순서를 바꾼다. */
 let gradeDragIndex=null;
 function clearGradeDragMarks(){
-  $('#gradeTable tbody tr').forEach(tr=>tr.classList.remove('grade-dragging','grade-drop-before','grade-drop-after'));
+  $$('#gradeTable tbody tr').forEach(tr=>tr.classList.remove('grade-dragging','grade-drop-before','grade-drop-after'));
 }
 $('#gradeTable').addEventListener('dragstart', e=>{
   const tr=e.target.closest('tr[data-i]');
