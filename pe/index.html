@@ -755,16 +755,28 @@ const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&
 const TODAY = isoOf(new Date());
 
 /* ================= state ================= */
+const STANDARD_PLACE_COLORS = {
+  '예지관':'#D8A100',   // 노랑
+  '체육관':'#3DA5D9',   // 하늘색
+  '운동장':'#DF8AA0'    // 연분홍
+};
+function applyStateMigrations(st){
+  if(Number(st.v||1) < 2){
+    (st.places||[]).forEach(p=>{ if(STANDARD_PLACE_COLORS[p.name]) p.color=STANDARD_PLACE_COLORS[p.name]; });
+    st.v=2;
+  }
+  return st;
+}
 function defState(){
   return {
-    v: 1,
+    v: 2,
     start: '2026-09-01',
     end:   '2027-02-28',
     periods: 6,
     times: DEF_TIMES.map(t=>({s:t[0], e:t[1]})),
-    places: [{id:'p1',name:'체육관',color:PALETTE[0]},
-             {id:'p2',name:'운동장',color:PALETTE[1]},
-             {id:'p3',name:'예지관',color:PALETTE[2]}],
+    places: [{id:'p1',name:'체육관',color:STANDARD_PLACE_COLORS['체육관']},
+             {id:'p2',name:'운동장',color:STANDARD_PLACE_COLORS['운동장']},
+             {id:'p3',name:'예지관',color:STANDARD_PLACE_COLORS['예지관']}],
     classes: DEF_CLASSES.map(n=>({name:n, plan:0, capOn:false, from:'', to:''})),
     base: {},     // 'dow-period' -> {cls, place}
     days: {},     // iso -> {label, off}
@@ -801,7 +813,7 @@ function load(){
       st.roster[k]=(st.roster[k]||[]).map(x=>({
         no:x.no, name:x.name, sex:x.sex||'', skill:x.skill||'', note:x.note||''}));
     }
-    return st;
+    return applyStateMigrations(st);
   }catch(e){ return defState(); }
 }
 let state = load();
@@ -2795,7 +2807,7 @@ window.PEJournal = {
   get: () => JSON.stringify(state),
   empty: () => JSON.stringify(defState()),
   replace: payload => {
-    state = payload ? Object.assign(defState(), JSON.parse(payload)) : defState();
+    state = payload ? applyStateMigrations(Object.assign(defState(), JSON.parse(payload))) : defState();
     refreshJournal();
   },
   showLocal: () => { state = load(); refreshJournal(); },
