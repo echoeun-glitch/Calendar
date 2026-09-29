@@ -270,6 +270,9 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 
 /* ---------- 학년별 ---------- */
 #gradeTable td{padding:4px 6px;vertical-align:middle}
+#gradeTable tr.current-grade-lesson td{background:var(--accent-soft)}
+#gradeTable tr.current-grade-lesson .grade-place{background:color-mix(in srgb,var(--place-color) 28%,var(--accent-soft))}
+#gradeTable tr.current-grade-lesson td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 #gradeTable input,#gradeTable select{width:100%;border:1px solid transparent;background:none;
   border-radius:6px;padding:5px 7px;font-size:13.5px}
 #gradeTable input:hover,#gradeTable select:hover{border-color:var(--line)}
@@ -1533,6 +1536,10 @@ function renderGrade(){
 
   $('#gradeTitle').textContent = curGrade+'학년 수업 계획';
   const rows=gradeRows(curGrade), units=gradeUnits(curGrade);
+  /* 같은 학년 학급별로 오늘까지 진행된 최신 차시를 연하게 강조한다. */
+  const currentOrdinals=new Set(classNames()
+    .filter(name=>String(name).split('-')[0].trim()===curGrade)
+    .map(name=>STATS[name]?.prog||0).filter(Boolean));
   let h='<thead><tr><th style="width:82px">차시 · 장소</th><th style="width:150px">단원</th>'+
         '<th>주요 활동</th><th style="width:26%">비고</th><th style="width:46px"></th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
@@ -1541,7 +1548,7 @@ function renderGrade(){
     const name=unique.map(p=>p.name).join(' / ') || '미편성';
     const color=unique.length===1?unique[0].color:'#8a94a4';
     const labels=unique.map(p=>'<small><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</small>').join('');
-    h+='<tr data-i="'+i+'">'+
+    h+='<tr data-i="'+i+'"'+(currentOrdinals.has(i+1)?' class="current-grade-lesson"':'')+'>'+
       '<td class="gh grade-place" style="--place-color:'+color+'">'+
         '<button type="button" class="grade-place-button" aria-label="'+(i+1)+'차시 시간표 장소 확인: '+esc(name)+'">'+
         '<b>'+(i+1)+'</b>'+(labels||'<small>미편성</small>')+'</button></td>'+
