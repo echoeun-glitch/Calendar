@@ -168,11 +168,11 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .pick .ft{font-size:10.5px;color:var(--muted);margin-top:7px;text-align:center;line-height:1.5}
 
 /* ---------- week grid ---------- */
-/* 주간 탭은 화면 폭을 전부 사용하고, 월~금 열은 같은 너비로 나눕니다. */
-#view-week{width:100vw;margin-left:calc(50% - 50vw)}
-#view-week .toolbar,#view-week > .tip{padding-inline:16px}
-.wgrid{width:100%;table-layout:fixed;border-collapse:collapse;background:var(--panel);
+/* 주간 표는 중앙에 두고, 교시 열을 뺀 월~금 5열은 같은 너비로 나눕니다. */
+#view-week{max-width:1040px;margin:0 auto}
+.wgrid{width:100%;min-width:740px;table-layout:fixed;border-collapse:collapse;background:var(--panel);
   border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.wgrid col.week-period{width:58px}
 .wgrid th,.wgrid td{border:1px solid var(--line2);padding:4px;vertical-align:top}
 .wgrid th{background:var(--line2);font-size:12px;text-align:center;padding:7px 4px}
 .wgrid th small{display:block;font-weight:400;color:var(--muted);font-size:11px}
@@ -180,24 +180,26 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .wgrid th.dayhead{cursor:pointer}
 .wgrid th.dayhead:hover{background:var(--accent-soft);color:var(--accent)}
 .wgrid .ph{width:58px;text-align:center;background:var(--line2);font-size:11.5px;color:var(--muted)}
-.wgrid td{height:84px}
+.wgrid td{height:147px}
 .wgrid td.offcell{background:repeating-linear-gradient(135deg,transparent 0 7px,rgba(127,140,158,.09) 7px 14px)}
-.slot{width:100%;height:100%;min-height:74px;border:0;background:none;border-radius:6px;text-align:left;
-  display:flex;flex-direction:column;gap:4px;padding:5px 6px;font-size:12px;overflow:hidden}
+.slot{width:100%;height:100%;min-height:137px;border:0;background:none;border-radius:6px;text-align:left;
+  display:flex;flex-direction:column;gap:6px;padding:8px;font-size:12px;overflow:hidden}
 .slot:hover{background:var(--line2)}
 .slot .meta{display:flex;align-items:baseline;gap:6px;min-width:0;line-height:1.2}
 .slot .big{font-weight:800;font-size:12.5px;white-space:nowrap}
 .slot .pl{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .slot .content{font-size:16px;font-weight:800;line-height:1.3;letter-spacing:-.15px;
-  overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
 .slot .nt{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:560px){
-  #view-week .toolbar,#view-week > .tip{padding-inline:10px}
-  .wgrid .ph{width:44px;font-size:10.5px}
+@media(max-width:760px){
+  #view-week .scroll{margin-inline:-10px}
+  .wgrid{min-width:640px}
+  .wgrid col.week-period{width:46px}
+  .wgrid .ph{width:46px;font-size:10.5px}
   .wgrid th{font-size:11px;padding:6px 2px}
   .wgrid th small{font-size:10px}
-  .wgrid td{height:78px;padding:2px}
-  .slot{min-height:70px;padding:4px}
+  .wgrid td{height:118px;padding:2px}
+  .slot{min-height:110px;padding:5px}
   .slot .meta{gap:3px}
   .slot .big{font-size:11.5px}
   .slot .pl{font-size:10px}
@@ -993,6 +995,12 @@ function lessonPlanText(L){
   return plan ? [plan.unit,plan.act].filter(v=>v && String(v).trim()).join(' · ') : '';
 }
 function lessonProgress(L){ return (L.rec.prog||'').trim() || lessonPlanText(L); }
+/* 주간 표는 단원 대신 실제 활동만 짧게 보여 준다. 개별 입력은 그대로 우선한다. */
+function weekLessonText(L){
+  const saved=(L.rec.prog||'').trim();
+  if(saved) return saved;
+  return String(lessonPlan(L)?.act||'').trim();
+}
 function lessonPlanHint(L){
   const plan=lessonPlan(L), text=lessonPlanText(L);
   if(!text && !(plan && plan.note)) return '';
@@ -1415,7 +1423,7 @@ function renderWeek(){
           h+='<button class="slot filled'+(over?' dead':'')+'" style="--c:'+pl.color+'" data-id="'+L.id+'">'+
              '<span class="meta"><span class="big">'+esc(L.cls)+'</span>'+
              '<span class="pl" style="color:'+pl.color+'">'+esc(pl.name)+'</span></span>'+
-             (lessonProgress(L)?'<span class="content">'+esc(lessonProgress(L))+'</span>':'')+
+             (weekLessonText(L)?'<span class="content">'+esc(weekLessonText(L))+'</span>':'')+
              (lessonPlan(L)?.note?'<span class="nt">계획 비고: '+esc(lessonPlan(L).note)+'</span>':'')+
              (over?'<span class="nt">수업 기간 밖</span>':'')+
              '</button>';
