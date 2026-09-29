@@ -34,6 +34,13 @@ try {
   const plan1='2. 스포츠 · 티볼';
   assert.deepEqual(await page.evaluate(()=>['2026-09-01#1','2026-09-02#1','2026-09-03#1'].map(id=>lessonProgress(BYID[id]))),[plan1,plan1,'']);
   await page.getByRole('button',{name:'일지',exact:true}).click();
+  assert.deepEqual(await page.locator('#logTable th').allTextContents(),['교시','학급','수업내용','특이사항']);
+  const logRow=page.locator('#logTable tbody tr').first();
+  assert.equal(await logRow.locator('td').count(),4);
+  assert.equal(await logRow.getAttribute('data-id'),'2026-09-01#1');
+  assert.match(await logRow.locator('td').nth(1).innerText(),/3-1/);
+  assert.match(await logRow.locator('td').nth(1).innerText(),/체육관/);
+  assert.match(await logRow.locator('td').nth(1).innerText(),/1차시/);
   const progress=page.locator('#logTable input[data-f="prog"]').first();
   assert.equal(await progress.inputValue(),plan1);
   await progress.fill('학급별 별도 진도');await progress.press('Tab');

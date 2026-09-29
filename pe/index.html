@@ -227,7 +227,9 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .slot .nt{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mobile-week-list{display:none}
 .mobile-more{display:none}
-/* 웹 일지 표는 항상 여섯 열을 유지한다. 모바일 전용 규칙의 영향을 받지 않는다. */
+/* 웹 일지 표의 네 열을 유지한다. */
+.log-class-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;color:var(--muted);margin-top:4px}
+.log-class-meta span{white-space:nowrap}
 @media(min-width:761px){
   #logTable{display:table}
   #logTable thead{display:table-header-group}
@@ -804,7 +806,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-29f'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-29g'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1976,22 +1978,21 @@ function renderLog(){
   $('#gHead').innerHTML=head;
 
   const ls=(BYDATE[k]||[]).filter(L=>L.status==='ok').sort((a,b)=>a.period-b.period);
-  let h='<thead><tr><th style="width:64px">교시</th><th style="width:74px">학급</th>'+
-        '<th style="width:84px">장소</th><th style="width:56px">차시</th>'+
-        '<th>진도 · 수업 내용</th><th style="width:30%">특이사항</th></tr></thead><tbody>';
+  let h='<thead><tr><th style="width:64px">교시</th><th style="width:140px">학급</th>'+
+        '<th>수업내용</th><th style="width:30%">특이사항</th></tr></thead><tbody>';
   for(const L of ls){
     const pl=placeOf(L.place), t=state.times[L.period-1];
-    h+='<tr data-id="'+L.id+'>'+
+    h+='<tr data-id="'+L.id+'">'+
        '<td><b>'+L.period+'</b>교시'+(t&&t.s?'<div class="muted" style="font-size:10.5px">'+esc(t.s)+'</div>':'')+'</td>'+
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 5px;font-weight:800">'+
-         esc(L.cls)+'</button></td>'+
-       '<td><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</td>'+
-       '<td>'+(L.ord?L.ord+'차시':'-')+'</td>';
+         esc(L.cls)+'</button><div class="log-class-meta">'+
+         '<span><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</span>'+
+         '<span>'+(L.ord?L.ord+'차시':'-')+'</span></div></td>';
     h+='<td>'+lessonProgressInput(L)+'</td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
   }
-  if(!ls.length) h+='<tr><td colspan="6" class="muted" style="padding:18px;text-align:center">'+
+  if(!ls.length) h+='<tr><td colspan="4" class="muted" style="padding:18px;text-align:center">'+
     (day&&day.off ? '«'+esc(day.label||'휴업일')+'» — 수업이 없는 날입니다.' : '이 날은 수업이 없습니다.')+
     '</td></tr>';
   $('#logTable').innerHTML=h+'</tbody>';
