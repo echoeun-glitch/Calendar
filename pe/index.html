@@ -64,6 +64,33 @@ button{cursor:pointer}
 .warnbanner .row{margin-top:10px}
 
 main{max-width:1180px;margin:0 auto;padding:16px}
+
+/* 넓은 화면에서는 탭을 왼쪽 도구함으로 고정한다. */
+@media(min-width:800px){
+  body{padding-left:184px}
+  .topbar{
+    position:fixed;inset:0 auto 0 0;width:184px;height:100vh;
+    flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:0;
+    padding:18px 12px calc(14px + env(safe-area-inset-bottom));
+    border-bottom:0;border-right:1px solid var(--line);overflow-y:auto
+  }
+  .brand{padding:0 5px 14px;border-bottom:1px solid var(--line)}
+  .brand small{white-space:normal}
+  .tabs{
+    display:flex;flex-direction:column;align-items:stretch;gap:3px;
+    margin:14px 0 0;padding:0;background:none;border-radius:0
+  }
+  .tabs button{
+    width:100%;padding:10px 11px;border-radius:8px;text-align:left;
+    font-size:13.5px;color:var(--muted)
+  }
+  .tabs button:hover{background:var(--line2);color:var(--ink)}
+  .tabs button.on{
+    background:var(--accent-soft);color:var(--accent);box-shadow:none;
+    box-shadow:inset 3px 0 0 var(--accent)
+  }
+  #saveState{margin-top:auto;padding:12px 5px 0;text-align:left;min-width:0}
+}
 @media(max-width:560px){ main{padding:10px} .topbar{padding:8px 12px;gap:8px} .tabs button{padding:6px 10px} }
 
 /* ---------- generic bits ---------- */
