@@ -30,15 +30,9 @@ try {
     s.grades={'3':Array.from({length:6},(_,i)=>({act:'수업계획 '+(i+1),unit:'',note:''}))};
     s.gradeN={'3':6};window.PEJournal.replace(JSON.stringify(s));view='grade';render();
   });
-  assert.equal(await page.locator('#gradeViewMode').inputValue(),'period');
-  assert.equal(await page.locator('#gradeTable th').first().innerText(),'기간');
+  assert.equal(await page.locator('#gradeTable th').first().innerText(),'차시');
   const fifth=page.locator('#gradeTable tbody tr').nth(4).locator('.grade-place-button');
   const sixth=page.locator('#gradeTable tbody tr').nth(5).locator('.grade-place-button');
-  assert.match(await fifth.innerText(),/8월 4주 \(8\.24–8\.28\)/);
-  assert.match(await fifth.innerText(),/첫 번째 수업/);
-  assert.match(await sixth.innerText(),/두 번째 수업/);
-  assert.doesNotMatch(await fifth.innerText(),/차시/);
-  assert.doesNotMatch(await sixth.innerText(),/차시/);
   assert.deepEqual(await page.evaluate(()=>['2026-08-24#1','2026-08-25#1'].map(id=>[BYID[id].ord,lessonProgress(BYID[id])])),[
     [4,'수업계획 5'],[5,'수업계획 5']
   ]);
@@ -51,12 +45,10 @@ try {
   assert.doesNotMatch(await page.locator('#modalRoot').innerText(),/2026-08-25/);
   await page.getByRole('button',{name:'닫기',exact:true}).click();
   const plansBefore=await page.evaluate(()=>JSON.stringify(state.grades));
-  await page.locator('#gradeViewMode').selectOption('ordinal');
   assert.equal(await page.locator('#gradeTable th').first().innerText(),'차시');
   assert.equal(await sixth.locator('b').innerText(),'6');
   assert.equal(await page.evaluate(()=>JSON.stringify(state.grades)),plansBefore);
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-08-26#1'])),'수업계획 6');
-  await page.locator('#gradeViewMode').selectOption('period');
   await page.locator('#gradeTable .gac').nth(5).fill('티볼 경기');
   await page.evaluate(()=>{weekCur=parseD('2026-08-24');view='week';render();});
   assert.equal(await page.locator('#wgrid .content').filter({hasText:'티볼 경기'}).count(),2);
@@ -77,21 +69,25 @@ try {
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-08-25#1'])),'수업계획 5');
   await page.reload();await page.waitForFunction(()=>!!window.PEJournal);
   await page.evaluate(()=>{view='grade';render();});
-  assert.equal(await page.locator('#gradeViewMode').inputValue(),'period');
   assert.equal(await page.locator('#gradeTable .gac').nth(5).inputValue(),'티볼 경기');
-  await page.locator('#gradeViewMode').selectOption('ordinal');
   const snapshot=await page.evaluate(()=>window.PEJournal.get());
   await page.evaluate(()=>window.PEJournal.replace(null));
   await page.evaluate(s=>window.PEJournal.replace(s),snapshot);
-  assert.equal(await page.locator('#gradeViewMode').inputValue(),'ordinal');
-  await page.locator('#gradeViewMode').selectOption('period');
   if(process.env.PE_SCREENSHOT_DIR)await page.locator('#view-grade').screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-grade-periods.png'});
   await page.setViewportSize({width:390,height:844});
-  await page.locator('#gradeViewMode').selectOption('ordinal');
   assert.equal(await page.locator('#gradeTable th').first().innerText(),'차시');
-  await page.locator('#gradeViewMode').selectOption('period');
-  assert.match(await fifth.innerText(),/8월 4주/);
+  assert.equal(await page.locator('#gradeViewMode').count(),0);
+  await page.setViewportSize({width:1280,height:1000});
+  const before=await page.evaluate(()=>state.grades['3'].map(r=>r.act));
+  const handle=page.locator('#gradeTable tbody tr').first().locator('.grade-drag');
+  const destination=page.locator('#gradeTable tbody tr').nth(2);
+  await handle.dragTo(destination,{targetPosition:{x:20,y:5}});
+  assert.deepEqual(await page.evaluate(()=>state.grades['3'].map(r=>r.act)),[before[1],before[0],...before.slice(2)]);
+  assert.equal(await page.locator('#gradeTable tbody tr').first().locator('.grade-place-button b').innerText(),'1');
+  await page.evaluate(()=>flush());
+  await page.reload();await page.waitForFunction(()=>!!window.PEJournal);
+  assert.deepEqual(await page.evaluate(()=>state.grades['3'].map(r=>r.act)),[before[1],before[0],...before.slice(2)]);
   assert.deepEqual(errors,[]);
-  console.log('PASS: period labels, weekly alignment across classes, cancelled/deleted slots, place details, display mode persistence, weekly/log/class linkage, overrides, full-week holidays, mobile');
+  console.log('PASS: ordinal display, drag reorder persistence, weekly alignment across classes, cancelled/deleted slots, place details, weekly/log/class linkage, overrides, full-week holidays, mobile');
   await context.close();
 }finally{await browser.close();await new Promise(r=>server.close(r));}

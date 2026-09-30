@@ -312,6 +312,12 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 
 /* ---------- 학년별 ---------- */
 #gradeTable td{padding:4px 6px;vertical-align:middle}
+#gradeTable tbody tr.grade-dragging{opacity:.42}
+#gradeTable tbody tr.grade-drop-before td{box-shadow:inset 0 3px 0 var(--accent)}
+#gradeTable tbody tr.grade-drop-after td{box-shadow:inset 0 -3px 0 var(--accent)}
+.grade-drag{display:inline-block;cursor:grab;color:var(--muted);font-size:16px;line-height:1;
+  padding:4px 5px;margin:-4px 1px -4px -3px;vertical-align:middle;touch-action:none}
+.grade-drag:active{cursor:grabbing;color:var(--accent)}
 #gradeTable tr.current-grade-lesson td{background:var(--accent-soft)}
 #gradeTable tr.current-grade-lesson .grade-place{background:color-mix(in srgb,var(--place-color) 28%,var(--accent-soft))}
 #gradeTable tr.current-grade-lesson td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
@@ -662,8 +668,6 @@ tr.dead .ord{text-decoration:line-through}
       <h2><span id="gradeTitle">학년별 수업 계획</span>
         <span class="hint">같은 학년은 수업 내용이 같으므로 한 번만 적으면 됩니다</span></h2>
       <div class="pad row" style="padding-bottom:4px">
-        <label class="f" for="gradeViewMode" style="margin:0">첫 열 표시</label>
-        <select id="gradeViewMode"><option value="period">기간</option><option value="ordinal">차시</option></select>
         <label class="f" style="margin:0">전체 차시</label>
         <input type="number" id="gradeN" min="1" max="200" style="width:84px">
         <span class="muted" style="font-size:12px">같은 주의 같은 순서 수업에 연동됩니다 · 첫 열을 누르면 학급별 날짜와 장소를 확인합니다</span>
@@ -814,7 +818,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-30c'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-30d'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1676,14 +1680,6 @@ function gradeRows(g){
   return rows;
 }
 let curGrade='';
-function gradePeriodLabel(grade,index){
-  const p=GRADE_PERIODS[grade]?.[index];
-  if(!p) return {period:'기간 미편성',session:(index+1)+'차시'};
-  const start=parseD(p.week), end=addD(start,4);
-  const nth=['첫 번째','두 번째','세 번째','네 번째','다섯 번째'][p.session-1] || p.session+'번째';
-  return {period:(start.getMonth()+1)+'월 '+Math.ceil(start.getDate()/7)+'주 ('+MD(start)+'–'+MD(end)+')',
-    session:nth+' 수업'};
-}
 function gradeLessonPlaces(grade,ordinal){
   const period=GRADE_PERIODS[grade]?.[ordinal-1];
   return classNames().filter(name=>String(name).split('-')[0].trim()===grade).map(name=>{
@@ -1703,27 +1699,25 @@ function renderGrade(){
   if(!curGrade){ $('#gradeTable').innerHTML=''; $('#gradeSum').textContent=''; return; }
 
   $('#gradeTitle').textContent = curGrade+'학년 수업 계획';
-  const periodView=state.gradeViewMode!=='ordinal';
-  $('#gradeViewMode').value=periodView?'period':'ordinal';
   const rows=gradeRows(curGrade), units=gradeUnits(curGrade);
   /* 같은 학년 학급별로 오늘까지 진행된 최신 차시를 연하게 강조한다. */
   const currentOrdinals=new Set(classNames()
     .filter(name=>String(name).split('-')[0].trim()===curGrade)
     .map(name=>LESSONS.filter(L=>L.cls===name && L.status==='ok' && L.date<=TODAY).at(-1)?.planIndex)
     .filter(i=>i!==undefined));
-  let h='<thead><tr><th style="width:'+(periodView?230:82)+'px">'+(periodView?'기간':'차시')+'</th><th style="width:150px">단원</th>'+
+  let h='<thead><tr><th style="width:82px">차시</th><th style="width:150px">단원</th>'+
         '<th>주요 활동</th><th style="width:26%">비고</th><th style="width:46px"></th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
     const locations=gradeLessonPlaces(curGrade,i+1);
-    const label=gradePeriodLabel(curGrade,i);
     const unique=[...new Map(locations.map(p=>[p.id,p])).values()];
     const name=unique.map(p=>p.name).join(' / ') || '미편성';
     const color=unique.length===1?unique[0].color:'#8a94a4';
     const labels=unique.map(p=>'<small><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</small>').join('');
     h+='<tr data-i="'+i+'"'+(currentOrdinals.has(i)?' class="current-grade-lesson"':'')+'>'+
       '<td class="gh grade-place" style="--place-color:'+color+'">'+
-        '<button type="button" class="grade-place-button" aria-label="'+esc(periodView?label.period+' '+label.session:(i+1)+'차시')+' 시간표 장소 확인: '+esc(name)+'">'+
-        '<b>'+(periodView?esc(label.period):(i+1))+'</b>'+(periodView?'<small>'+esc(label.session)+'</small>':'')+
+        '<span class="grade-drag" draggable="true" title="끌어서 행 순서 바꾸기">⠿</span>'+
+        '<button type="button" class="grade-place-button" aria-label="'+esc((i+1)+'차시')+' 시간표 장소 확인: '+esc(name)+'">'+
+        '<b>'+(i+1)+'</b>'+
         (labels||'<small>미편성</small>')+'</button></td>'+
       '<td class="gu"><select class="gun">'+
         [''].concat(units).map(u=>'<option'+(u===(r.unit||'')?' selected':'')+'>'+esc(u)+'</option>').join('')+
@@ -1753,8 +1747,50 @@ $('#gradeBar').onclick=e=>{
   const b=e.target.closest('[data-g]'); if(!b) return;
   curGrade=b.dataset.g; renderGrade();
 };
-$('#gradeViewMode').onchange=e=>{state.gradeViewMode=e.target.value;save();renderGrade();};
 
+/* 왼쪽 ⠿ 손잡이를 끌어 차시 행 순서를 바꾼다. */
+let gradeDragIndex=null;
+function clearGradeDragMarks(){
+  $$('#gradeTable tbody tr').forEach(tr=>tr.classList.remove('grade-dragging','grade-drop-before','grade-drop-after'));
+}
+$('#gradeTable').addEventListener('dragstart', e=>{
+  const tr=e.target.closest('tr[data-i]');
+  if(!tr || !e.target.closest('.grade-drag')){ e.preventDefault(); return; }
+  gradeDragIndex=Number(tr.dataset.i);
+  tr.classList.add('grade-dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',String(gradeDragIndex));
+});
+$('#gradeTable').addEventListener('dragover', e=>{
+  const tr=e.target.closest('tr[data-i]');
+  if(!tr || gradeDragIndex===null) return;
+  e.preventDefault();
+  clearGradeDragMarks();
+  const after=e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2;
+  tr.classList.add(after?'grade-drop-after':'grade-drop-before');
+  e.dataTransfer.dropEffect='move';
+});
+$('#gradeTable').addEventListener('dragleave', e=>{
+  if(!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) clearGradeDragMarks();
+});
+$('#gradeTable').addEventListener('drop', e=>{
+  const tr=e.target.closest('tr[data-i]');
+  if(!tr || gradeDragIndex===null) return;
+  e.preventDefault();
+  let insertAt=Number(tr.dataset.i);
+  if(e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2) insertAt++;
+  const rows=state.grades[curGrade];
+  if(rows && insertAt!==gradeDragIndex && insertAt!==gradeDragIndex+1){
+    const [moved]=rows.splice(gradeDragIndex,1);
+    if(gradeDragIndex<insertAt) insertAt--;
+    rows.splice(insertAt,0,moved);
+    save(); renderGrade();
+  }
+  gradeDragIndex=null; clearGradeDragMarks();
+});
+$('#gradeTable').addEventListener('dragend', ()=>{
+  gradeDragIndex=null; clearGradeDragMarks();
+});
 $('#gradeTable').addEventListener('input', e=>{
   const t=e.target, g=gradeRow(t); if(!g) return;
   const r=g.rows[g.i]; if(!r) return;
@@ -1782,13 +1818,12 @@ function renderGradeSum(){        /* 합계줄만 고쳐 쓴다 (입력 중 커�
 }
 function openGradePlace(index){
   const locations=gradeLessonPlaces(curGrade,index+1);
-  const label=gradePeriodLabel(curGrade,index);
   const body='<p class="muted" style="margin-bottom:12px">같은 주의 같은 순서 수업에 편성된 장소입니다. 장소 변경은 연간·주간 시간표의 수업 상세에서 할 수 있습니다.</p>'+
     '<table><thead><tr><th>학급</th><th>날짜 · 교시</th><th>장소</th></tr></thead><tbody>'+
     locations.map(p=>'<tr><td>'+esc(p.cls)+'</td><td>'+(p.lesson?esc(p.lesson.date)+' · '+p.lesson.period+'교시':'미편성')+
       '</td><td><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</td></tr>').join('')+
     '</tbody></table><div class="acts"><button class="btn" data-close="1">닫기</button></div>';
-  modal(esc(curGrade)+'학년 '+esc(label.period)+' · '+esc(label.session),body);
+  modal(esc(curGrade)+'학년 '+(index+1)+'차시 · 시간표 장소',body);
 }
 $('#gradeTable').addEventListener('click', e=>{
   const placeButton=e.target.closest('.grade-place-button');
