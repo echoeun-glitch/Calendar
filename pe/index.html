@@ -670,7 +670,7 @@ tr.dead .ord{text-decoration:line-through}
       <div class="pad row" style="padding-bottom:4px">
         <label class="f" style="margin:0">전체 차시</label>
         <input type="number" id="gradeN" min="1" max="200" style="width:84px">
-        <span class="muted" style="font-size:12px">같은 주의 같은 순서 수업에 연동됩니다 · 첫 열을 누르면 학급별 날짜와 장소를 확인합니다</span>
+        <span class="muted" style="font-size:12px">수업 번호로 계획이 연동됩니다 · 첫 열을 누르면 학급별 날짜와 장소를 확인합니다</span>
       </div>
       <div class="scroll"><table id="gradeTable"></table></div>
       <div class="pad row" style="padding-top:10px">
@@ -818,7 +818,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-30d'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-30e'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -966,40 +966,47 @@ function save(){
 function touch(){ save(); rebuild(); render(); }
 
 /* ================= derived ================= */
-let LESSONS=[], BYID={}, BYDATE={}, STATS={}, GRADE_PERIODS={};
-
-// Include cancelled/deleted slots so a missed class cannot shift later weeks' plans.
-function rebuildGradePeriods(planned){
-  GRADE_PERIODS={};
-  const classes=new Map(), weeks=new Map();
-  for(const slot of planned){
-    const week=isoOf(monday(parseD(slot.date)));
-    const key=JSON.stringify([slot.term,week,slot.cls]);
-    if(!classes.has(key)) classes.set(key,[]);
-    classes.get(key).push({...slot,week});
-  }
-  for(const slots of classes.values()){
-    slots.sort((a,b)=>a.date.localeCompare(b.date)||a.period-b.period||a.id.localeCompare(b.id));
-    slots.forEach((slot,index)=>{
-      const grade=String(slot.cls).split('-')[0].trim();
-      const key=JSON.stringify([grade,slot.term,slot.week,index+1]);
-      if(!weeks.has(key)) weeks.set(key,{grade,term:slot.term,week:slot.week,session:index+1,classes:{}});
-      weeks.get(key).classes[slot.cls]=slot.id;
-    });
-  }
-  for(const period of [...weeks.values()].sort((a,b)=>a.week.localeCompare(b.week)||a.term-b.term||a.session-b.session)){
-    const periods=GRADE_PERIODS[period.grade] ||= [];
-    period.index=periods.length; periods.push(period);
-    for(const id of Object.values(period.classes)) if(BYID[id]) BYID[id].planIndex=period.index;
-  }
-}
+let LESSONS=[], BYID={}, BYDATE={}, STATS={};
 
 function placeOf(id){ return state.places.find(p=>p.id===id) || {id:'', name:'', color:'#8a94a4'}; }
 function classNames(){ return state.classes.map(c=>c.name); }
 
+function rebuildLessonNumbers(){
+  const next={};
+  for(const L of LESSONS){
+    if(!L.ord){ L.lessonNo=null; continue; }
+    const anchor=state.rec[L.id]?.lessonNumber;
+    L.lessonNo=Number.isSafeInteger(anchor) && anchor>0 ? anchor : (next[L.cls]||1);
+    next[L.cls]=L.lessonNo+1;
+  }
+}
+function renumberLesson(id,number){
+  const lesson=BYID[id];
+  if(!lesson?.ord || !Number.isSafeInteger(number) || number<1) return;
+  const index=LESSONS.indexOf(lesson);
+  for(const [recordId,record] of Object.entries(state.rec)){
+    if(!Object.hasOwn(record,'lessonNumber') || recordId===id) continue;
+    let other=BYID[recordId];
+    if(!other){
+      const [date,period]=recordId.split('#');
+      const base=period && baseForDate(date)[parseD(date).getDay()+'-'+period];
+      const extra=state.extras.find(e=>e.id===recordId);
+      other=extra || (base?{date,period:Number(period),cls:record.cls||base.cls}:null);
+    }
+    if(!other || other.cls!==lesson.cls) continue;
+    const later=other.date>lesson.date || (other.date===lesson.date &&
+      (other.period>lesson.period || LESSONS.indexOf(other)>index));
+    if(later){
+      delete record.lessonNumber;
+      if(!Object.keys(record).some(k=>record[k])) delete state.rec[recordId];
+    }
+  }
+  (state.rec[id] ||= {}).lessonNumber=number;
+  rebuildLessonNumbers();
+}
+
 function rebuild(){
   LESSONS=[]; BYID={}; BYDATE={};
-  const planned=[];
   const s=state;
   for(const term of [s,s.semester2]){
     if(!validSemester(term)) continue;
@@ -1012,7 +1019,6 @@ function rebuild(){
         const b=term.base[dw+'-'+p];
         if(!b || !b.cls) continue;
         const id=key+'#'+p, r=s.rec[id]||{};
-        planned.push({id,date:key,period:p,cls:r.cls||b.cls,term:term===s?1:2});
         if(r.del) continue;                 /* 이 날짜만 지운 칸 */
         LESSONS.push({
           id:id, date:key, dow:dw, period:p, kind:'base',
@@ -1026,7 +1032,6 @@ function rebuild(){
   }
   for(const e of s.extras){
     if(!semesterForDate(e.date)) continue;
-    planned.push({...e,term:semesterForDate(e.date)===s?1:2});
     const r=s.rec[e.id]||{};
     LESSONS.push({
       id:e.id, date:e.date, dow:parseD(e.date).getDay(), period:e.period, kind:'extra',
@@ -1055,7 +1060,7 @@ function rebuild(){
     (BYDATE[L.date] = BYDATE[L.date]||[]).push(L);
   }
 
-  rebuildGradePeriods(planned);
+  rebuildLessonNumbers();
   STATS={};
   const blank = ()=>({plan:0, capOn:false, from:'', to:'', ok:0, upto:0, over:0});
   for(const c of state.classes){
@@ -1150,9 +1155,9 @@ function lessonPlan(L){
   const grade=String(L.cls).split('-')[0].trim();
   const rows=state.grades && state.grades[grade];
   if(!Array.isArray(rows)) return null;
-  if(!Number.isInteger(L.planIndex)) return null;
-  if(state.gradeN && state.gradeN[grade] && L.planIndex>=Number(state.gradeN[grade])) return null;
-  let index=L.planIndex;
+  if(!Number.isSafeInteger(L.lessonNo) || L.lessonNo<1) return null;
+  if(state.gradeN && state.gradeN[grade] && L.lessonNo>Number(state.gradeN[grade])) return null;
+  let index=L.lessonNo-1;
   for(const row of rows){
     const count=row && row.hours!==undefined ? Math.max(1,Math.min(200,Number(row.hours)||1)) : 1;
     if(index<count) return row || null;
@@ -1183,10 +1188,15 @@ function lessonProgressInput(L,showLink=true){
   return '<input class="ntin" data-f="prog" value="'+esc(lessonProgress(L))+'" placeholder="진도 · 수업 내용">'+
     '<div data-planhint data-show-link="'+showLink+'">'+lessonPlanHint(L,showLink)+'</div>';
 }
-function openLesson(id){
+function openLesson(id,{editNumber=false}={}){
   const L=BYID[id]; if(!L) return;
   const dayOff = L.status==='off';
   let h='';
+  h+='<div class="row" style="margin-bottom:14px">'+
+    '<div><label class="f" for="lOrdinal">차시</label><input type="text" id="lOrdinal" value="'+(L.ord||'—')+'" readonly style="width:100px"></div>'+
+    '<div><label class="f" for="lLessonNumber">수업 번호</label><input type="number" id="lLessonNumber" min="1" step="1" value="'+(L.lessonNo||'')+'" '+
+      (editNumber && L.ord?'required':'readonly')+' style="width:110px"></div></div>';
+  if(editNumber && L.ord) h+='<p class="muted" style="margin-bottom:14px">수업 번호를 바꾸면 이 학급의 뒤쪽 수업 번호가 1씩 이어집니다. 결번과 중복 번호를 사용할 수 있습니다.</p>';
   if(dayOff) h+='<div class="warnbox">이 날은 «'+esc(L.reason)+'» 으로 수업이 없는 날입니다. 개별 수업만 살리려면 날짜 설정을 먼저 바꿔주세요.</div>';
   h += '<div class="row" style="margin-bottom:14px">'+
        '<div style="flex:1;min-width:120px"><label class="f">학급</label><select id="lCls">'+
@@ -1208,6 +1218,8 @@ function openLesson(id){
     (L.ord?' <span class="badge mk">'+L.ord+'차시</span>':'');
   modal(title, h, root=>{
     const commit=()=>{
+      const numberInput=$('#lLessonNumber',root), number=Number(numberInput.value);
+      if(editNumber && L.ord && (!numberInput.reportValidity() || !Number.isSafeInteger(number))) return false;
       const r = state.rec[id] = state.rec[id] || {};
       const cls=$('#lCls',root).value, place=$('#lPlace',root).value;
       if(L.kind==='extra'){
@@ -1225,9 +1237,14 @@ function openLesson(id){
       }
       r.special=$('#rSpecial',root).value.trim();
       if(!Object.keys(r).some(k=>r[k])) delete state.rec[id];
+      if(editNumber && L.ord && number!==L.lessonNo){
+        rebuild();
+        renumberLesson(id,number);
+      }
+      return true;
     };
-    $('#lSave',root).onclick=()=>{ commit(); closeModal(); touch(); };
-    $('#lLog',root).onclick=()=>{ commit(); save(); rebuild(); closeModal(); goLog(L.date); };
+    $('#lSave',root).onclick=()=>{ if(!commit()) return; closeModal(); touch(); };
+    $('#lLog',root).onclick=()=>{ if(!commit()) return; save(); rebuild(); closeModal(); goLog(L.date); };
     const del=$('#lDel',root);
     if(del) del.onclick=()=>{
       state.extras=state.extras.filter(x=>x.id!==id); delete state.rec[id];
@@ -1553,7 +1570,7 @@ function renderYear(){
           return;
         }
         const title=k+' ('+DOWK[L.dow]+') '+p+'교시 · '+L.cls+' · '+pl.name+
-          (L.ord?' · '+L.ord+'차시':'')+(dead&&L.reason?' · '+L.reason:'');
+          (L.ord?' · '+L.ord+'차시 · 수업 '+L.lessonNo+'번':'')+(dead&&L.reason?' · '+L.reason:'');
         h+='<td class="yc'+(dead?' dead':'')+sep+evt+
            '" style="--c:'+pl.color+'" data-id="'+L.id+'" title="'+esc(title)+'">'+
            esc(L.cls)+(showOrd&&L.ord?'<i>'+L.ord+'</i>':'')+
@@ -1681,14 +1698,14 @@ function gradeRows(g){
 }
 let curGrade='';
 function gradeLessonPlaces(grade,ordinal){
-  const period=GRADE_PERIODS[grade]?.[ordinal-1];
-  return classNames().filter(name=>String(name).split('-')[0].trim()===grade).map(name=>{
-    const candidate=BYID[period?.classes[name]];
-    const lesson=candidate?.status==='ok'?candidate:null;
-    const place=lesson && state.places.find(p=>p.id===lesson.place);
-    return {cls:name,lesson,name:place?.name || (lesson?'장소 미지정':'미편성'),
-      id:place?.id || (lesson?'':'unassigned'),
-      color:place && /^#[0-9a-f]{6}$/i.test(place.color)?place.color:'#8a94a4'};
+  return classNames().filter(name=>String(name).split('-')[0].trim()===grade).flatMap(name=>{
+    const matches=LESSONS.filter(L=>L.cls===name && L.status==='ok' && L.lessonNo===ordinal);
+    return (matches.length?matches:[null]).map(lesson=>{
+      const place=lesson && state.places.find(p=>p.id===lesson.place);
+      return {cls:name,lesson,name:place?.name || (lesson?'장소 미지정':'미편성'),
+        id:place?.id || (lesson?'':'unassigned'),
+        color:place && /^#[0-9a-f]{6}$/i.test(place.color)?place.color:'#8a94a4'};
+    });
   });
 }
 function renderGrade(){
@@ -1703,9 +1720,9 @@ function renderGrade(){
   /* 같은 학년 학급별로 오늘까지 진행된 최신 차시를 연하게 강조한다. */
   const currentOrdinals=new Set(classNames()
     .filter(name=>String(name).split('-')[0].trim()===curGrade)
-    .map(name=>LESSONS.filter(L=>L.cls===name && L.status==='ok' && L.date<=TODAY).at(-1)?.planIndex)
+    .map(name=>LESSONS.filter(L=>L.cls===name && L.status==='ok' && L.date<=TODAY).at(-1)?.lessonNo)
     .filter(i=>i!==undefined));
-  let h='<thead><tr><th style="width:82px">차시</th><th style="width:150px">단원</th>'+
+  let h='<thead><tr><th style="width:90px">수업 번호</th><th style="width:150px">단원</th>'+
         '<th>주요 활동</th><th style="width:26%">비고</th><th style="width:46px"></th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
     const locations=gradeLessonPlaces(curGrade,i+1);
@@ -1713,10 +1730,10 @@ function renderGrade(){
     const name=unique.map(p=>p.name).join(' / ') || '미편성';
     const color=unique.length===1?unique[0].color:'#8a94a4';
     const labels=unique.map(p=>'<small><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</small>').join('');
-    h+='<tr data-i="'+i+'"'+(currentOrdinals.has(i)?' class="current-grade-lesson"':'')+'>'+
+    h+='<tr data-i="'+i+'"'+(currentOrdinals.has(i+1)?' class="current-grade-lesson"':'')+'>'+
       '<td class="gh grade-place" style="--place-color:'+color+'">'+
         '<span class="grade-drag" draggable="true" title="끌어서 행 순서 바꾸기">⠿</span>'+
-        '<button type="button" class="grade-place-button" aria-label="'+esc((i+1)+'차시')+' 시간표 장소 확인: '+esc(name)+'">'+
+        '<button type="button" class="grade-place-button" aria-label="'+esc('수업 '+(i+1)+'번')+' 시간표 장소 확인: '+esc(name)+'">'+
         '<b>'+(i+1)+'</b>'+
         (labels||'<small>미편성</small>')+'</button></td>'+
       '<td class="gu"><select class="gun">'+
@@ -1818,12 +1835,12 @@ function renderGradeSum(){        /* 합계줄만 고쳐 쓴다 (입력 중 커�
 }
 function openGradePlace(index){
   const locations=gradeLessonPlaces(curGrade,index+1);
-  const body='<p class="muted" style="margin-bottom:12px">같은 주의 같은 순서 수업에 편성된 장소입니다. 장소 변경은 연간·주간 시간표의 수업 상세에서 할 수 있습니다.</p>'+
+  const body='<p class="muted" style="margin-bottom:12px">같은 수업 번호에 해당하는 모든 수업입니다. 장소 변경은 연간·주간 시간표의 수업 상세에서 할 수 있습니다.</p>'+
     '<table><thead><tr><th>학급</th><th>날짜 · 교시</th><th>장소</th></tr></thead><tbody>'+
-    locations.map(p=>'<tr><td>'+esc(p.cls)+'</td><td>'+(p.lesson?esc(p.lesson.date)+' · '+p.lesson.period+'교시':'미편성')+
+    locations.map(p=>'<tr><td>'+esc(p.cls)+'</td><td>'+(p.lesson?esc(p.lesson.date)+' · '+p.lesson.period+'교시 · '+p.lesson.ord+'차시':'미편성')+
       '</td><td><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</td></tr>').join('')+
     '</tbody></table><div class="acts"><button class="btn" data-close="1">닫기</button></div>';
-  modal(esc(curGrade)+'학년 '+(index+1)+'차시 · 시간표 장소',body);
+  modal(esc(curGrade)+'학년 수업 '+(index+1)+'번 · 시간표 장소',body);
 }
 $('#gradeTable').addEventListener('click', e=>{
   const placeButton=e.target.closest('.grade-place-button');
@@ -2063,7 +2080,7 @@ function renderLog(){
        '<td><button class="btn sm ghost" data-open="'+L.id+'" style="padding:2px 5px;font-weight:800">'+
          esc(L.cls)+'</button><div class="log-class-meta">'+
          '<span><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</span>'+
-         '<span>'+(L.ord?L.ord+'차시':'-')+'</span></div></td>';
+         '<span>'+(L.ord?L.ord+'차시 · 수업 '+L.lessonNo+'번':'-')+'</span></div></td>';
     h+='<td>'+lessonProgressInput(L,false)+'</td>'+
             '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
     h+='</tr>';
@@ -2576,7 +2593,7 @@ $('#ygrid').onclick=e=>{
 $('#ygrid').ondblclick=e=>{
   clearTimeout(yClickTimer); closePick();
   const td=e.target.closest('td'); if(!td) return;
-  if(td.dataset.id) openLesson(td.dataset.id);
+  if(td.dataset.id) openLesson(td.dataset.id,{editNumber:true});
   else if(td.dataset.add){
     const q=td.dataset.add.split('#');
     openMakeup({date:q[0], period:Number(q[1])});
@@ -2919,20 +2936,20 @@ function csvDL(name, rows){
   a.download=name; a.click(); URL.revokeObjectURL(a.href);
 }
 function csvYear(){
-  const rows=[['날짜','요일','교시','학급','장소','차시','진도/수업내용','특이사항','비고']];
+  const rows=[['날짜','요일','교시','학급','장소','차시','수업 번호','진도/수업내용','특이사항','비고']];
   for(const L of LESSONS){
     if(L.status!=='ok') continue;
-    rows.push([L.date, DOWK[L.dow], L.period, L.cls, placeOf(L.place).name, L.ord||'',
+    rows.push([L.date, DOWK[L.dow], L.period, L.cls, placeOf(L.place).name, L.ord||'', L.lessonNo||'',
       lessonProgress(L), L.rec.special||'', L.kind==='extra'?'추가 수업':'']);
   }
   csvDL('PE-annual-timetable-'+TODAY+'.csv', rows);
 }
 function csvRecords(cls){
-  const rows=[['차시','날짜','요일','교시','장소','진도/수업내용','특이사항']];
+  const rows=[['차시','수업 번호','날짜','요일','교시','장소','진도/수업내용','특이사항']];
   for(const L of LESSONS){
     if(L.status!=='ok') continue;
     if(cls && L.cls!==cls) continue;
-    rows.push([L.ord||'', L.date, DOWK[L.dow], L.period, placeOf(L.place).name,
+    rows.push([L.ord||'', L.lessonNo||'', L.date, DOWK[L.dow], L.period, placeOf(L.place).name,
       lessonProgress(L), L.rec.special||'']);
   }
   csvDL('PE-records-'+safeName(cls||'all')+'-'+TODAY+'.csv', rows);

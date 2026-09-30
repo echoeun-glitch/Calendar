@@ -92,9 +92,9 @@ try {
   await page.reload();await page.waitForFunction(()=>!!window.PEJournal);
   assert.equal(await page.evaluate(()=>BYID['2026-09-07#2'].rec.special),'2학기 기록');
   assert.equal(await page.evaluate(()=>BYID['2026-03-02#1'].rec.special),'기존 기록');
-  // A holiday in semester 1 must not shift semester 2's weekly plan.
+  // Without a custom number, lesson numbers follow actual ordinals across semesters.
   await page.evaluate(()=>{state.days['2026-03-02']={off:true,label:'휴업'};rebuild();});
-  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-07#2'])),'티볼');
+  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-07#2'])),'달리기');
   const payload=await page.evaluate(()=>window.PEJournal.get());
   await page.evaluate(()=>window.PEJournal.replace(null));
   assert.equal(await page.evaluate(()=>LESSONS.length),0);
