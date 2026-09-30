@@ -22,84 +22,86 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.waitForFunction(()=>!!window.PEJournal);
   await page.evaluate(()=>{
-    const s=defState();s.start='2026-08-03';s.end='2026-09-30';
+    const s=defState();s.start='2026-08-03';s.end='2026-10-08';
     s.classes=[{name:'3-1'},{name:'3-2'}];
     for(let day=1;day<=5;day++){
       s.base[day+'-1']={cls:'3-1',place:'p1'};
       s.base[day+'-2']={cls:'3-2',place:'p2'};
     }
-    s.grades={'3':Array.from({length:100},(_,i)=>({act:'계획 '+(i+1),unit:'',note:''}))};
-    s.gradeN={'3':100};window.PEJournal.replace(JSON.stringify(s));view='year';render();
+    s.grades={'3':Array.from({length:49},(_,i)=>({act:'계획 '+(i+1),unit:'',note:''}))};
+    s.gradeN={'3':49};window.PEJournal.replace(JSON.stringify(s));view='year';render();
   });
-  const lesson=async n=>page.evaluate(n=>LESSONS.find(L=>L.cls==='3-1'&&L.ord===n).id,n);
-  const id17=await lesson(17),id20=await lesson(20);
-  const numbers=async()=>page.evaluate(()=>LESSONS.filter(L=>L.cls==='3-1'&&L.ord>=15&&L.ord<=21).map(L=>[L.ord,L.lessonNo]));
-  assert.deepEqual(await numbers(),[15,16,17,18,19,20,21].map(n=>[n,n]));
+  const ids=await page.evaluate(()=>LESSONS.filter(L=>L.cls==='3-1').map(L=>L.id));
+  const numbers=()=>page.evaluate(()=>LESSONS.filter(L=>L.cls==='3-1'&&L.ord).map(L=>L.lessonNo));
+  const natural=Array.from({length:49},(_,i)=>i+1);
+  assert.equal(ids.length,49);
+  assert.deepEqual(await numbers(),natural);
   const edit=async(id,value)=>{
     await page.evaluate(()=>{view='year';render();});
     await page.locator('#ygrid [data-id="'+id+'"]').dblclick();
     assert.equal(await page.locator('#lOrdinal').getAttribute('readonly'),'');
-    assert.equal(await page.locator('#lLessonNumber').getAttribute('readonly'),null);
-    await page.locator('#lLessonNumber').fill(String(value));
+    assert.equal(await page.locator('#lLessonNumber').evaluate(el=>el.tagName),'SELECT');
+    assert.equal(await page.locator('#lLessonNumber option').count(),49);
+    await page.locator('#lLessonNumber').selectOption(String(value));
     await page.locator('#lSave').click();
   };
-  await edit(id17,19);
-  assert.deepEqual(await numbers(),[[15,15],[16,16],[17,19],[18,20],[19,21],[20,22],[21,23]]);
-  assert.equal(await page.evaluate(id=>lessonProgress(BYID[id]),id17),'계획 19');
-  assert.equal(await page.evaluate(()=>LESSONS.find(L=>L.cls==='3-2'&&L.ord===17).lessonNo),17);
-  await edit(id20,80);
-  await edit(id17,16);
-  assert.deepEqual(await numbers(),[[15,15],[16,16],[17,16],[18,17],[19,18],[20,19],[21,20]]);
-  assert.equal(await page.evaluate(id=>state.rec[id]?.lessonNumber,id20),undefined);
-  assert.equal(await page.evaluate(id=>lessonProgress(BYID[id]),id17),'계획 16');
-  assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',16).filter(p=>p.cls==='3-1'&&p.lesson).length),2);
+  await edit(ids[2],49);
+  const moved=[1,2,49,...Array.from({length:46},(_,i)=>i+3)];
+  assert.deepEqual(await numbers(),moved);
+  assert.deepEqual(await page.evaluate(()=>LESSONS.filter(L=>L.cls==='3-1').map(L=>L.ord)),natural);
+  assert.deepEqual(await page.evaluate(()=>LESSONS.filter(L=>L.cls==='3-2').map(L=>L.lessonNo)),natural);
+  assert.equal(await page.evaluate(id=>lessonProgress(BYID[id]),ids[2]),'계획 49');
+  assert.equal(await page.evaluate(id=>lessonProgress(BYID[id]),ids[3]),'계획 3');
+  // Moving back to the front shifts only the intervening numbers up.
+  await edit(ids[2],3);
+  assert.deepEqual(await numbers(),natural);
+  await edit(ids[48],3);
+  assert.deepEqual(await numbers(),[1,2,...Array.from({length:46},(_,i)=>i+4),3]);
+  await edit(ids[48],49);
+  assert.deepEqual(await numbers(),natural);
+  await edit(ids[2],49);
   await page.evaluate(()=>{view='grade';render();});
   assert.equal(await page.locator('#gradeTable th').first().innerText(),'수업 번호');
-  await page.locator('#gradeTable .grade-place-button').nth(15).click();
-  assert.match(await page.locator('#modalRoot').innerText(),/16차시/);
-  assert.match(await page.locator('#modalRoot').innerText(),/17차시/);
-  await page.getByRole('button',{name:'닫기',exact:true}).click();
-  await page.locator('#gradeTable .gac').nth(15).fill('공통 활동');
-  await page.evaluate(id=>{logDate=BYID[id].date;view='log';render();},id17);
-  assert.equal(await page.locator('#logTable tr[data-id="'+id17+'"] [data-f="prog"]').inputValue(),'공통 활동');
-  await page.locator('#logTable [data-open="'+id17+'"]').click();
+  assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',49).filter(p=>p.cls==='3-1'&&p.lesson).length),1);
+  await page.locator('#gradeTable .gac').nth(48).fill('옮긴 수업');
+  await page.evaluate(id=>{logDate=BYID[id].date;view='log';render();},ids[2]);
+  assert.equal(await page.locator('#logTable tr[data-id="'+ids[2]+'"] [data-f="prog"]').inputValue(),'옮긴 수업');
+  await page.locator('#logTable [data-open="'+ids[2]+'"]').click();
   assert.equal(await page.locator('#lLessonNumber').getAttribute('readonly'),'');
-  assert.equal(await page.locator('#lLessonNumber').inputValue(),'16');
   await page.locator('#rSpecial').fill('기록 유지');await page.locator('#lSave').click();
-  // Invalid values must not close the modal or modify the number.
-  await page.evaluate(()=>{view='year';render();});
-  await page.locator('#ygrid [data-id="'+id17+'"]').dblclick();
-  await page.locator('#lLessonNumber').fill('0');await page.locator('#lSave').click();
-  assert.equal(await page.locator('#lLessonNumber').count(),1);
-  assert.equal(await page.evaluate(id=>BYID[id].lessonNo,id17),16);
-  await page.locator('#lLessonNumber').fill('1.5');await page.locator('#lSave').click();
-  assert.equal(await page.locator('#lLessonNumber').count(),1);
-  await page.locator('#modalRoot .x').click();
-  // Readonly is also enforced in the save handler outside the annual editor.
-  await page.evaluate(id=>openLesson(id),id17);
-  await page.locator('#lLessonNumber').evaluate(el=>el.value='90');
-  await page.locator('#lSave').click();
-  assert.equal(await page.evaluate(id=>BYID[id].lessonNo,id17),16);
-  // Holiday changes actual ordinals, while the explicitly assigned number remains anchored.
-  await page.evaluate(()=>{state.days['2026-08-03']={off:true,label:'휴업'};rebuild();flush();});
-  assert.deepEqual(await page.evaluate(id=>[BYID[id].ord,BYID[id].lessonNo],id17),[16,16]);
+  // Invalid calls must leave all numbers untouched.
+  assert.equal(await page.evaluate(id=>renumberLesson(id,50),ids[2]),false);
+  assert.equal(await page.evaluate(id=>renumberLesson(id,0),ids[2]),false);
+  assert.equal(await page.evaluate(id=>renumberLesson(id,1.5),ids[2]),false);
+  assert.deepEqual(await numbers(),moved);
+  await page.evaluate(()=>flush());
   await page.reload();await page.waitForFunction(()=>!!window.PEJournal);
-  assert.deepEqual(await page.evaluate(id=>[BYID[id].ord,BYID[id].lessonNo,BYID[id].rec.special],id17),[16,16,'기록 유지']);
+  assert.deepEqual(await numbers(),moved);
+  assert.equal(await page.evaluate(id=>BYID[id].rec.special,ids[2]),'기록 유지');
   const payload=await page.evaluate(()=>window.PEJournal.get());
   await page.evaluate(()=>window.PEJournal.replace(null));
   await page.evaluate(p=>window.PEJournal.replace(p),payload);
-  assert.equal(await page.evaluate(id=>BYID[id].lessonNo,id17),16);
-  // Reordering plans still changes the contents associated with a number.
-  await page.evaluate(()=>{view='grade';render();});
-  const before=await page.evaluate(()=>state.grades['3'].map(r=>r.act));
-  await page.locator('#gradeTable .grade-drag').first().dragTo(page.locator('#gradeTable tbody tr').nth(2),{targetPosition:{x:20,y:5}});
-  assert.deepEqual(await page.evaluate(()=>state.grades['3'].map(r=>r.act)),[before[1],before[0],...before.slice(2)]);
-  assert.equal(await page.locator('#gradeTable .grade-place-button b').first().innerText(),'1');
-  if(process.env.PE_SCREENSHOT_DIR){
-    await page.evaluate(id=>openLesson(id,{editNumber:true}),id17);
-    await page.locator('#modalRoot .sheet').screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-lesson-numbers.png'});
-  }
+  assert.deepEqual(await numbers(),moved);
+  // Deleting or adding lessons still produces a complete, unique 1..N sequence.
+  await page.evaluate(()=>{state.days['2026-08-03']={off:true,label:'휴업'};rebuild();});
+  assert.deepEqual((await numbers()).sort((a,b)=>a-b),natural.slice(0,48));
+  await page.evaluate(()=>{delete state.days['2026-08-03'];rebuild();});
+  assert.deepEqual(await numbers(),moved);
+  await page.evaluate(()=>{state.extras.push({id:'test-extra',date:'2026-08-04',period:3,cls:'3-1',place:'p1'});rebuild();});
+  assert.deepEqual((await numbers()).sort((a,b)=>a-b),Array.from({length:50},(_,i)=>i+1));
+  await page.evaluate(()=>{state.extras=[];rebuild();});
+  // Legacy duplicate/out-of-range preferences are normalized without losing notes.
+  await page.evaluate(()=>{
+    state.rec['2026-08-03#1']={lessonNumber:100,special:'이전 기록'};
+    state.rec['2026-08-04#1']={lessonNumber:100};rebuild();
+  });
+  assert.deepEqual((await numbers()).sort((a,b)=>a-b),natural);
+  assert.equal(await page.evaluate(()=>state.rec['2026-08-03#1'].special),'이전 기록');
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(id=>openLesson(id,{editNumber:true}),ids[2]);
+  assert.equal(await page.locator('#lLessonNumber option').count(),49);
+  if(process.env.PE_SCREENSHOT_DIR)await page.locator('#modalRoot .sheet').screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-number-select.png'});
   assert.deepEqual(errors,[]);
-  console.log('PASS: automatic ordinals, forward/backward renumbering, suffix reset, duplicate/gap mapping, class isolation, annual-only editing, validation, plan linkage, holidays, persistence, drag reorder');
+  console.log('PASS: 49-choice dropdown, move 3 to 49 and back, no duplicate/gap, immutable ordinals, class isolation, plan mapping, persistence, schedule changes, legacy normalization, mobile');
   await context.close();
 }finally{await browser.close();await new Promise(r=>server.close(r));}

@@ -818,7 +818,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-30e'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-30f'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -972,37 +972,31 @@ function placeOf(id){ return state.places.find(p=>p.id===id) || {id:'', name:'',
 function classNames(){ return state.classes.map(c=>c.name); }
 
 function rebuildLessonNumbers(){
-  const next={};
+  const classes=new Map();
   for(const L of LESSONS){
-    if(!L.ord){ L.lessonNo=null; continue; }
-    const anchor=state.rec[L.id]?.lessonNumber;
-    L.lessonNo=Number.isSafeInteger(anchor) && anchor>0 ? anchor : (next[L.cls]||1);
-    next[L.cls]=L.lessonNo+1;
+    L.lessonNo=null;
+    if(!L.ord) continue;
+    if(!classes.has(L.cls)) classes.set(L.cls,[]);
+    classes.get(L.cls).push(L);
+  }
+  for(const lessons of classes.values()){
+    // Rank stored preferences to keep numbers unique after timetable changes or legacy imports.
+    const rank=L=>Number.isSafeInteger(state.rec[L.id]?.lessonNumber) && state.rec[L.id].lessonNumber>0
+      ? state.rec[L.id].lessonNumber : L.ord;
+    lessons.sort((a,b)=>rank(a)-rank(b)||a.ord-b.ord);
+    lessons.forEach((L,i)=>{L.lessonNo=i+1;});
   }
 }
 function renumberLesson(id,number){
   const lesson=BYID[id];
-  if(!lesson?.ord || !Number.isSafeInteger(number) || number<1) return;
-  const index=LESSONS.indexOf(lesson);
-  for(const [recordId,record] of Object.entries(state.rec)){
-    if(!Object.hasOwn(record,'lessonNumber') || recordId===id) continue;
-    let other=BYID[recordId];
-    if(!other){
-      const [date,period]=recordId.split('#');
-      const base=period && baseForDate(date)[parseD(date).getDay()+'-'+period];
-      const extra=state.extras.find(e=>e.id===recordId);
-      other=extra || (base?{date,period:Number(period),cls:record.cls||base.cls}:null);
-    }
-    if(!other || other.cls!==lesson.cls) continue;
-    const later=other.date>lesson.date || (other.date===lesson.date &&
-      (other.period>lesson.period || LESSONS.indexOf(other)>index));
-    if(later){
-      delete record.lessonNumber;
-      if(!Object.keys(record).some(k=>record[k])) delete state.rec[recordId];
-    }
-  }
-  (state.rec[id] ||= {}).lessonNumber=number;
+  if(!lesson?.ord) return false;
+  const lessons=LESSONS.filter(L=>L.cls===lesson.cls && L.ord).sort((a,b)=>a.lessonNo-b.lessonNo);
+  if(!Number.isInteger(number) || number<1 || number>lessons.length) return false;
+  lessons.splice(lessons.indexOf(lesson),1);
+  lessons.splice(number-1,0,lesson);
+  lessons.forEach((L,i)=>{(state.rec[L.id] ||= {}).lessonNumber=i+1;});
   rebuildLessonNumbers();
+  return true;
 }
 
 function rebuild(){
@@ -1191,12 +1185,16 @@ function lessonProgressInput(L,showLink=true){
 function openLesson(id,{editNumber=false}={}){
   const L=BYID[id]; if(!L) return;
   const dayOff = L.status==='off';
+  let numberCount=LESSONS.filter(x=>x.cls===L.cls && x.ord).length;
+  const numberControl=editNumber && L.ord
+    ? '<select id="lLessonNumber" style="width:110px">'+Array.from({length:numberCount},(_,i)=>
+      '<option value="'+(i+1)+'"'+(i+1===L.lessonNo?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select>'
+    : '<input type="text" id="lLessonNumber" value="'+(L.lessonNo||'—')+'" readonly style="width:110px">';
   let h='';
   h+='<div class="row" style="margin-bottom:14px">'+
     '<div><label class="f" for="lOrdinal">차시</label><input type="text" id="lOrdinal" value="'+(L.ord||'—')+'" readonly style="width:100px"></div>'+
-    '<div><label class="f" for="lLessonNumber">수업 번호</label><input type="number" id="lLessonNumber" min="1" step="1" value="'+(L.lessonNo||'')+'" '+
-      (editNumber && L.ord?'required':'readonly')+' style="width:110px"></div></div>';
-  if(editNumber && L.ord) h+='<p class="muted" style="margin-bottom:14px">수업 번호를 바꾸면 이 학급의 뒤쪽 수업 번호가 1씩 이어집니다. 결번과 중복 번호를 사용할 수 있습니다.</p>';
+    '<div><label class="f" for="lLessonNumber">수업 번호</label>'+numberControl+'</div></div>';
+  if(editNumber && L.ord) h+='<p class="muted" style="margin-bottom:14px">전체 <span id="lNumberCount">'+numberCount+'</span>차시 안에서 번호를 선택하세요. 뒤 번호로 옮기면 사이 수업은 1씩 당겨지고, 앞 번호로 옮기면 1씩 밀립니다.</p>';
   if(dayOff) h+='<div class="warnbox">이 날은 «'+esc(L.reason)+'» 으로 수업이 없는 날입니다. 개별 수업만 살리려면 날짜 설정을 먼저 바꿔주세요.</div>';
   h += '<div class="row" style="margin-bottom:14px">'+
        '<div style="flex:1;min-width:120px"><label class="f">학급</label><select id="lCls">'+
@@ -1217,9 +1215,16 @@ function openLesson(id,{editNumber=false}={}){
   const title = L.date+' '+L.period+'교시 · '+esc(L.cls)+
     (L.ord?' <span class="badge mk">'+L.ord+'차시</span>':'');
   modal(title, h, root=>{
+    if(editNumber && L.ord) $('#lCls',root).onchange=e=>{
+      const same=e.target.value===L.cls;
+      numberCount=LESSONS.filter(x=>x.cls===e.target.value && x.ord).length+(same?0:1);
+      $('#lNumberCount',root).textContent=numberCount;
+      $('#lLessonNumber',root).innerHTML=Array.from({length:numberCount},(_,i)=>
+        '<option value="'+(i+1)+'"'+(i+1===(same?L.lessonNo:numberCount)?' selected':'')+'>'+(i+1)+'</option>').join('');
+    };
     const commit=()=>{
       const numberInput=$('#lLessonNumber',root), number=Number(numberInput.value);
-      if(editNumber && L.ord && (!numberInput.reportValidity() || !Number.isSafeInteger(number))) return false;
+      if(editNumber && L.ord && (!Number.isInteger(number) || number<1 || number>numberCount)) return false;
       const r = state.rec[id] = state.rec[id] || {};
       const cls=$('#lCls',root).value, place=$('#lPlace',root).value;
       if(L.kind==='extra'){
@@ -1237,7 +1242,7 @@ function openLesson(id,{editNumber=false}={}){
       }
       r.special=$('#rSpecial',root).value.trim();
       if(!Object.keys(r).some(k=>r[k])) delete state.rec[id];
-      if(editNumber && L.ord && number!==L.lessonNo){
+      if(editNumber && L.ord && (number!==L.lessonNo || cls!==L.cls)){
         rebuild();
         renumberLesson(id,number);
       }
