@@ -71,13 +71,13 @@ try {
   assert.equal(await page.evaluate(()=>state.rec['2026-09-01#1'].prog),undefined);
   assert.equal(await page.evaluate(()=>state.rec['2026-09-01#1'].special),'개별 특이사항');
   await page.evaluate(()=>{state.days['2026-09-01']={off:true,label:'휴업'};rebuild();});
-  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-08#1'])),'2. 스포츠 · 농구');
-  assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',1).find(p=>p.cls==='3-1').lesson.date),'2026-09-08');
+  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-08#1'])),'1. 운동 · 달리기');
+  assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',1).find(p=>p.cls==='3-1').lesson),null);
   assert.equal(await page.evaluate(()=>gradeLessonPlaces('3',100)[0].name),'미편성');
-  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-15#1'])),'1. 운동 · 달리기');
+  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-15#1'])),'');
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-22#1'])),'');
   await page.evaluate(()=>{state.grades['3']=[{hours:2,unit:'표현',act:'춤',note:''}];});
-  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-15#1'])),'표현 · 춤');
+  assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-08#1'])),'표현 · 춤');
   assert.deepEqual(errors,[]);
   console.log('PASS: grade/ordinal mapping, weekly/log/class UI, live plan edits, manual override/reset, modal inheritance, holidays, missing plans, legacy plans');
   await context.close();
