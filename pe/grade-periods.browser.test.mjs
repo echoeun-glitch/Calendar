@@ -35,8 +35,10 @@ try {
   const fifth=page.locator('#gradeTable tbody tr').nth(4).locator('.grade-place-button');
   const sixth=page.locator('#gradeTable tbody tr').nth(5).locator('.grade-place-button');
   assert.match(await fifth.innerText(),/8월 4주 \(8\.24–8\.28\)/);
-  assert.match(await fifth.innerText(),/첫 번째 수업 \(5차시\)/);
-  assert.match(await sixth.innerText(),/두 번째 수업 \(6차시\)/);
+  assert.match(await fifth.innerText(),/첫 번째 수업/);
+  assert.match(await sixth.innerText(),/두 번째 수업/);
+  assert.doesNotMatch(await fifth.innerText(),/차시/);
+  assert.doesNotMatch(await sixth.innerText(),/차시/);
   assert.deepEqual(await page.evaluate(()=>['2026-08-24#1','2026-08-25#1'].map(id=>[BYID[id].ord,lessonProgress(BYID[id])])),[
     [4,'수업계획 5'],[5,'수업계획 5']
   ]);

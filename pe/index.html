@@ -814,7 +814,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-30b'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-09-30c'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1682,7 +1682,7 @@ function gradePeriodLabel(grade,index){
   const start=parseD(p.week), end=addD(start,4);
   const nth=['첫 번째','두 번째','세 번째','네 번째','다섯 번째'][p.session-1] || p.session+'번째';
   return {period:(start.getMonth()+1)+'월 '+Math.ceil(start.getDate()/7)+'주 ('+MD(start)+'–'+MD(end)+')',
-    session:nth+' 수업 ('+(index+1)+'차시)'};
+    session:nth+' 수업'};
 }
 function gradeLessonPlaces(grade,ordinal){
   const period=GRADE_PERIODS[grade]?.[ordinal-1];
