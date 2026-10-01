@@ -83,9 +83,14 @@ try {
     await page.setViewportSize({width,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`editor log fits ${width}px`);
     assert.equal(await page.locator('#logTable tbody tr').first().evaluate(el=>getComputedStyle(el).display),'grid');
-    assert.equal(await page.locator('#logTable input[data-f="prog"]').count()>0,true);
+    assert.equal(await page.locator('#logTable .mobile-log-content').first().isVisible(),true);
+    assert.equal(await page.locator('#logTable input[data-f="special"]').first().isVisible(),false);
+    assert.match(await page.locator('#logTable .mobile-log-content').first().innerText(),/표현 · 춤/);
     if(process.env.PE_SCREENSHOT_DIR&&width===390)await page.screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-editor-log-mobile.png',fullPage:true});
   }
+  await page.locator('#logTable .mobile-log-content').first().click();
+  assert.equal(await page.locator('#rSpecial').isVisible(),true);
+  await page.locator('#lSave').click();
   await page.evaluate(()=>{view='year';render();});
   assert.equal(await page.locator('#mobileYearList details').count()>0,true);
   for(const width of [360,390,430,780]){
