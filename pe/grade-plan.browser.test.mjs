@@ -78,7 +78,24 @@ try {
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-22#1'])),'');
   await page.evaluate(()=>{state.grades['3']=[{hours:2,unit:'표현',act:'춤',note:''}];});
   assert.equal(await page.evaluate(()=>lessonProgress(BYID['2026-09-08#1'])),'표현 · 춤');
+  await page.evaluate(()=>{view='log';logDate='2026-09-08';render();});
+  for(const width of [360,390,430,780]){
+    await page.setViewportSize({width,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`editor log fits ${width}px`);
+    assert.equal(await page.locator('#logTable tbody tr').first().evaluate(el=>getComputedStyle(el).display),'grid');
+    assert.equal(await page.locator('#logTable input[data-f="prog"]').count()>0,true);
+    if(process.env.PE_SCREENSHOT_DIR&&width===390)await page.screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-editor-log-mobile.png',fullPage:true});
+  }
+  await page.evaluate(()=>{view='year';render();});
+  assert.equal(await page.locator('#mobileYearList details').count()>0,true);
+  for(const width of [360,390,430,780]){
+    await page.setViewportSize({width,height:844});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`editor annual fits ${width}px`);
+    assert.equal(await page.locator('#mobileYearList').isVisible(),true);
+  }
+  await page.setViewportSize({width:1280,height:900});
+  assert.equal(await page.locator('#ygrid').isVisible(),true,'desktop keeps annual grid');
   assert.deepEqual(errors,[]);
-  console.log('PASS: grade/ordinal mapping, weekly/log/class UI, live plan edits, manual override/reset, modal inheritance, holidays, missing plans, legacy plans');
+  console.log('PASS: grade/ordinal mapping, weekly/log/class UI, live plan edits, manual override/reset, modal inheritance, holidays, missing plans, legacy plans, 360/390/430px editor and desktop layout');
   await context.close();
 }finally{await browser.close();await new Promise(r=>server.close(r));}

@@ -82,8 +82,22 @@ try {
   assert.doesNotMatch(await viewer.locator('body').innerText(),/PRIVATE_/);
   assert.equal(await viewer.locator('input,textarea,[contenteditable=true]').count(),0);
   assert.deepEqual(await viewer.locator('nav button').allTextContents(),['연간','주간']);
+  await viewer.locator('#yearTab').click();
+  for(const width of [360,390,430]){
+    await viewer.setViewportSize({width,height:844});
+    assert.equal(await viewer.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`share annual fits ${width}px`);
+    assert.equal(await viewer.locator('.yearcards').isVisible(),true);
+    if(process.env.PE_SCREENSHOT_DIR)await viewer.screenshot({path:process.env.PE_SCREENSHOT_DIR+`/pe-sharing-${width}.png`,fullPage:true});
+  }
+  await viewer.setViewportSize({width:1280,height:900});
+  assert.equal(await viewer.locator('.yeargrid').isVisible(),true,'desktop keeps annual grid');
+  await viewer.setViewportSize({width:390,height:844});
   assert.equal(requests.some(u=>/peJournals|cloud\.js|firebase-auth/.test(u)),false);
   await viewer.locator('#weekTab').click();
+  for(const width of [360,390,430]){
+    await viewer.setViewportSize({width,height:844});
+    assert.equal(await viewer.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`share week fits ${width}px`);
+  }
   await viewer.locator('#classFilter').selectOption('3-1');
   assert.equal(await viewer.locator('#weekNav').isVisible(),true);
   await page.evaluate(()=>{state.grades['3'][0].act='수정한 수업';touch();});

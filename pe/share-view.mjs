@@ -5,7 +5,7 @@ const iso=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.ge
 const add=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
 const monday=d=>add(d,-((d.getDay()+6)%7));
 const md=d=>(d.getMonth()+1)+'.'+d.getDate();
-let data=null,mode=window.matchMedia('(max-width:700px)').matches?'week':'year',term=0,week=monday(new Date()),request=0;
+let data=null,mode=window.matchMedia('(max-width:799px)').matches?'week':'year',term=0,week=monday(new Date()),request=0;
 const token=location.hash.slice(1);
 function lessonHTML(L){
   const color=/^#[0-9a-f]{6}$/i.test(L.color)?L.color:'#8a94a4';
@@ -29,15 +29,29 @@ function render(){
     const range=data.terms[term];
     $('range').textContent=range?.start&&range?.end?range.start+' ~ '+range.end:'기간 미설정';
     if(!range?.start||!range?.end){$('content').innerHTML='<p class="empty">아직 이 학기의 수업 기간이 설정되지 않았습니다.</p>';return;}
-    html='<table><thead><tr><th>기간</th>'+['월','화','수','목','금'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
+    const mobile=window.matchMedia('(max-width:799px)').matches;
+    html=mobile?'<div class="yearcards">':'<table class="yeargrid"><thead><tr><th>기간</th>'+['월','화','수','목','금'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
     const end=parse(range.end);
     for(let w=monday(parse(range.start));w<=end;w=add(w,7)){
+      if(mobile){
+        let days='';
+        for(let d=0;d<5;d++){
+          const day=add(w,d),date=iso(day),outside=date<range.start||date>range.end;
+          if(outside)continue;
+          const lessons=dayHTML(date);
+          days+='<section class="daycard"><h2>'+md(day)+' ('+['월','화','수','목','금'][d]+')</h2>'+(
+            data.days.find(e=>e.date===date)?.label?'<div class="event">'+esc(data.days.find(e=>e.date===date).label)+'</div>':'')+
+            (lessons||'<span class="date">수업 없음</span>')+'</section>';
+        }
+        html+='<details class="yearweek"'+(iso(w)<=iso(new Date())&&iso(add(w,4))>=iso(new Date())?' open':'')+'><summary><span>'+md(w)+'–'+md(add(w,4))+'</span><span>주간 보기　⌄</span></summary><div class="yearweek-body">'+(days||'<p class="empty">수업 기간이 없습니다.</p>')+'</div></details>';
+        continue;
+      }
       html+='<tr><th>'+md(w)+'–'+md(add(w,4))+'</th>';
       for(let d=0;d<5;d++){
         const day=add(w,d),date=iso(day),outside=date<range.start||date>range.end;
         html+='<td'+(outside?' class="outside"':'')+'>'+(outside?'':'<div class="date">'+md(day)+'</div>'+dayHTML(date))+'</td>';
       }html+='</tr>';
-    }html+='</tbody></table>';
+    }html+=mobile?'</div>':'</tbody></table>';
   }else{
     const dates=Array.from({length:5},(_,i)=>iso(add(week,i)));
     $('range').textContent=dates[0]+' ~ '+dates[4];
@@ -76,6 +90,7 @@ $('classFilter').onchange=render;
 $('terms').onclick=e=>{const b=e.target.closest('[data-term]');if(b){term=Number(b.dataset.term);render();}};
 $('prev').onclick=()=>{week=add(week,-7);render();};$('next').onclick=()=>{week=add(week,7);render();};$('today').onclick=()=>{week=monday(new Date());render();};
 $('refresh').onclick=refresh;
+window.matchMedia('(max-width:799px)').addEventListener('change',()=>{if(data)render();});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 window.addEventListener('hashchange',()=>location.reload());
 setInterval(()=>{if(!document.hidden)refresh();},30000);
