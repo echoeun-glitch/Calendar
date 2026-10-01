@@ -49,6 +49,6 @@ self.addEventListener('fetch', e => {
         }
         return res;
       })
-      .catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
+      .catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' && !url.pathname.endsWith('/share.html') ? caches.match('./index.html') : Response.error())))
   );
 });
