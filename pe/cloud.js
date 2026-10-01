@@ -1,4 +1,5 @@
 import { JournalSync } from './cloud-sync.mjs';
+import { createSharing, resetSharing } from './sharing.mjs';
 
 const journal = window.PEJournal;
 const el = id => document.getElementById(id);
@@ -115,6 +116,7 @@ async function readRemote() {
 }
 async function openUser(user) {
   const generation = ++epoch;
+  resetSharing();
   unsubscribe?.(); unsubscribe = null;
   clearTimeout(timer);
   engine?.close(); engine = null;
@@ -144,6 +146,8 @@ async function openUser(user) {
   message('내 일지 불러오는 중…');
   reference = sdk.doc(db, 'peJournals', user.uid);
   const userReference = reference;
+  const sharing=createSharing({sdk,db,user,journal,isCurrent:()=>generation===epoch,
+    canManage:()=>ready && engine && !engine.dirty && !engine.busy && !engine.conflict});
   draftKey = prefix + user.uid + ':' + tabId;
   try {
     const remote = await readRemote();
@@ -159,6 +163,7 @@ async function openUser(user) {
           if (generation !== epoch) throw new Error('account-changed');
           const actual = snapshot.exists() ? snapshot.data().revision : 0;
           if (actual !== revision) throw Object.assign(new Error('revision-conflict'), {code:'revision-conflict'});
+          await sharing.sync(transaction,payload,revision+1);
           transaction.set(userReference, {payload, revision:revision+1, updatedAt:sdk.serverTimestamp()});
           return {revision:revision+1};
         });
@@ -167,6 +172,7 @@ async function openUser(user) {
     ready = true;
     clearNotice();
     engine.start(remote, draft);
+    sharing.refresh();
     let legacy = null;
     try { legacy = localStorage.getItem(journal.localKey); } catch {}
     el('cloudMigrate').hidden = !legacy;

@@ -29,12 +29,12 @@ export class GoogleAuthProvider {setCustomParameters(){}}
 export const onAuthStateChanged=(auth,cb)=>{b.auth=cb; queueMicrotask(()=>cb(null));};
 export const signInWithPopup=async()=>{b.auth({uid:b.next,email:b.next+'@example.test'});};
 export const signOut=async()=>{b.auth(null);};
-export const doc=(db,collection,uid)=>({uid});
+export const doc=(db,collection,uid)=>({uid:collection==='peJournals'?uid:collection+'/'+uid});
 export const getDocFromServer=async ref=>{if(b.offline)throw Error('offline');return snap(ref);};
 export const serverTimestamp=()=>123;
 export const runTransaction=async(db,fn)=>{
   if(b.offline)throw Error('offline');
-  return fn({get:async ref=>snap(ref),set:(ref,data)=>{b.docs[ref.uid]=data;queueMicrotask(()=>b.listeners[ref.uid]?.(snap(ref)));}});
+  return fn({get:async ref=>snap(ref),delete:ref=>{delete b.docs[ref.uid];},set:(ref,data)=>{b.docs[ref.uid]=data;queueMicrotask(()=>b.listeners[ref.uid]?.(snap(ref)));}});
 };
 export const onSnapshot=(ref,opts,cb)=>{b.listeners[ref.uid]=cb;queueMicrotask(()=>cb(snap(ref)));return()=>delete b.listeners[ref.uid];};
 `;

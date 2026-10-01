@@ -1,6 +1,33 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /peShareOwners/{userId} {
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['token'])
+        && request.resource.data.token is string
+        && request.resource.data.token.matches('^[a-f0-9]{64}$');
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+    match /peShares/{token} {
+      function validShare() {
+        return request.resource.data.keys().hasAll(['ownerId','payload','revision','updatedAt'])
+          && request.resource.data.keys().hasOnly(['ownerId','payload','revision','updatedAt'])
+          && request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.payload is string
+          && request.resource.data.payload.size() <= 750000
+          && request.resource.data.revision is int
+          && request.resource.data.updatedAt == request.time
+          && token.matches('^[a-f0-9]{64}$')
+          && getAfter(/databases/$(database)/documents/peShareOwners/$(request.auth.uid)).data.token == token;
+      }
+      allow get: if token.matches('^[a-f0-9]{64}$');
+      allow list: if false;
+      allow create: if request.auth != null && validShare();
+      allow update: if request.auth != null && resource.data.ownerId == request.auth.uid && validShare();
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
     match /peJournals/{userId} {
       function owner() {
         return request.auth != null && request.auth.uid == userId;

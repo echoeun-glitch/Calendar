@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>체육 시간표 · 열람</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6fa;color:#17243b;font:14px/1.5 system-ui,sans-serif}
+header,main{max-width:1500px;margin:auto;padding:20px}header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:22px;margin:0}header span{color:#66758b}button,select{font:inherit;padding:8px 14px;border:1px solid #d9e1ed;border-radius:9px;background:white;color:inherit;cursor:pointer}
+button[aria-pressed=true]{background:#2563eb;color:white;border-color:#2563eb}nav,.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+#status{margin:0 0 16px;color:#66758b}#content{background:white;border-radius:12px;border:1px solid #dde4ee;overflow:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:780px}th,td{border:1px solid #e4e9f1;padding:8px;vertical-align:top}th{background:#edf1f7;font-weight:600}th:first-child{width:98px}
+.lesson{border-left:4px solid var(--place);background:#f7f9fc;margin:4px 0;padding:6px 8px;border-radius:5px;overflow-wrap:anywhere}.lesson b{font-size:14px}.lesson small{display:block;color:#58677b}.activity{margin-top:3px}.event{color:#b64747;font-weight:600;margin-bottom:5px}.off{opacity:.55}.outside{background:#f5f6f8}.date{font-size:12px;color:#66758b}.empty{padding:24px;color:#66758b}.weekcards{display:none}
+[hidden]{display:none!important}@media(max-width:700px){header,main{padding:12px}h1{font-size:19px}.weekgrid{display:none}.weekcards{display:block;padding:10px}.daycard{padding:10px;border-bottom:1px solid #e4e9f1}.daycard h2{font-size:15px;margin:0 0 8px}}
+@media print{header span,nav,.toolbar,#status,#refresh{display:none}body{background:white}main,header{padding:0}.weekgrid{display:table}.weekcards{display:none}table{min-width:0}}
+</style>
+</head>
+<body>
+<header><h1>체육 시간표</h1><span>연간·주간 열람 전용</span><button id="refresh" style="margin-left:auto">새로고침</button></header>
+<main>
+<p id="status" role="status">시간표를 불러오는 중입니다.</p>
+<div id="schedule" hidden>
+<nav aria-label="시간표 보기"><button id="yearTab" aria-pressed="true">연간</button><button id="weekTab" aria-pressed="false">주간</button></nav>
+<div class="toolbar"><label for="classFilter">학급</label><select id="classFilter"><option value="">전체 학급</option></select>
+<div id="terms"><button data-term="0" aria-pressed="true">1학기</button> <button data-term="1" aria-pressed="false">2학기</button></div>
+<div id="weekNav" hidden><button id="prev" aria-label="이전 주">‹</button> <button id="today">이번 주</button> <button id="next" aria-label="다음 주">›</button></div>
+<b id="range"></b></div>
+<div id="content"></div>
+</div>
+</main>
+<script src="firebase-config.js"></script><script type="module" src="share-view.mjs"></script>
+</body></html>

@@ -811,6 +811,20 @@ tr.dead .ord{text-decoration:line-through}
         </p>
       </div>
     </div>
+    <div class="card">
+      <h2>7. 시간표 공유</h2>
+      <div class="pad">
+        <p style="margin-bottom:12px">링크를 받은 사람은 로그인 없이 연간·주간 시간표와 수업내용을 볼 수 있습니다. 일지·명렬표·특이사항은 공유하지 않습니다.</p>
+        <div class="row">
+          <button class="btn primary" id="shareCreate" disabled>공유 링크 만들기</button>
+          <input type="text" id="shareUrl" aria-label="시간표 공유 링크" readonly hidden style="flex:1;min-width:200px">
+          <button class="btn" id="shareCopy" hidden>링크 복사</button>
+          <a class="btn" id="shareOpen" hidden target="_blank" rel="noopener noreferrer">공유 화면 열기</a>
+          <button class="btn warn" id="shareRevoke" hidden>공유 중지</button>
+        </div>
+        <p class="muted" id="shareStatus" role="status" style="margin-top:10px">로그인 후 공유 링크를 만들 수 있습니다.</p>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -818,7 +832,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-09-30f'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-01a'; /* 화면에 표시되는 버전 */
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -3098,6 +3112,25 @@ function refreshJournal(){
   render();
 }
 window.PEJournal = {
+  shareSnapshot: payload => {
+    const previous={state,LESSONS,BYID,BYDATE,STATS};
+    try {
+      state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
+      rebuild();
+      return {
+        version:1,
+        terms:[state,state.semester2].map(t=>({start:t.start,end:t.end})),
+        periods:state.periods,
+        classes:classNames(),
+        days:Object.entries(state.days).filter(([date])=>semesterForDate(date)).map(([date,d])=>({date,label:String(d.label||''),off:!!d.off})),
+        lessons:LESSONS.map(L=>({date:L.date,period:L.period,cls:L.cls,status:L.status,
+          place:placeOf(L.place).name,color:placeOf(L.place).color,
+          ordinal:L.ord,number:L.lessonNo,content:L.status==='ok'?lessonProgress(L):''}))
+      };
+    } finally {
+      ({state,LESSONS,BYID,BYDATE,STATS}=previous);
+    }
+  },
   localKey: LSKEY,
   get: () => JSON.stringify(state),
   empty: () => JSON.stringify(defState()),
