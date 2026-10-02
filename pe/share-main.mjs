@@ -22,6 +22,26 @@ const readonly=()=>{
   new MutationObserver(()=>document.querySelectorAll('#progWrap input').forEach(el=>el.disabled=true))
     .observe(document.getElementById('progWrap'),{childList:true,subtree:true});
 };
+function legacyState(data){
+  const state=JSON.parse(window.PEJournal.empty());
+  const terms=data.terms||[];
+  Object.assign(state,{start:terms[0]?.start||'',end:terms[0]?.end||'',periods:Number(data.periods)||state.periods,
+    semester2:{start:terms[1]?.start||'',end:terms[1]?.end||'',base:{}}});
+  const places=[], placeId=new Map();
+  for(const lesson of data.lessons||[]){
+    const name=String(lesson.place||'체육관');
+    if(!placeId.has(name)){const id='sharep'+(places.length+1);placeId.set(name,id);places.push({id,name,color:lesson.color||'#8a94a4'});}
+  }
+  if(places.length)state.places=places;
+  state.classes=(data.classes||[]).map(name=>({name,plan:0,capOn:false,from:'',to:''}));
+  state.days=Object.fromEntries((data.days||[]).map(d=>[d.date,{label:String(d.label||''),off:!!d.off}]));
+  state.extras=(data.lessons||[]).map((lesson,index)=>{
+    const id='share-'+index;
+    state.rec[id]={prog:lesson.content||'',lessonNumber:Number(lesson.number)||undefined};
+    return {id,date:lesson.date,period:Number(lesson.period),cls:lesson.cls,place:placeId.get(String(lesson.place||'체육관'))||''};
+  });
+  return state;
+}
 async function load(){
   if(!valid){message('공유 링크가 올바르지 않습니다. 링크를 다시 받아 주세요.');return;}
   try{
@@ -30,8 +50,10 @@ async function load(){
     if(response.status===404||response.status===403){message('공유가 중지되었거나 사용할 수 없는 링크입니다.');return;}
     if(!response.ok)throw Error('fetch');
     const incoming=JSON.parse((await response.json()).fields.payload.stringValue);
-    if(incoming.version!==2||!incoming.state)throw Error('old-share');
-    window.PEJournal.replace(JSON.stringify(incoming.state));
+    const shared=incoming.version===2&&incoming.state ? incoming.state
+      : incoming.version===1&&Array.isArray(incoming.lessons) ? legacyState(incoming) : null;
+    if(!shared)throw Error('invalid-share');
+    window.PEJournal.replace(JSON.stringify(shared));
     readonly();
   }catch{message('시간표를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.');}
 }
