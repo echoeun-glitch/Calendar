@@ -13,11 +13,14 @@ const readonly=()=>{
   document.querySelector('.topbar').insertAdjacentHTML('beforeend','<span class="muted" id="shareReadOnly">열람 전용</span>');
   document.getElementById('cloudLogin').hidden=true;
   document.getElementById('cloudLogout').hidden=true;
-  document.querySelectorAll('#tabs button').forEach(b=>{if(b.dataset.view!=='year')b.hidden=true;});
-  document.addEventListener('click',event=>{
-    if(event.target.closest('#yearTerms [data-term]'))return;
-    event.stopImmediatePropagation(); event.preventDefault();
-  },true);
+  document.querySelectorAll('#tabs button').forEach(b=>{if(b.dataset.view!=='year'&&b.dataset.view!=='week')b.hidden=true;});
+  /* 연간·주간 탭, 학기 전환, 주 이동만 허용하고 나머지 클릭(칸 편집 등)은 막는다. */
+  const allowed='#tabs [data-view="year"], #tabs [data-view="week"], #yearTerms [data-term], #wPrev, #wNext, #wToday, #mobileYearList summary';
+  for(const type of ['click','dblclick'])
+    document.addEventListener(type,event=>{
+      if(type==='click'&&event.target.closest(allowed))return;
+      event.stopImmediatePropagation(); event.preventDefault();
+    },true);
   new MutationObserver(()=>lockInputs())
     .observe(document.querySelector('main'),{childList:true,subtree:true});
 };
@@ -75,9 +78,10 @@ async function load(){
       window.scrollTo(0,y);
     }
     document.documentElement.classList.remove('share-loading');
-    message('열람 전용 · 선생님이 저장한 내용이 30초마다 자동으로 반영됩니다. (마지막 확인 '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+')');
+    document.getElementById('cloudPanel').hidden=true;
   }catch{
-    message(lastPayload?'최신 내용을 확인하지 못했습니다. 잠시 후 다시 시도합니다.':'시간표를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.');
+    /* 이미 보고 있는 시간표가 있으면 조용히 다음 확인을 기다린다. */
+    if(!lastPayload)message('시간표를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.');
   }finally{busy=false;}
 }
 load();

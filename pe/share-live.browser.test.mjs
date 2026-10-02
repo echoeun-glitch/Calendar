@@ -54,7 +54,7 @@ try {
   assert.match(published,/날짜별 수정 진도/);
 
   // 열람 화면을 같은 브라우저에서 연다: 이 기기의 일지는 그대로 남아야 한다.
-  const localBefore = await owner.evaluate(()=>localStorage.getItem('pe-annual-v1'));
+  let localBefore = await owner.evaluate(()=>localStorage.getItem('pe-annual-v1'));
   assert.match(localBefore,/PRIVATE_DIARY/);
   const viewer = await context.newPage(); viewer.on('pageerror',e=>errors.push(e.message));
   await viewer.goto(url+'share.html#'+token);
@@ -64,6 +64,25 @@ try {
   assert.match(year,/3-3/,'per-date class change is shown');
   assert.doesNotMatch(await viewer.locator('body').innerText(),/PRIVATE_/);
   assert.match(await viewer.locator('#shareReadOnly').innerText(),/열람 전용/);
+  assert.equal(await viewer.locator('#cloudPanel').isVisible(),false,'no status banner on success');
+  assert.equal(await viewer.locator('#progCard .hint').isVisible(),false);
+  assert.equal(await viewer.locator('.tip:visible').count(),0);
+  await viewer.setViewportSize({width:390,height:844});
+  const week2=viewer.locator('#mobileYearList details').nth(1);
+  await week2.locator('summary').click();
+  assert.equal(await week2.evaluate(d=>d.open),true,'mobile week accordion opens');
+  for(const width of [390,1280]){
+    await viewer.setViewportSize({width,height:844});
+    assert.deepEqual(await viewer.locator('#tabs button:visible').allTextContents(),['연간','주간'],`tabs at ${width}px`);
+  }
+  await viewer.locator('#tabs [data-view="week"]').click();
+  await viewer.locator('#view-week').waitFor();
+  await viewer.locator('#wNext').click();
+  assert.equal(await viewer.locator('#modalRoot').innerHTML(),'');
+  await viewer.locator('#wgrid td').first().dblclick({force:true}).catch(()=>{});
+  assert.equal(await viewer.locator('#modalRoot').innerHTML(),'','cells cannot be edited');
+  await viewer.locator('#tabs [data-view="year"]').click();
+  await viewer.locator('#view-year').waitFor();
 
   // 교사가 저장하면 열람 화면이 새로고침 없이 반영한다.
   await owner.evaluate(()=>{state.rec['2026-10-05#1'].cls='3-2';state.rec['2026-10-07#1']={};state.base['3-1']={cls:'3-1',place:'p1'};touch();});
@@ -72,6 +91,8 @@ try {
   await viewer.waitForFunction(()=>window.PEJournal.get().includes('"3-1":{"cls":"3-1"'));
   assert.equal(await viewer.locator('#shareReadOnly').count(),1,'read-only badge is not duplicated');
 
+  await owner.waitForTimeout(500);
+  localBefore = await owner.evaluate(()=>localStorage.getItem('pe-annual-v1'));
   await viewer.close();
   assert.equal(await owner.evaluate(()=>localStorage.getItem('pe-annual-v1')),localBefore,'viewer never overwrites local journal');
 
