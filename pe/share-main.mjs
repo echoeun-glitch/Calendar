@@ -10,7 +10,10 @@ let locked=false;
 const readonly=()=>{
   if(locked)return; locked=true;
   document.title='체육 연간 시간표 · 열람 전용';
-  document.querySelector('.topbar').insertAdjacentHTML('beforeend','<span class="muted" id="shareReadOnly">열람 전용</span>');
+  /* 오른쪽 위 계정 자리(게스트)에 빨간 글씨로 열람 전용을 표시한다. */
+  const account=document.getElementById('cloudAccount');
+  account.hidden=true;
+  account.insertAdjacentHTML('afterend','<span id="shareReadOnly" style="color:#d64545;font-weight:800">열람 전용</span>');
   document.getElementById('cloudLogin').hidden=true;
   document.getElementById('cloudLogout').hidden=true;
   document.querySelectorAll('#tabs button').forEach(b=>{if(b.dataset.view!=='year'&&b.dataset.view!=='week')b.hidden=true;});

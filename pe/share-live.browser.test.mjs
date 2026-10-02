@@ -64,6 +64,9 @@ try {
   assert.match(year,/3-3/,'per-date class change is shown');
   assert.doesNotMatch(await viewer.locator('body').innerText(),/PRIVATE_/);
   assert.match(await viewer.locator('#shareReadOnly').innerText(),/열람 전용/);
+  assert.equal(await viewer.locator('.account-controls #shareReadOnly').isVisible(),true,'badge sits in the account corner');
+  assert.equal(await viewer.locator('#cloudAccount').isVisible(),false,'guest label hidden');
+  assert.equal(await viewer.locator('#shareReadOnly').evaluate(e=>getComputedStyle(e).color),'rgb(214, 69, 69)');
   assert.equal(await viewer.locator('#cloudPanel').isVisible(),false,'no status banner on success');
   assert.equal(await viewer.locator('#progCard .hint').isVisible(),false);
   assert.equal(await viewer.locator('.tip:visible').count(),0);
