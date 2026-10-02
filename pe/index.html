@@ -10,11 +10,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="체육 시간표">
 <style>
-.share-loading main{visibility:hidden}
-/* 열람 전용: 연간·주간 탭만 두고, 편집 안내 문구는 숨긴다. */
-.share-mode .tabs button:not([data-view="year"]):not([data-view="week"]){display:none!important}
-.share-mode .tabs button[data-view="year"],.share-mode .tabs button[data-view="week"]{display:block!important}
-.share-mode #progCard .hint,.share-mode .tip,.share-mode #emptyHint,.share-mode #capNote,.share-mode #storeWarn{display:none!important}
 :root{
   --bg:#f4f6f9; --panel:#ffffff; --ink:#1b2430; --muted:#6b7684;
   --line:#e3e8ef; --line2:#eef1f6; --accent:#1f6feb; --accent-soft:#e8f0fe;
@@ -232,6 +227,7 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .slot .nt{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mobile-week-list{display:none}
 .mobile-more{display:none}
+.mobile-log-nav{display:none}
 .mobile-year-list{display:none}
 .mobile-log-content{display:none}
 /* 웹 일지 표의 네 열을 유지한다. */
@@ -323,6 +319,12 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   #view-log .toolbar #gToday{grid-column:3;height:34px;white-space:nowrap}
   #view-log .toolbar #gNext{grid-column:4}
   #view-log .toolbar #gPrint,#view-log .toolbar #gCsv{margin-left:0!important}
+  /* 기존 도구줄은 데스크톱용으로 남기고, 모바일은 확실히 한 줄짜리 전용 날짜바를 쓴다. */
+  #view-log>.toolbar{display:none}
+  .mobile-log-nav{display:grid;grid-template-columns:34px minmax(0,1fr) auto 34px;gap:6px;align-items:center;margin-bottom:10px}
+  .mobile-log-nav button{height:34px;padding:0;line-height:1}
+  .mobile-log-nav #mLogToday{padding:0 9px;white-space:nowrap}
+  .mobile-log-nav input{width:100%;min-width:0;height:34px}
   .progwrap{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tip{padding:8px 2px 0}
 
@@ -660,6 +662,12 @@ tr.dead .ord{text-decoration:line-through}
 
   <!-- ================= LOG (수업 일지) ================= -->
   <section id="view-log" hidden>
+    <div class="mobile-log-nav" aria-label="일지 날짜 이동">
+      <button class="btn sm" id="mLogPrev" title="전날">‹</button>
+      <input type="date" id="mLogDate" aria-label="일지 날짜">
+      <button class="btn sm" id="mLogToday">오늘</button>
+      <button class="btn sm" id="mLogNext" title="다음 날">›</button>
+    </div>
     <div class="toolbar">
       <div class="nav">
         <button id="gPrev" title="이전 날">‹</button>
@@ -900,10 +908,8 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-10-02d'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-02b'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
-/* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
-if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1010,7 +1016,7 @@ function load(){
     return applyStateMigrations(st);
   }catch(e){ return defState(); }
 }
-let state = SHARE_TOKEN ? defState() : load();
+let state = load();
 let yearTerm=1, baseTerm=1;
 function semester(n){ return n===2 ? state.semester2 : state; }
 function validSemester(t){ return !!(t.start && t.end && t.start<=t.end); }
@@ -1034,7 +1040,6 @@ function setSaveState(txt, bad){
   const el=$('#saveState'); el.textContent=txt; el.classList.toggle('bad', !!bad);
 }
 function save(){
-  if(SHARE_TOKEN) return;
   if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   clearTimeout(saveTimer);
   if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
@@ -2181,6 +2186,7 @@ function renderLog(){
   const k=logDate, d=parseD(k), day=state.days[k];
   $('#gLabel').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+DOWK[d.getDay()]+')';
   $('#gDate').value=k;
+  $('#mLogDate').value=k;
 
   let head='<span class="loghead">'+k+' ('+DOWK[d.getDay()]+')';
   if(day && day.label) head+=' <span class="daytag'+(day.off?' off':'')+'">'+esc(day.label)+'</span>';
@@ -2863,6 +2869,10 @@ $('#gPrev').onclick=()=>{ logDate=isoOf(addD(parseD(logDate),-1)); renderLog(); 
 $('#gNext').onclick=()=>{ logDate=isoOf(addD(parseD(logDate), 1)); renderLog(); };
 $('#gToday').onclick=()=>{ logDate=TODAY; renderLog(); };
 $('#gDate').onchange=e=>{ if(e.target.value){ logDate=e.target.value; renderLog(); } };
+$('#mLogPrev').onclick=()=>{ logDate=isoOf(addD(parseD(logDate),-1)); renderLog(); };
+$('#mLogNext').onclick=()=>{ logDate=isoOf(addD(parseD(logDate), 1)); renderLog(); };
+$('#mLogToday').onclick=()=>{ logDate=TODAY; renderLog(); };
+$('#mLogDate').onchange=e=>{ if(e.target.value){ logDate=e.target.value; renderLog(); } };
 $('#gText').addEventListener('input', e=>{
   if(!state.logs) state.logs={};
   const v=e.target.value;
@@ -3178,7 +3188,6 @@ function storageNotice(extra){
 
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
-  if(SHARE_TOKEN) return;
   if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   if(STORAGE!=='ok') return;
   try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
@@ -3233,16 +3242,9 @@ window.PEJournal = {
       state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
       rebuild();
       /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
-         날짜별로 바꾼 학급·장소·삭제·차시 번호·진도는 시간표에 보여야 하므로 남기고,
-         일지·명렬표·특이사항·학년 계획 비고는 공개하지 않는다. */
+         일지·명렬표·개별 수업 메모는 공개하지 않는다. */
       const shared=JSON.parse(JSON.stringify(state));
-      delete shared.logs; delete shared.roster;
-      const PUBLIC_REC=['cls','place','del','status','reason','prog','lessonNumber'];
-      shared.rec=Object.fromEntries(Object.entries(state.rec||{}).map(([id,r])=>
-        [id,Object.fromEntries(PUBLIC_REC.filter(k=>r&&r[k]!==undefined&&r[k]!=='').map(k=>[k,r[k]]))])
-        .filter(([,r])=>Object.keys(r).length));
-      for(const g in shared.grades||{})
-        shared.grades[g]=(shared.grades[g]||[]).map(x=>x&&typeof x==='object'?Object.assign({},x,{note:''}):x);
+      delete shared.logs; delete shared.roster; delete shared.rec;
       return {version:2,state:shared};
     } finally {
       ({state,LESSONS,BYID,BYDATE,STATS}=previous);
