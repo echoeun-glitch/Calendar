@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="체육 시간표">
 <style>
+.share-loading main{visibility:hidden}
 :root{
   --bg:#f4f6f9; --panel:#ffffff; --ink:#1b2430; --muted:#6b7684;
   --line:#e3e8ef; --line2:#eef1f6; --accent:#1f6feb; --accent-soft:#e8f0fe;
@@ -892,8 +893,10 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-10-02a'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-02b'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
+/* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
+if(SHARE_TOKEN) document.documentElement.classList.add('share-loading');
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1000,7 +1003,7 @@ function load(){
     return applyStateMigrations(st);
   }catch(e){ return defState(); }
 }
-let state = load();
+let state = SHARE_TOKEN ? defState() : load();
 let yearTerm=1, baseTerm=1;
 function semester(n){ return n===2 ? state.semester2 : state; }
 function validSemester(t){ return !!(t.start && t.end && t.start<=t.end); }
@@ -1024,6 +1027,7 @@ function setSaveState(txt, bad){
   const el=$('#saveState'); el.textContent=txt; el.classList.toggle('bad', !!bad);
 }
 function save(){
+  if(SHARE_TOKEN) return;
   if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   clearTimeout(saveTimer);
   if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
@@ -3164,6 +3168,7 @@ function storageNotice(extra){
 
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
+  if(SHARE_TOKEN) return;
   if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   if(STORAGE!=='ok') return;
   try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
@@ -3218,9 +3223,16 @@ window.PEJournal = {
       state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
       rebuild();
       /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
-         일지·명렬표·개별 수업 메모는 공개하지 않는다. */
+         날짜별로 바꾼 학급·장소·삭제·차시 번호·진도는 시간표에 보여야 하므로 남기고,
+         일지·명렬표·특이사항·학년 계획 비고는 공개하지 않는다. */
       const shared=JSON.parse(JSON.stringify(state));
-      delete shared.logs; delete shared.roster; delete shared.rec;
+      delete shared.logs; delete shared.roster;
+      const PUBLIC_REC=['cls','place','del','status','reason','prog','lessonNumber'];
+      shared.rec=Object.fromEntries(Object.entries(state.rec||{}).map(([id,r])=>
+        [id,Object.fromEntries(PUBLIC_REC.filter(k=>r&&r[k]!==undefined&&r[k]!=='').map(k=>[k,r[k]]))])
+        .filter(([,r])=>Object.keys(r).length));
+      for(const g in shared.grades||{})
+        shared.grades[g]=(shared.grades[g]||[]).map(x=>x&&typeof x==='object'?Object.assign({},x,{note:''}):x);
       return {version:2,state:shared};
     } finally {
       ({state,LESSONS,BYID,BYDATE,STATS}=previous);
