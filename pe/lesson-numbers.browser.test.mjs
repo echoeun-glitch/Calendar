@@ -66,7 +66,7 @@ try {
   await page.locator('#gradeTable .gac').nth(48).fill('옮긴 수업');
   await page.evaluate(id=>{logDate=BYID[id].date;view='log';render();},ids[2]);
   assert.equal(await page.locator('#logTable tr[data-id="'+ids[2]+'"] [data-f="prog"]').inputValue(),'옮긴 수업');
-  await page.locator('#logTable [data-open="'+ids[2]+'"]').click();
+  await page.locator('#logTable [data-open="'+ids[2]+'"]:visible').click();
   assert.equal(await page.locator('#lLessonNumber').getAttribute('readonly'),'');
   await page.locator('#rSpecial').fill('기록 유지');await page.locator('#lSave').click();
   // Invalid calls must leave all numbers untouched.
