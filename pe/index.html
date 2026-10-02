@@ -10,7 +10,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="체육 시간표">
 <style>
-.share-loading main{visibility:hidden}
 :root{
   --bg:#f4f6f9; --panel:#ffffff; --ink:#1b2430; --muted:#6b7684;
   --line:#e3e8ef; --line2:#eef1f6; --accent:#1f6feb; --accent-soft:#e8f0fe;
@@ -249,12 +248,13 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
     border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:0;box-shadow:0 -4px 18px rgba(18,28,45,.1);
     display:flex;justify-content:space-around;gap:3px;background:var(--panel)}
   .tabs button{flex:1;padding:8px 5px;font-size:12px;min-width:0}
-  .tabs button[data-view="grade"],.tabs button[data-view="class"],
-  .tabs button[data-view="team"],.tabs button[data-view="setup"]{display:none}
+  /* 휴대폰의 첫 줄은 자주 쓰는 주간·일지·팀뽑기만 둔다. */
+  .tabs button[data-view="year"],.tabs button[data-view="grade"],
+  .tabs button[data-view="class"],.tabs button[data-view="setup"]{display:none}
   .tabs .mobile-more{display:block;max-width:76px}
   .tabs.mobile-expanded{flex-wrap:wrap;justify-content:flex-start;border-radius:14px 14px 0 0}
-  .tabs.mobile-expanded button[data-view="grade"],.tabs.mobile-expanded button[data-view="class"],
-  .tabs.mobile-expanded button[data-view="team"],.tabs.mobile-expanded button[data-view="setup"]{display:block;flex:1 0 21%}
+  .tabs.mobile-expanded button[data-view="year"],.tabs.mobile-expanded button[data-view="grade"],
+  .tabs.mobile-expanded button[data-view="class"],.tabs.mobile-expanded button[data-view="setup"]{display:block;flex:1 0 21%}
   .tabs.mobile-expanded .mobile-more{flex:1 0 21%}
   .account-controls{position:relative;justify-content:flex-end;min-height:34px}
   #cloudAccount{max-width:150px}
@@ -311,10 +311,14 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   #gText{min-height:100px}
   #view-log .card>h2{padding:11px 12px}
   #view-log .card .pad{padding:11px}
-  /* 휴대폰 일지는 주간 화면처럼 날짜를 고르고 오늘로 돌아가는 데만 집중한다. */
-  #view-log .toolbar .nav,#view-log .toolbar #gDay,#view-log .toolbar #gPrint,#view-log .toolbar #gCsv{display:none}
-  #view-log .toolbar{align-items:center}
-  #view-log .toolbar input[type=date]{flex:1;min-width:130px}
+  /* 일지는 전날·날짜·오늘·다음 날을 한 줄에 둔다. */
+  #view-log .toolbar{display:grid;grid-template-columns:32px minmax(0,1fr) auto 32px;gap:6px;align-items:center}
+  #view-log .toolbar .nav{display:contents}
+  #view-log .toolbar #gLabel,#view-log .toolbar #gDay,#view-log .toolbar #gPrint,#view-log .toolbar #gCsv{display:none}
+  #view-log .toolbar #gPrev{grid-column:1}
+  #view-log .toolbar #gDate{grid-column:2;min-width:0;width:100%}
+  #view-log .toolbar #gToday{grid-column:3}
+  #view-log .toolbar #gNext{grid-column:4}
   #view-log .toolbar #gPrint,#view-log .toolbar #gCsv{margin-left:0!important}
   .progwrap{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tip{padding:8px 2px 0}
@@ -895,8 +899,6 @@ tr.dead .ord{text-decoration:line-through}
 'use strict';
 const APP_VER = '2026-10-02b'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
-/* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
-if(SHARE_TOKEN) document.documentElement.classList.add('share-loading');
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -1003,7 +1005,7 @@ function load(){
     return applyStateMigrations(st);
   }catch(e){ return defState(); }
 }
-let state = SHARE_TOKEN ? defState() : load();
+let state = load();
 let yearTerm=1, baseTerm=1;
 function semester(n){ return n===2 ? state.semester2 : state; }
 function validSemester(t){ return !!(t.start && t.end && t.start<=t.end); }
@@ -1027,7 +1029,6 @@ function setSaveState(txt, bad){
   const el=$('#saveState'); el.textContent=txt; el.classList.toggle('bad', !!bad);
 }
 function save(){
-  if(SHARE_TOKEN) return;
   if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   clearTimeout(saveTimer);
   if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
@@ -3168,7 +3169,6 @@ function storageNotice(extra){
 
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
-  if(SHARE_TOKEN) return;
   if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
   if(STORAGE!=='ok') return;
   try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
@@ -3223,16 +3223,9 @@ window.PEJournal = {
       state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
       rebuild();
       /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
-         날짜별로 바꾼 학급·장소·삭제·차시 번호·진도는 시간표에 보여야 하므로 남기고,
-         일지·명렬표·특이사항·학년 계획 비고는 공개하지 않는다. */
+         일지·명렬표·개별 수업 메모는 공개하지 않는다. */
       const shared=JSON.parse(JSON.stringify(state));
-      delete shared.logs; delete shared.roster;
-      const PUBLIC_REC=['cls','place','del','status','reason','prog','lessonNumber'];
-      shared.rec=Object.fromEntries(Object.entries(state.rec||{}).map(([id,r])=>
-        [id,Object.fromEntries(PUBLIC_REC.filter(k=>r&&r[k]!==undefined&&r[k]!=='').map(k=>[k,r[k]]))])
-        .filter(([,r])=>Object.keys(r).length));
-      for(const g in shared.grades||{})
-        shared.grades[g]=(shared.grades[g]||[]).map(x=>x&&typeof x==='object'?Object.assign({},x,{note:''}):x);
+      delete shared.logs; delete shared.roster; delete shared.rec;
       return {version:2,state:shared};
     } finally {
       ({state,LESSONS,BYID,BYDATE,STATS}=previous);
