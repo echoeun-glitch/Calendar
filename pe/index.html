@@ -310,6 +310,9 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   #gText{min-height:100px}
   #view-log .card>h2{padding:11px 12px}
   #view-log .card .pad{padding:11px}
+  /* 휴대폰 일지는 주간 화면처럼 날짜를 고르고 오늘로 돌아가는 데만 집중한다. */
+  #view-log .toolbar .nav,#view-log .toolbar #gDay,#view-log .toolbar #gPrint,#view-log .toolbar #gCsv{display:none}
+  #view-log .toolbar{align-items:center}
   #view-log .toolbar input[type=date]{flex:1;min-width:130px}
   #view-log .toolbar #gPrint,#view-log .toolbar #gCsv{margin-left:0!important}
   .progwrap{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -890,6 +893,7 @@ tr.dead .ord{text-decoration:line-through}
 <script>
 'use strict';
 const APP_VER = '2026-10-01c'; /* 화면에 표시되는 버전 */
+const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -3213,16 +3217,11 @@ window.PEJournal = {
     try {
       state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
       rebuild();
-      return {
-        version:1,
-        terms:[state,state.semester2].map(t=>({start:t.start,end:t.end})),
-        periods:state.periods,
-        classes:classNames(),
-        days:Object.entries(state.days).filter(([date])=>semesterForDate(date)).map(([date,d])=>({date,label:String(d.label||''),off:!!d.off})),
-        lessons:LESSONS.map(L=>({date:L.date,period:L.period,cls:L.cls,status:L.status,
-          place:placeOf(L.place).name,color:placeOf(L.place).color,
-          ordinal:L.ord,number:L.lessonNo,content:L.status==='ok'?lessonProgress(L):''}))
-      };
+      /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
+         일지·명렬표·개별 수업 메모는 공개하지 않는다. */
+      const shared=JSON.parse(JSON.stringify(state));
+      delete shared.logs; delete shared.roster; delete shared.rec;
+      return {version:2,state:shared};
     } finally {
       ({state,LESSONS,BYID,BYDATE,STATS}=previous);
     }
@@ -3241,6 +3240,9 @@ window.PEJournal = {
 };
 </script>
 <script src="firebase-config.js"></script>
-<script type="module" src="cloud.js"></script>
+<script type="module">
+  if(new URLSearchParams(location.search).get('share')) import('./share-main.mjs');
+  else import('./cloud.js');
+</script>
 </body>
 </html>
