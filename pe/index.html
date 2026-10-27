@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="전담일지">
 <style>
 .share-loading main{visibility:hidden}
-.share-mode [data-number-guide]{display:none!important}
+.share-mode #loginWelcome,.share-mode [data-number-guide]{display:none!important}
 /* 열람 전용: 연간·주간 탭만 두고, 편집 안내 문구는 숨긴다. */
 .share-mode .tabs button:not([data-view="year"]):not([data-view="week"]){display:none!important}
 .share-mode .tabs button[data-view="year"],.share-mode .tabs button[data-view="week"]{display:block!important}
@@ -630,6 +630,12 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
   .wordmark-teaching{font-size:14px}
   .wordmark-diary{margin-top:12px;font-size:24px}
 }
+.login-welcome{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px;margin-bottom:18px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:var(--r);background:var(--accent-soft)}
+.login-welcome[hidden]{display:none}
+.login-welcome h2{font-size:19px;line-height:1.5;margin:0 0 6px;color:var(--ink)}
+.login-welcome p{font-size:13px;line-height:1.7;color:var(--muted);margin:0}
+.login-welcome .btn{flex-shrink:0}
+@media(max-width:560px){.login-welcome{padding:18px;gap:14px}.login-welcome h2{font-size:18px}.login-welcome .btn{width:100%}}
 .year-actions{display:flex;justify-content:flex-end;gap:8px;margin:10px 0 16px}
 @media(max-width:799px){.year-actions{justify-content:flex-start;margin:10px 0 14px}}
 </style>
@@ -699,6 +705,11 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
   </div>
 </section>
 <main>
+  <section id="loginWelcome" class="login-welcome noprint" aria-labelledby="loginWelcomeTitle">
+    <div><h2 id="loginWelcomeTitle">먼저 구글로 로그인해서 이용하세요</h2>
+      <p>로그인하면 내 계정에 일지가 저장되어 PC와 휴대폰에서 이어서 사용할 수 있어요.</p></div>
+    <button type="button" class="btn primary" id="welcomeLogin" disabled>Google 로그인</button>
+  </section>
   <div id="printHead"></div>
   <div id="storeWarn" class="warnbanner noprint" hidden></div>
 
@@ -1015,7 +1026,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27s'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27t'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');

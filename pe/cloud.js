@@ -16,6 +16,12 @@ try {
   sessionStorage.setItem('pe-cloud-tab', tabId);
 } catch { tabId = crypto.randomUUID(); }
 
+function setLoginDisabled(value) {
+  el('cloudLogin').disabled = value;
+  el('welcomeLogin').disabled = value;
+}
+el('welcomeLogin').onclick = () => el('cloudLogin').click();
+
 function lock(value) {
   document.querySelector('main').inert = value;
   el('tabs').inert = value;
@@ -130,6 +136,7 @@ async function openUser(user) {
   el('cloudMigrate').hidden = true;
   el('cloudLogout').hidden = !user;
   el('cloudLogin').hidden = !!user;
+  el('loginWelcome').hidden = !!user;
   el('modalRoot').innerHTML = '';
   if (!user) {
     window.PECloud.active = false;
@@ -268,12 +275,12 @@ async function boot() {
     // Session persistence avoids reopening a teacher's account after the browser closes.
     await sdk.setPersistence(auth, sdk.browserSessionPersistence);
     db = sdk.getFirestore(app);
-    el('cloudLogin').disabled = false;
+    setLoginDisabled(false);
     el('cloudLogin').onclick = async () => {
       journal.flushLocal();
       const provider = new sdk.GoogleAuthProvider();
       provider.setCustomParameters({prompt:'select_account'});
-      el('cloudLogin').disabled = true;
+      setLoginDisabled(true);
       try {
         await sdk.signInWithPopup(auth, provider);
       } catch (error) {
@@ -286,7 +293,7 @@ async function boot() {
         }
         notice(errorText(error));
       } finally {
-        el('cloudLogin').disabled = false;
+        setLoginDisabled(false);
       }
     };
     let first = true;

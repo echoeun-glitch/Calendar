@@ -45,6 +45,9 @@ try {
   await page.goto(url);
   await page.waitForFunction(()=>!!window.PECloud);
   assert.equal(await page.locator('#cloudLogin').isDisabled(),true);
+  assert.equal(await page.locator('#loginWelcome').isVisible(),true);
+  assert.match(await page.locator('#loginWelcome').innerText(),/먼저 구글로 로그인해서 이용하세요/);
+  assert.equal(await page.locator('#welcomeLogin').isDisabled(),true);
   assert.equal(await page.locator('main').evaluate(e=>e.inert),false);
   await page.evaluate(()=>{state.logs['2026-09-27']='기존 브라우저 일지';touch();});
   await page.waitForTimeout(300);
@@ -54,11 +57,13 @@ try {
   await context.addInitScript(()=>{window.__backend={docs:{},listeners:{},next:'A',offline:false};});
   page.on('dialog',dialog=>dialog.accept());
   await page.reload();
-  await page.locator('#cloudLogin:not([disabled])').waitFor();
-  await page.locator('#cloudLogin').click();
+  await page.locator('#welcomeLogin:not([disabled])').waitFor();
+  if(process.env.PE_SCREENSHOT_DIR) await page.screenshot({path:process.env.PE_SCREENSHOT_DIR+'/login-welcome-mobile.png'});
+  await page.locator('#welcomeLogin').click();
   await page.waitForFunction(()=>document.getElementById('cloudStatus').textContent==='온라인 저장 완료');
   assert.equal(await page.evaluate(()=>state.logs['2026-09-27']),undefined);
   assert.equal(await page.locator('#cloudPanel').isVisible(),false);
+  assert.equal(await page.locator('#loginWelcome').isVisible(),false);
   assert.equal(await page.locator('.account-controls #cloudLogout').isVisible(),true);
   await page.setViewportSize({width:1280,height:800});
   await page.getByRole('button',{name:'설정',exact:true}).click();
@@ -69,6 +74,8 @@ try {
   assert.doesNotMatch(await page.evaluate(()=>localStorage.getItem('pe-annual-v1')),/계정 A 기록/);
   await page.locator('#cloudLogout').click();
   await page.waitForFunction(()=>!window.PECloud.active);
+  assert.equal(await page.locator('#loginWelcome').isVisible(),true);
+  assert.equal(await page.locator('#welcomeLogin').isEnabled(),true);
   await page.evaluate(()=>{window.__backend.next='B';});
   await page.locator('#cloudLogin').click();
   await page.waitForFunction(()=>document.getElementById('cloudAccount').textContent==='B@example.test'&&!document.querySelector('main').inert);
