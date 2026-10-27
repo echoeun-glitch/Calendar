@@ -892,7 +892,18 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
     </div>
 
     <div class="card">
-      <h2>2. 수업 장소 <span class="hint">달력에서 색으로 구분됩니다</span></h2>
+      <h2>2. 학급 <span class="hint">기초 시간표에서 선택할 학급을 추가하세요</span></h2>
+      <div class="pad">
+        <table id="classSetup"></table>
+        <div class="row" style="margin-top:10px">
+          <input id="newClass" placeholder="예: 4-1" style="max-width:180px">
+          <button class="btn" id="addClass">학급 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. 수업 장소 <span class="hint">달력에서 색으로 구분됩니다</span></h2>
       <div class="scroll"><table id="placeSetup"></table></div>
       <div class="pad row">
         <input type="text" id="newPlace" placeholder="장소 이름" style="width:130px">
@@ -999,7 +1010,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27p'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27q'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -2673,12 +2684,22 @@ function renderBaseTable(){
   $('#btTable').innerHTML=h+'</tbody>';
 
 }
+function renderClassSetup(){
+  const used=name=>[state.base,state.semester2.base].some(base=>
+    Object.values(base||{}).some(slot=>slot&&slot.cls===name));
+  $('#classSetup').innerHTML='<thead><tr><th>학급</th><th style="width:92px">시간표</th><th style="width:68px"></th></tr></thead><tbody>'+
+    state.classes.map(c=>'<tr><td><b>'+esc(c.name)+'</b></td><td class="muted">'+(used(c.name)?'사용 중':'미사용')+'</td>'+
+      '<td style="text-align:right"><button class="btn sm warn" data-delclass="'+esc(c.name)+'"'+(used(c.name)?' disabled title="기초 시간표에서 먼저 이 학급을 비워 주세요"':'')+'>삭제</button></td></tr>').join('')+
+    '</tbody>';
+}
+
 function renderSetup(){
   $('#periodsSel').innerHTML=[4,5,6,7].map(n=>'<option'+(n===state.periods?' selected':'')+'>'+n+'</option>').join('');
   $('#startD').value=state.start; $('#endD').value=state.end;
   $('#startD2').value=state.semester2.start; $('#endD2').value=state.semester2.end;
 
   renderBaseTable();
+  renderClassSetup();
 
   /* 장소 */
   let pl='<thead><tr><th>장소</th><th style="width:90px">색</th><th style="width:60px"></th></tr></thead><tbody>';
@@ -2942,6 +2963,23 @@ $('#mobileYearList').ondblclick=e=>{
   if(cell.dataset.id)openLesson(cell.dataset.id,{editNumber:true});
   else{const q=cell.dataset.add.split('#');openMakeup({date:q[0],period:Number(q[1])});}
 };
+$('#classSetup').onclick=e=>{
+  const b=e.target.closest('[data-delclass]'); if(!b || b.disabled) return;
+  const name=b.dataset.delclass;
+  if(!confirm(name+' 학급을 삭제할까요?')) return;
+  state.classes=state.classes.filter(c=>c.name!==name);
+  delete state.roster[name];
+  touch(); renderSetup();
+};
+$('#addClass').onclick=()=>{
+  const input=$('#newClass'), name=input.value.trim();
+  if(!name){ input.focus(); return; }
+  if(state.classes.some(c=>c.name===name)){ alert('이미 있는 학급입니다.'); input.focus(); return; }
+  state.classes.push({name,plan:0,capOn:false,from:'',to:''});
+  input.value='';
+  touch(); renderSetup();
+};
+$('#newClass').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();$('#addClass').click();} });
 $('#baseTerms').onclick=e=>{
   const b=e.target.closest('[data-term]'); if(!b) return;
   baseTerm=Number(b.dataset.term); renderBaseTable();
