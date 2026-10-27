@@ -33,7 +33,7 @@ try {
   const original=await page.evaluate(()=>window.PEJournal.get());
   const stored=await page.evaluate(()=>localStorage.getItem(LSKEY));
   await page.locator('#view-year [data-number-guide]').click();
-  assert.match(await page.locator('#guideHeading').innerText(),/연결/);
+  assert.equal(await page.locator('#guideHeading').innerText(),'결강 보강은 수업번호를 조정하면 편해요.');
   await page.locator('#guideNext').click();
   await page.locator('#guideNumber').selectOption('5');
   assert.deepEqual(await page.locator('.guide-demo tbody td:nth-child(2)').allTextContents(),['1번','2번','5번','3번','4번']);

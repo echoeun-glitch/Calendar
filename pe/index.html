@@ -1026,7 +1026,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27v'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27w'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1387,7 +1387,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 /* Practice uses sample data only; it never writes the teacher's journal. */
 function openNumberGuide(step=0,practiceNumber=3){
-  const titles=['수업번호가 수업 내용을 연결해요','번호를 바꾸면 연결도 바뀌어요','결·보강 후에는 이 순서로 확인해요'];
+  const titles=['결강 보강은 수업번호를 조정하면 편해요.','번호를 바꾸면 연결도 바뀌어요','결·보강 후에는 이 순서로 확인해요'];
   const pages=[
     '<p class="guide-lead">같은 학년이라도 학급마다 진도가 다를 수 있어요. <b>수업번호</b>를 맞추면 각 학급에 필요한 학년별 수업 계획이 연결됩니다.</p>'+
     '<div class="guide-pair"><article><b>차시 = 날짜 순서</b><p>이 학급의 이번 학기 수업이 날짜순으로 몇 번째인지 표시합니다.</p></article><article><b>수업번호 = 내용 순서</b><p>학년별 계획에서 몇 번 수업을 할지 정합니다. 수업 순서가 바뀌면 이 번호를 조정하세요.</p></article></div>'+
