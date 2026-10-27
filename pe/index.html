@@ -998,7 +998,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27n'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27o'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1132,9 +1132,11 @@ function activateSubject(subject){
   if(!workspace)workspace={workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(defState()),subjects:{}};
   activeSubject=selected;workspace.activeSubject=selected;
   if(!workspace.subjects[selected])workspace.subjects[selected]=defState();
-  state=applySharedSettings(workspace.subjects[selected],workspace.shared);
-  workspace.subjects[selected]=state;
-  return state;
+  /* state를 처음 만드는 과정에서는 아직 state 변수가 준비되지 않았으므로,
+     여기서는 새 프로필만 돌려주고 호출한 쪽에서 대입한다. */
+  const profile=applySharedSettings(workspace.subjects[selected],workspace.shared);
+  workspace.subjects[selected]=profile;
+  return profile;
 }
 function readWorkspace(input){
   if(input?.workspaceVersion===WORKSPACE_VERSION&&input.subjects){
@@ -1164,7 +1166,7 @@ function switchSubjectDiary(subject){
   if(!SUBJECTS.includes(subject)||subject===activeSubject)return;
   workspace.shared=sharedSettings(state);
   workspace.subjects[activeSubject]=state;
-  activateSubject(subject);
+  state=activateSubject(subject);
   refreshJournal();
   save();
 }
