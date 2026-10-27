@@ -33,7 +33,7 @@ try {
   const original=await page.evaluate(()=>window.PEJournal.get());
   const stored=await page.evaluate(()=>localStorage.getItem(LSKEY));
   await page.locator('#view-year [data-number-guide]').click();
-  assert.equal(await page.locator('#guideHeading').innerText(),'결강 보강은 수업번호를 조정하면 편해요.');
+  assert.equal(await page.locator('#guideHeading').innerText(),'결강·보강 뒤에는 수업번호를 확인하세요');
   await page.locator('#guideNext').click();
   await page.locator('#guideNumber').selectOption('5');
   assert.deepEqual(await page.locator('.guide-demo tbody td:nth-child(2)').allTextContents(),['1번','2번','5번','3번','4번']);
@@ -61,6 +61,10 @@ try {
   for(const width of [390,1280]){
     await page.setViewportSize({width,height:900});
     await page.locator('#view-grade [data-number-guide]').click();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    const introBox=await page.locator('.number-guide').boundingBox();
+    assert.ok(introBox.x>=0 && introBox.x+introBox.width<=width);
+    if(process.env.PE_SCREENSHOT_DIR)await page.locator('.sheet').screenshot({path:process.env.PE_SCREENSHOT_DIR+'/number-guide-intro-'+width+'.png'});
     await page.locator('#guideNext').click();
     await page.locator('#guideNumber').selectOption('5');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
