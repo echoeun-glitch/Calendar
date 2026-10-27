@@ -606,9 +606,18 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 .wordmark{display:grid;justify-items:start;gap:0;padding:2px 0;line-height:1;text-align:left}
 .wordmark-teaching{display:block;width:100%;padding-bottom:7px;border-bottom:1px solid var(--line);
   font-size:15px;line-height:1.05;letter-spacing:-.04em;color:#8a94a4;font-weight:800}
-.wordmark-diary{display:block;position:relative;margin-top:15px;padding-left:12px;
-  font-size:26px;line-height:1;letter-spacing:-.075em;color:#1d2a3e;font-weight:900}
+.subject-brand{position:relative;margin-top:15px}
+.wordmark-diary{display:block;position:relative;margin:0;padding:0 0 0 12px;border:0;background:transparent;
+  font-size:26px;line-height:1;letter-spacing:-.075em;color:#1d2a3e;font-weight:900;text-align:left;cursor:pointer}
 .wordmark-diary::before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:4px;border-radius:3px;background:#1d2a3e}
+.wordmark-diary:hover,.wordmark-diary[aria-expanded="true"]{color:var(--accent)}
+.wordmark-diary:hover::before,.wordmark-diary[aria-expanded="true"]::before{background:var(--accent)}
+.subject-menu{position:absolute;left:0;top:calc(100% + 8px);z-index:120;min-width:110px;padding:5px;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:0 10px 28px rgba(35,54,83,.18)}
+.subject-menu[hidden]{display:none}
+.subject-menu button{display:block;width:100%;border:0;border-radius:7px;padding:7px 9px;background:transparent;
+  color:var(--ink);font-size:13px;font-weight:700;text-align:left}
+.subject-menu button:hover{background:var(--accent-soft);color:var(--accent)}
 @media(min-width:800px){
   .brand{padding:3px 5px 18px}
   .wordmark-teaching{font-size:15px}
@@ -631,10 +640,19 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
   <button class="btn sm" id="cloudLogout" hidden>로그아웃</button>
 </div>
 <header class="topbar">
-  <div class="brand" aria-label="체육 전담일지">
-    <div class="wordmark" aria-hidden="true">
+  <div class="brand">
+    <div class="wordmark">
       <strong class="wordmark-teaching">전담일지</strong>
-      <span class="wordmark-diary">체육</span>
+      <div class="subject-brand">
+        <button class="wordmark-diary" id="subjectBrand" type="button" aria-expanded="false" aria-controls="subjectMenu">체육</button>
+        <div class="subject-menu" id="subjectMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-subject="체육">체육</button>
+          <button type="button" role="menuitem" data-subject="음악">음악</button>
+          <button type="button" role="menuitem" data-subject="과학">과학</button>
+          <button type="button" role="menuitem" data-subject="영어">영어</button>
+          <button type="button" role="menuitem" data-subject="미술">미술</button>
+        </div>
+      </div>
     </div>
     <small id="rangeLabel" hidden>—</small>
   </div>
@@ -982,7 +1000,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27h'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27i'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -2670,6 +2688,35 @@ function render(){
   if(view==='class') renderClass();
   if(view==='setup') renderSetup();
 }
+
+/* Subject label in the sidebar is a local presentation preference. */
+const SUBJECT_BRAND_KEY='pe-subject-brand';
+const subjectBrand=$('#subjectBrand'), subjectMenu=$('#subjectMenu');
+const SUBJECTS=['체육','음악','과학','영어','미술'];
+function setSubjectBrand(subject){
+  const value=SUBJECTS.includes(subject) ? subject : '체육';
+  subjectBrand.textContent=value;
+  try{ localStorage.setItem(SUBJECT_BRAND_KEY,value); }catch{}
+}
+try{ setSubjectBrand(localStorage.getItem(SUBJECT_BRAND_KEY)); }catch{ setSubjectBrand('체육'); }
+subjectBrand.onclick=()=>{
+  const open=subjectMenu.hidden;
+  subjectMenu.hidden=!open;
+  subjectBrand.setAttribute('aria-expanded',String(open));
+};
+subjectMenu.onclick=e=>{
+  const option=e.target.closest('[data-subject]');
+  if(!option)return;
+  setSubjectBrand(option.dataset.subject);
+  subjectMenu.hidden=true;
+  subjectBrand.setAttribute('aria-expanded','false');
+};
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('.subject-brand')){
+    subjectMenu.hidden=true;
+    subjectBrand.setAttribute('aria-expanded','false');
+  }
+});
 
 /* ================= events ================= */
 $('#tabs').onclick=e=>{
