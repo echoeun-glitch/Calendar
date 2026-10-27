@@ -707,10 +707,6 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
     <div id="capNote" class="warnbanner soft noprint" hidden></div>
     <div class="mobile-year-list" id="mobileYearList"></div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
-    <div class="year-actions noprint">
-      <button class="btn sm" id="yCsv">CSV</button>
-      <button class="btn sm" id="yPrint">인쇄 (가로)</button>
-    </div>
     <div class="card noprint" id="progCard">
       <h2>학급별 차시 <span class="hint">1·2학기 합계 · 오늘까지 한 차시 / 전체 차시 — 칸에 바로 넣으세요. 카드를 누르면 수업 기간까지 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
@@ -986,7 +982,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27g'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27h'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -2831,35 +2827,6 @@ $('#mobileYearList').ondblclick=e=>{
 $('#baseTerms').onclick=e=>{
   const b=e.target.closest('[data-term]'); if(!b) return;
   baseTerm=Number(b.dataset.term); renderBaseTable();
-};
- $('#yPrint').onclick=()=>{
-  $('#printHead').textContent='연간 시간표 · '+yearTerm+'학기  '+semester(yearTerm).start+' ~ '+semester(yearTerm).end;
-  const st=document.createElement('style');
-  st.id='landscape'; st.textContent='@page{size:A4 landscape;margin:8mm}';
-  document.head.appendChild(st);
-  window.print();
-  setTimeout(()=>st.remove(), 500);
-};
-$('#yCsv').onclick=()=>{
-  const cols = usedPeriods();
-  const head=['주','기간'];
-  for(let i=1;i<=5;i++) for(const p of cols) head.push(DOWK[i]+p);
-  const rows=[head], sd=parseD(semester(yearTerm).start), ed=parseD(semester(yearTerm).end);
-  yearWeeks().forEach((W,wi)=>{
-    const r=[wi+1, MD(W.from)+'–'+MD(W.to)];
-    for(const d of W.days){
-      const k=isoOf(d), day=state.days[k];
-      const hasExtra=(BYDATE[k]||[]).some(L=>L.kind==='extra');
-      for(const p of cols){
-        if(d<sd||d>ed){ r.push(''); continue; }
-        if(day&&day.off&&!hasExtra){ r.push(p===cols[0]?(day.label||'휴업일'):''); continue; }
-        const L=slotLessons(k,p)[0];
-        r.push(L && L.status==='ok' ? L.cls : '');
-      }
-    }
-    rows.push(r);
-  });
-  csvDL('PE-year-grid-term'+yearTerm+'-'+TODAY+'.csv', rows);
 };
 $('#wPrev').onclick=()=>{ weekCur=addD(weekCur,-7); renderWeek(); };
 $('#wNext').onclick=()=>{ weekCur=addD(weekCur,7); renderWeek(); };
