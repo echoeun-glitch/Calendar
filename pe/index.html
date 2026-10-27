@@ -704,7 +704,8 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
   <section id="view-year" hidden>
     <div class="row noprint" id="yearTerms" style="margin-bottom:12px" aria-label="연간 시간표 학기">
       <button class="btn" data-term="1">1학기</button><button class="btn" data-term="2">2학기</button>
-      <span class="muted" id="yearTermRange"></span>
+      <button type="button" class="btn sm ghost" id="yearTermRange" data-period-settings title="설정에서 이 학기의 수업 기간을 수정합니다">—</button>
+      <button type="button" class="btn sm primary" id="yearPeriodSetup" data-period-settings hidden>수업 기간을 설정해주세요</button>
     </div>
     <div class="toolbar">
       <div class="legend" id="legend3"></div>
@@ -998,7 +999,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27o'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27p'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1801,7 +1802,8 @@ function renderMobileYearWeeks(weeks,cols,sd,ed){
 function renderYear(){
   renderTermButtons('yearTerms',yearTerm);
   const term=semester(yearTerm);
-  $('#yearTermRange').textContent=validSemester(term)?term.start+' ~ '+term.end:'설정에서 수업 기간을 입력해 주세요';
+  $('#yearTermRange').textContent=validSemester(term)?term.start+' ~ '+term.end:'수업 기간 설정';
+  $('#yearTermRange').title=yearTerm+'학기 수업 기간을 설정에서 수정합니다';
   $('#legend3').innerHTML = legendHTML();
   const weeks=yearWeeks(), sd=parseD(term.start), ed=parseD(term.end);
   const showOrd=$('#yOrd').checked;
@@ -1869,7 +1871,9 @@ function renderYear(){
   if(!weeks.length) h+='<tr><td class="muted" style="padding:20px">설정에서 기간과 기초 시간표를 먼저 넣어주세요.</td></tr>';
   $('#ygrid').innerHTML=h+'</tbody>';
   closePick();
-  $('#emptyHint').hidden = Object.keys(term.base).length>0;
+  const hasBase=Object.keys(term.base||{}).some(k=>term.base[k]?.cls);
+  $('#emptyHint').hidden = hasBase;
+  $('#yearPeriodSetup').hidden = hasBase;
   renderCapNote();
   renderProgress();
 }
@@ -2917,6 +2921,12 @@ $('#ygrid').ondblclick=e=>{
 };
 $('#yOrd').onchange=renderYear;
 $('#yearTerms').onclick=e=>{
+  const period=e.target.closest('[data-period-settings]');
+  if(period){
+    baseTerm=yearTerm; view='setup'; render();
+    requestAnimationFrame(()=>$('#'+(baseTerm===2?'startD2':'startD')).focus());
+    return;
+  }
   const b=e.target.closest('[data-term]'); if(!b) return;
   yearTerm=Number(b.dataset.term); renderYear();
 };
