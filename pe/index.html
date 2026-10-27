@@ -566,7 +566,7 @@ button,input,select,textarea{transition:border-color .16s ease,background-color 
 .brand .mark{border-radius:11px;background:linear-gradient(145deg,#5c7bf0,var(--accent));box-shadow:0 7px 16px color-mix(in srgb,var(--accent) 28%,transparent);font-weight:800}
 .tabs{padding:4px;background:color-mix(in srgb,var(--line2) 82%,var(--panel))}
 .tabs button{letter-spacing:-.15px}
-.tabs button.on{background:var(--panel);color:var(--accent);box-shadow:0 2px 8px rgba(38,56,88,.11);font-weight:800}
+.tabs button.on{background:var(--accent-soft);color:var(--accent);box-shadow:none;font-weight:800}
 .card{border-color:color-mix(in srgb,var(--line) 88%,var(--accent));box-shadow:var(--shadow)}
 .card > h2{padding:14px 17px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 4%,var(--panel)),var(--panel) 42%);font-size:14.5px}
 .btn{border-color:var(--line);font-weight:700}
@@ -591,7 +591,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
   .topbar{background:color-mix(in srgb,var(--panel) 92%,var(--accent-soft));box-shadow:8px 0 28px rgba(35,54,83,.035)}
   .brand{padding-bottom:18px}
   .tabs button{border-radius:10px;padding:10px 12px}
-  .tabs button.on{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 16%,var(--panel)),var(--panel));box-shadow:inset 3px 0 0 var(--accent)}
+  .tabs button.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
   .tabs button:hover{background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
 }
 @media(max-width:799px){
@@ -998,7 +998,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27j'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27k'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
