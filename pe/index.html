@@ -466,6 +466,7 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .logmark{position:absolute;right:4px;bottom:3px;font-size:10px;color:var(--accent);opacity:.75}
 
 /* ---------- class progress ---------- */
+#classTerms{margin-bottom:20px}
 .clsbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .clsbar button{border:1px solid var(--line);background:var(--panel);border-radius:8px;
   padding:6px 12px;font-size:13px;font-weight:700;box-shadow:var(--shadow)}
@@ -1024,7 +1025,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27x'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27y'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
