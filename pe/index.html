@@ -1025,7 +1025,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27z'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27aa'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1389,9 +1389,9 @@ function openNumberGuide(step=0,practiceNumber=3){
   const titles=['결강·보강 뒤에는 수업번호를 확인하세요','번호를 바꾸면 연결도 바뀌어요','결·보강 후에는 이 순서로 확인해요'];
   const pages=[
     '<p class="guide-lead">학년별 계획의 수업 내용은 <b>수업번호를 기준으로 일지와 주간 시간표에 반영</b>됩니다. 결강·보강으로 학급마다 차시가 달라지면, 연결된 내용이 실제로 진행할 수업과 어긋날 수 있어요.</p>'+
-    '<div class="guide-callout"><b>수업번호를 그대로 두면, 같은 학년·같은 날에 같은 내용을 수업하려고 해도 서로 다른 내용으로 표시될 수 있어요.</b></div>'+
-    '<p>예를 들어, 오늘 1반과 2반 모두 학년별 계획의 <b>3번 수업 「운동장 달리기」</b>를 하려는데, 결강·보강의 영향으로 2반의 수업번호가 4번으로 잡혀 있다면?</p>'+
-    '<div class="guide-pair"><article><b>수정 전 · 다른 내용이 연결돼요</b><p>1반: 3번 → 운동장 달리기<br>2반: 4번 → 균형 잡기</p></article><article><b>2반을 3번으로 수정하면</b><p>1반: 3번 → 운동장 달리기<br>2반: 3번 → 운동장 달리기</p></article></div>'+
+    '<div class="guide-callout"><b>수업번호를 그대로 두면, 같은 학년·같은 날에 같은 내용을 하려고 해도 서로 다른 내용으로 표시될 수 있어요.</b></div>'+
+    '<p>예를 들어, 오늘 6학년 1반과 2반 모두 학년별 계획의 <b>3번 수업 「운동장 달리기」</b>를 하려는데, 결강으로 1반은 3차시, 2반은 2차시 째라면?</p>'+
+    '<div class="guide-pair"><article><b>수정 전 · 다른 내용이 연결돼요</b><p>1반: 3번 → 운동장 달리기<br>2반: 2번 → 공 던지고 받기</p></article><article><b>2반을 3번으로 수정하면</b><p>1반: 3번 → 운동장 달리기<br>2반: 3번 → 운동장 달리기</p></article></div>'+
     '<p><b>수업번호를 실제로 진행할 수업에 맞춰 주세요.</b> 해당 번호의 학년별 계획이 일지와 주간 시간표에 반영됩니다.</p>'+
     '<p class="muted">차시는 날짜순으로 몇 번째 수업인지, 수업번호는 학년별 계획의 어떤 내용을 연결할지 나타냅니다.</p>',
     '<p class="guide-lead">운동장을 쓰기 어려워 3번 수업을 나중으로 미룬 상황이에요. 아래에서 <b>3차시에 할 수업번호</b>를 바꿔 보세요.</p>'+
