@@ -998,7 +998,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27k'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27l'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1080,35 +1080,101 @@ function defState(){
     extras: []    // {id,date,period,cls,place}
   };
 }
+const SUBJECTS=['체육','음악','과학','영어','미술'];
+const WORKSPACE_VERSION=1;
+let workspace=null, activeSubject='체육';
+
+function cloneData(value){ return JSON.parse(JSON.stringify(value)); }
+function normalizeState(input){
+  const s=input||{}, d=defState();
+  const st=Object.assign(d,s,{times:s.times||d.times});
+  (st.classes||[]).forEach(c=>{
+    if(c.capOn===undefined)c.capOn=false;
+    delete c.done;
+  });
+  for(const k in(st.rec||{})){
+    const r=st.rec[k];
+    if(r.status){delete r.status;delete r.reason;}
+    if(!Object.keys(r).some(x=>r[x]))delete st.rec[k];
+  }
+  (st.extras||[]).forEach(e=>{delete e.forId;});
+  if(!st.roster)st.roster={};
+  if(!st.grades)st.grades={};
+  if(!st.gradeN)st.gradeN={};
+  for(const k in st.roster){
+    st.roster[k]=(st.roster[k]||[]).map(x=>({
+      no:x.no,name:x.name,sex:x.sex||'',skill:x.skill||'',note:x.note||''}));
+  }
+  return applyStateMigrations(st);
+}
+function sharedSettings(st){
+  return {
+    start:st.start,end:st.end,days:cloneData(st.days||{}),
+    semester2:{start:st.semester2?.start||'',end:st.semester2?.end||''}
+  };
+}
+function applySharedSettings(profile,shared){
+  const st=normalizeState(profile);
+  st.start=shared.start||st.start;
+  st.end=shared.end||st.end;
+  st.days=cloneData(shared.days||{});
+  st.semester2=Object.assign({},st.semester2,{start:shared.semester2?.start||'',end:shared.semester2?.end||''});
+  return st;
+}
+function profilePayload(profile){
+  const copy=cloneData(profile);
+  delete copy.start;delete copy.end;delete copy.days;
+  if(copy.semester2){delete copy.semester2.start;delete copy.semester2.end;}
+  return copy;
+}
+function activateSubject(subject){
+  const selected=SUBJECTS.includes(subject)?subject:'체육';
+  if(!workspace)workspace={workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(defState()),subjects:{}};
+  activeSubject=selected;workspace.activeSubject=selected;
+  if(!workspace.subjects[selected])workspace.subjects[selected]=defState();
+  state=applySharedSettings(workspace.subjects[selected],workspace.shared);
+  workspace.subjects[selected]=state;
+  return state;
+}
+function readWorkspace(input){
+  if(input?.workspaceVersion===WORKSPACE_VERSION&&input.subjects){
+    const first=Object.values(input.subjects)[0]||defState();
+    workspace={
+      workspaceVersion:WORKSPACE_VERSION,
+      activeSubject:SUBJECTS.includes(input.activeSubject)?input.activeSubject:'체육',
+      shared:input.shared||sharedSettings(normalizeState(first)),
+      subjects:{}
+    };
+    for(const subject of SUBJECTS)
+      if(input.subjects[subject])workspace.subjects[subject]=normalizeState(input.subjects[subject]);
+  }else{
+    const legacy=normalizeState(input);
+    workspace={workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(legacy),subjects:{체육:legacy}};
+  }
+  return activateSubject(workspace.activeSubject);
+}
+function journalPayload(){
+  workspace.shared=sharedSettings(state);
+  workspace.subjects[activeSubject]=state;
+  const subjects={};
+  for(const [subject,profile] of Object.entries(workspace.subjects))subjects[subject]=profilePayload(profile);
+  return JSON.stringify({workspaceVersion:WORKSPACE_VERSION,activeSubject,shared:workspace.shared,subjects});
+}
+function switchSubjectDiary(subject){
+  if(!SUBJECTS.includes(subject)||subject===activeSubject)return;
+  workspace.shared=sharedSettings(state);
+  workspace.subjects[activeSubject]=state;
+  activateSubject(subject);
+  refreshJournal();
+  save();
+}
 function load(){
   try{
-    const raw = localStorage.getItem(LSKEY);
-    if(!raw) return defState();
-    const s = JSON.parse(raw), d = defState();
-    const st = Object.assign(d, s, {times: s.times||d.times});
-    /* 예전에 차시 개수가 조용히 칸을 비우던 동작은 기본 꺼짐으로 둔다 */
-    (st.classes||[]).forEach(c=>{
-      if(c.capOn===undefined) c.capOn=false;
-      delete c.done;   /* 입력란이 없어진 뒤로도 차시에 몰래 더해지던 예전 값 */
-    });
-    /* 결손·보강 기능을 없앴으므로 예전 자료의 흔적도 정리한다 */
-    for(const k in (st.rec||{})){
-      const r=st.rec[k];
-      if(r.status){ delete r.status; delete r.reason; }
-      if(!Object.keys(r).some(x=>r[x])) delete st.rec[k];
-    }
-    (st.extras||[]).forEach(e=>{ delete e.forId; });
-    if(!st.roster) st.roster={};
-    if(!st.grades) st.grades={};
-    if(!st.gradeN) st.gradeN={};
-    for(const k in st.roster){                 /* 예전 명렬표에 성별·기능·비고 칸을 더한다 */
-      st.roster[k]=(st.roster[k]||[]).map(x=>({
-        no:x.no, name:x.name, sex:x.sex||'', skill:x.skill||'', note:x.note||''}));
-    }
-    return applyStateMigrations(st);
-  }catch(e){ return defState(); }
+    const raw=localStorage.getItem(LSKEY);
+    return readWorkspace(raw?JSON.parse(raw):null);
+  }catch(e){return readWorkspace(null);}
 }
-let state = SHARE_TOKEN ? defState() : load();
+let state=SHARE_TOKEN?defState():load();
 let yearTerm=1, baseTerm=1;
 function semester(n){ return n===2 ? state.semester2 : state; }
 function validSemester(t){ return !!(t.start && t.end && t.start<=t.end); }
@@ -1133,13 +1199,13 @@ function setSaveState(txt, bad){
 }
 function save(){
   if(SHARE_TOKEN) return;
-  if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
+  if(window.PECloud?.active){ window.PECloud.save(journalPayload()); return; }
   clearTimeout(saveTimer);
   if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
   setSaveState('…');
   saveTimer = setTimeout(()=>{
     try{
-      localStorage.setItem(LSKEY, JSON.stringify(state));
+      localStorage.setItem(LSKEY, journalPayload());
       setSaveState('저장됨');
     }catch(e){
       setSaveState('저장 안 됨', true);
@@ -2688,15 +2754,9 @@ function render(){
 }
 
 /* Subject label in the sidebar is a local presentation preference. */
-const SUBJECT_BRAND_KEY='pe-subject-brand';
 const subjectBrand=$('#subjectBrand'), subjectMenu=$('#subjectMenu');
-const SUBJECTS=['체육','음악','과학','영어','미술'];
-function setSubjectBrand(subject){
-  const value=SUBJECTS.includes(subject) ? subject : '체육';
-  subjectBrand.textContent=value;
-  try{ localStorage.setItem(SUBJECT_BRAND_KEY,value); }catch{}
-}
-try{ setSubjectBrand(localStorage.getItem(SUBJECT_BRAND_KEY)); }catch{ setSubjectBrand('체육'); }
+function setSubjectBrand(subject){ subjectBrand.textContent=SUBJECTS.includes(subject)?subject:'체육'; }
+setSubjectBrand(activeSubject);
 subjectBrand.onclick=()=>{
   const open=subjectMenu.hidden;
   subjectMenu.hidden=!open;
@@ -2705,7 +2765,8 @@ subjectBrand.onclick=()=>{
 subjectMenu.onclick=e=>{
   const option=e.target.closest('[data-subject]');
   if(!option)return;
-  setSubjectBrand(option.dataset.subject);
+  switchSubjectDiary(option.dataset.subject);
+  setSubjectBrand(activeSubject);
   subjectMenu.hidden=true;
   subjectBrand.setAttribute('aria-expanded','false');
 };
@@ -3267,9 +3328,9 @@ function storageNotice(extra){
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
   if(SHARE_TOKEN) return;
-  if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
+  if(window.PECloud?.active){ window.PECloud.save(journalPayload()); return; }
   if(STORAGE!=='ok') return;
-  try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
+  try{ localStorage.setItem(LSKEY, journalPayload()); }catch(e){}
 }
 window.addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush(); });
@@ -3316,14 +3377,14 @@ function refreshJournal(){
 }
 window.PEJournal = {
   shareSnapshot: payload => {
-    const previous={state,LESSONS,BYID,BYDATE,STATS};
+    const previous={state,LESSONS,BYID,BYDATE,STATS,workspace,activeSubject};
     try {
-      state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
+      state=readWorkspace(JSON.parse(payload));
       rebuild();
       /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
          날짜별로 바꾼 학급·장소·삭제·차시 번호·진도는 시간표에 보여야 하므로 남기고,
          일지·명렬표·특이사항·학년 계획 비고는 공개하지 않는다. */
-      const shared=JSON.parse(JSON.stringify(state));
+      const shared=JSON.parse(journalPayload());
       delete shared.logs; delete shared.roster;
       const PUBLIC_REC=['cls','place','del','status','reason','prog','lessonNumber'];
       shared.rec=Object.fromEntries(Object.entries(state.rec||{}).map(([id,r])=>
@@ -3333,14 +3394,14 @@ window.PEJournal = {
         shared.grades[g]=(shared.grades[g]||[]).map(x=>x&&typeof x==='object'?Object.assign({},x,{note:''}):x);
       return {version:2,state:shared};
     } finally {
-      ({state,LESSONS,BYID,BYDATE,STATS}=previous);
+      ({state,LESSONS,BYID,BYDATE,STATS,workspace,activeSubject}=previous);
     }
   },
   localKey: LSKEY,
-  get: () => JSON.stringify(state),
-  empty: () => JSON.stringify(defState()),
+  get: () => journalPayload(),
+  empty: () => JSON.stringify({workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(defState()),subjects:{체육:profilePayload(defState())}}),
   replace: payload => {
-    state = payload ? applyStateMigrations(Object.assign(defState(), JSON.parse(payload))) : defState();
+    state=readWorkspace(payload?JSON.parse(payload):null);
     refreshJournal();
   },
   showLocal: () => { state = load(); refreshJournal(); },
