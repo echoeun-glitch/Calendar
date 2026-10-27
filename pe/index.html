@@ -601,20 +601,23 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 }
 
 /* Teaching Diary wordmark */
-.brand{min-height:58px}
+.brand{min-height:88px}
 #rangeLabel{display:none!important}
-.wordmark{display:grid;justify-items:start;gap:2px;padding:3px 0;line-height:1;text-align:left}
-.wordmark-teaching{font-size:17px;line-height:1.05;letter-spacing:-.05em;color:#73ff92;font-weight:900}
-.wordmark-diary{font-size:25px;line-height:1;letter-spacing:-.075em;color:#73e0ff;font-weight:900}
+.wordmark{display:grid;justify-items:start;gap:0;padding:2px 0;line-height:1;text-align:left}
+.wordmark-teaching{display:block;width:100%;padding-bottom:7px;border-bottom:1px solid var(--line);
+  font-size:15px;line-height:1.05;letter-spacing:-.04em;color:#8a94a4;font-weight:800}
+.wordmark-diary{display:block;position:relative;margin-top:15px;padding-left:12px;
+  font-size:26px;line-height:1;letter-spacing:-.075em;color:#1d2a3e;font-weight:900}
+.wordmark-diary::before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:4px;border-radius:3px;background:#1d2a3e}
 @media(min-width:800px){
   .brand{padding:3px 5px 18px}
-  .wordmark-teaching{font-size:18px}
+  .wordmark-teaching{font-size:15px}
   .wordmark-diary{font-size:28px}
 }
 @media(max-width:799px){
-  .brand{min-height:52px}
-  .wordmark-teaching{font-size:16px}
-  .wordmark-diary{font-size:24px}
+  .brand{min-height:78px}
+  .wordmark-teaching{font-size:14px}
+  .wordmark-diary{margin-top:12px;font-size:24px}
 }</style>
 </head>
 <body>
@@ -978,7 +981,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27e'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27f'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
