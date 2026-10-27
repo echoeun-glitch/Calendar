@@ -618,7 +618,10 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
   .brand{min-height:78px}
   .wordmark-teaching{font-size:14px}
   .wordmark-diary{margin-top:12px;font-size:24px}
-}</style>
+}
+.year-actions{display:flex;justify-content:flex-end;gap:8px;margin:10px 0 16px}
+@media(max-width:799px){.year-actions{justify-content:flex-start;margin:10px 0 14px}}
+</style>
 </head>
 <body>
 
@@ -688,9 +691,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
     <div class="toolbar">
       <div class="legend" id="legend3"></div>
       <label class="chk"><input type="checkbox" id="yOrd"> 차시 번호 함께 보기</label>
-      <label class="chk"><input type="checkbox" id="yHide" checked> 안 쓰는 교시 열 숨기기</label>
-      <button class="btn sm" id="yCsv" style="margin-left:auto">CSV</button>
-      <button class="btn sm" id="yPrint">인쇄 (가로)</button>
+ 
     </div>
     <div class="card noprint" id="emptyHint" hidden>
       <h2>먼저 기초 시간표를 넣어주세요</h2>
@@ -706,6 +707,10 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
     <div id="capNote" class="warnbanner soft noprint" hidden></div>
     <div class="mobile-year-list" id="mobileYearList"></div>
     <div class="scroll"><table class="ygrid" id="ygrid"></table></div>
+    <div class="year-actions noprint">
+      <button class="btn sm" id="yCsv">CSV</button>
+      <button class="btn sm" id="yPrint">인쇄 (가로)</button>
+    </div>
     <div class="card noprint" id="progCard">
       <h2>학급별 차시 <span class="hint">1·2학기 합계 · 오늘까지 한 차시 / 전체 차시 — 칸에 바로 넣으세요. 카드를 누르면 수업 기간까지 정합니다</span></h2>
       <div class="pad"><div class="progwrap" id="progWrap"></div></div>
@@ -981,7 +986,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27f'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27g'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1720,8 +1725,7 @@ function renderYear(){
   $('#legend3').innerHTML = legendHTML();
   const weeks=yearWeeks(), sd=parseD(term.start), ed=parseD(term.end);
   const showOrd=$('#yOrd').checked;
-  const cols = $('#yHide').checked ? usedPeriods()
-             : Array.from({length:state.periods},(_,i)=>i+1);
+  const cols = usedPeriods();
   renderMobileYearWeeks(weeks,cols,sd,ed);
   const P = cols.length;
   const thisMon=isoOf(monday(new Date()));
@@ -2828,8 +2832,7 @@ $('#baseTerms').onclick=e=>{
   const b=e.target.closest('[data-term]'); if(!b) return;
   baseTerm=Number(b.dataset.term); renderBaseTable();
 };
-$('#yHide').onchange=renderYear;
-$('#yPrint').onclick=()=>{
+ $('#yPrint').onclick=()=>{
   $('#printHead').textContent='연간 시간표 · '+yearTerm+'학기  '+semester(yearTerm).start+' ~ '+semester(yearTerm).end;
   const st=document.createElement('style');
   st.id='landscape'; st.textContent='@page{size:A4 landscape;margin:8mm}';
@@ -2838,8 +2841,7 @@ $('#yPrint').onclick=()=>{
   setTimeout(()=>st.remove(), 500);
 };
 $('#yCsv').onclick=()=>{
-  const cols = $('#yHide').checked ? usedPeriods()
-             : Array.from({length:state.periods},(_,i)=>i+1);
+  const cols = usedPeriods();
   const head=['주','기간'];
   for(let i=1;i<=5;i++) for(const p of cols) head.push(DOWK[i]+p);
   const rows=[head], sd=parseD(semester(yearTerm).start), ed=parseD(semester(yearTerm).end);
