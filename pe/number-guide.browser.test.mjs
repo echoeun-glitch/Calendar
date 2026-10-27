@@ -42,8 +42,10 @@ try {
   assert.match(await page.locator('.number-guide').innerText(),/결·보강|빈칸/);
   await page.locator('#guideBack').click();
   assert.equal(await page.locator('#guideNumber').inputValue(),'5');
-  await page.locator('#guideNext').click();await page.locator('#guideNext').click();
-  assert.match(await page.locator('.number-guide').innerText(),/직접 입력/);
+  await page.locator('#guideNext').click();
+  assert.match(await page.locator('.number-guide').innerText(),/3 \/ 3/);
+  assert.equal(await page.locator('.guide-steps li b').nth(1).innerText(),'연간시간표에서 수정할 수업을 더블클릭해요.');
+  assert.equal(await page.locator('#guideNext').innerText(),'연간 시간표로 가기');
   await page.locator('#guideNext').click();
   assert.equal(await page.locator('.number-guide').count(),0);
   assert.equal(await page.evaluate(()=>window.PEJournal.get()),original);

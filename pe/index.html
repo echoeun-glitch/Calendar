@@ -1026,7 +1026,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27u'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27v'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -1387,7 +1387,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 /* Practice uses sample data only; it never writes the teacher's journal. */
 function openNumberGuide(step=0,practiceNumber=3){
-  const titles=['수업번호가 수업 내용을 연결해요','번호를 바꾸면 연결도 바뀌어요','결·보강 후에는 이 순서로 확인해요','실제 시간표에서 바꿔 보세요'];
+  const titles=['수업번호가 수업 내용을 연결해요','번호를 바꾸면 연결도 바뀌어요','결·보강 후에는 이 순서로 확인해요'];
   const pages=[
     '<p class="guide-lead">같은 학년이라도 학급마다 진도가 다를 수 있어요. <b>수업번호</b>를 맞추면 각 학급에 필요한 학년별 수업 계획이 연결됩니다.</p>'+
     '<div class="guide-pair"><article><b>차시 = 날짜 순서</b><p>이 학급의 이번 학기 수업이 날짜순으로 몇 번째인지 표시합니다.</p></article><article><b>수업번호 = 내용 순서</b><p>학년별 계획에서 몇 번 수업을 할지 정합니다. 수업 순서가 바뀌면 이 번호를 조정하세요.</p></article></div>'+
@@ -1396,12 +1396,8 @@ function openNumberGuide(step=0,practiceNumber=3){
     '<label class="f" for="guideNumber">3차시의 수업번호 · 연습용</label><select id="guideNumber">'+[1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===practiceNumber?' selected':'')+'>'+n+'번</option>').join('')+'</select>'+
     '<div id="guideDemo" aria-live="polite"></div><p class="muted">선택한 수업을 그 번호 자리로 옮기고, 사이 수업의 번호를 한 칸씩 조정합니다. 같은 학급·같은 학기 안에서 번호가 중복되거나 빠지지 않아요.</p>',
     '<ol class="guide-steps"><li><b>먼저 실제 시간표를 맞춰요.</b><p>수업이 없어진 날짜나 학급 변경을 반영하고, 보강 수업은 실제 날짜의 빈칸에 추가하세요.</p></li>'+
-    '<li><b>변경된 수업의 수업번호를 확인해요.</b><p>앞당겨 하거나 미룬 내용이 있다면, 그 수업에 맞는 번호로 조정하세요. 번호 변경은 수업 날짜를 옮기는 기능은 아닙니다.</p></li>'+
-    '<li><b>학년별 계획과 연결된 내용을 확인해요.</b><p>해당 번호의 단원·주요 활동이 주간 시간표와 일지에 연결됩니다. 함께 밀린 수업의 번호도 확인하세요.</p></li></ol>',
-    '<ol class="guide-steps"><li><b>연간에서 학기를 선택해요.</b><p>번호는 학급별·학기별로 따로 관리됩니다.</p></li>'+
-    '<li><b>수정할 수업 칸을 두 번 눌러요.</b><p>상세 화면의 「수업 번호」 목록에서 원하는 번호를 선택하고 「저장」을 누르세요.</p></li>'+
-    '<li><b>연결된 수업 내용을 확인해요.</b><p>직접 입력한 「진도 · 수업 내용」은 유지됩니다. 학년별 계획을 다시 따르려면 직접 입력한 내용을 비워 저장하세요.</p></li></ol>'+
-    ''
+    '<li><b>연간시간표에서 수정할 수업을 더블클릭해요.</b><p>상세 화면의 「수업 번호」 목록에서 원하는 번호를 선택하고 「저장」을 누르세요.</p></li>'+
+    '<li><b>학년별 계획과 연결된 내용을 확인해요.</b><p>해당 번호의 단원·주요 활동이 주간 시간표와 일지에 연결됩니다. 함께 밀린 수업의 번호도 확인하세요.</p></li></ol>'
   ];
   const body='<section class="number-guide" aria-label="수업번호 튜토리얼"><p class="muted">'+(step+1)+' / '+titles.length+' · 수업번호 사용법</p>'+
     '<h4 tabindex="-1" id="guideHeading">'+titles[step]+'</h4>'+pages[step]+
