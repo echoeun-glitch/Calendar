@@ -16,16 +16,16 @@
 .share-mode .tabs button[data-view="year"],.share-mode .tabs button[data-view="week"]{display:block!important}
 .share-mode #progCard .hint,.share-mode .tip,.share-mode #emptyHint,.share-mode #capNote,.share-mode #storeWarn{display:none!important}
 :root{
-  --bg:#f4f6f9; --panel:#ffffff; --ink:#1b2430; --muted:#6b7684;
-  --line:#e3e8ef; --line2:#eef1f6; --accent:#1f6feb; --accent-soft:#e8f0fe;
-  --danger:#d64545; --shadow:0 1px 3px rgba(18,28,45,.07), 0 6px 18px rgba(18,28,45,.05);
-  --r:12px;
+  --bg:#f4f7fc; --panel:#ffffff; --ink:#1d2a3e; --muted:#64748b;
+  --line:#dbe4f0; --line2:#eef3f9; --accent:#4668d7; --accent-soft:#edf2ff;
+  --danger:#cf4b57; --shadow:0 2px 5px rgba(35,54,83,.06), 0 10px 28px rgba(35,54,83,.055);
+  --r:15px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#11161d; --panel:#181f29; --ink:#e7ecf3; --muted:#93a0b0;
-    --line:#2a3542; --line2:#212b36; --accent:#5b9bff; --accent-soft:#1c2a42;
-    --shadow:0 1px 3px rgba(0,0,0,.4);
+    --bg:#111927; --panel:#182234; --ink:#edf3ff; --muted:#9caec5;
+    --line:#2b3950; --line2:#202d40; --accent:#8ea8ff; --accent-soft:#25385f;
+    --shadow:0 2px 6px rgba(0,0,0,.34), 0 10px 28px rgba(0,0,0,.2);
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -553,6 +553,52 @@ tr.dead .ord{text-decoration:line-through}
 #cloudAccount{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:400}
 .account-controls .btn{font-size:11px;padding:3px 7px}
 @media(max-width:560px){#cloudAccount{max-width:180px}.account-controls{padding:4px 12px}}
+
+/* ---------- visual refresh: calm school planner ---------- */
+body{
+  background:
+    radial-gradient(900px 420px at 82% -120px,color-mix(in srgb,var(--accent) 10%,transparent),transparent 70%),
+    radial-gradient(600px 360px at -8% 22%,color-mix(in srgb,#48b7a1 6%,transparent),transparent 72%),
+    var(--bg);
+}
+button,input,select,textarea{transition:border-color .16s ease,background-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.topbar{background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(14px)}
+.brand .mark{border-radius:11px;background:linear-gradient(145deg,#5c7bf0,var(--accent));box-shadow:0 7px 16px color-mix(in srgb,var(--accent) 28%,transparent);font-weight:800}
+.tabs{padding:4px;background:color-mix(in srgb,var(--line2) 82%,var(--panel))}
+.tabs button{letter-spacing:-.15px}
+.tabs button.on{background:var(--panel);color:var(--accent);box-shadow:0 2px 8px rgba(38,56,88,.11);font-weight:800}
+.card{border-color:color-mix(in srgb,var(--line) 88%,var(--accent));box-shadow:var(--shadow)}
+.card > h2{padding:14px 17px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 4%,var(--panel)),var(--panel) 42%);font-size:14.5px}
+.btn{border-color:var(--line);font-weight:700}
+.btn:hover{box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 13%,transparent);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#5878ec,var(--accent));border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 23%,transparent)}
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{border-color:var(--line);background:color-mix(in srgb,var(--panel) 97%,var(--accent-soft))}
+input[type=text]:focus,input[type=date]:focus,input[type=time]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted)}
+.nav{border-color:var(--line);box-shadow:none;background:color-mix(in srgb,var(--panel) 92%,var(--line2))}
+.wgrid{border-color:var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.wgrid th{background:color-mix(in srgb,var(--accent) 6%,var(--line2))}
+.wgrid td{border-color:color-mix(in srgb,var(--line) 80%,var(--panel))}
+.slot{border-radius:10px;padding:9px}
+.slot.filled{background:color-mix(in srgb,var(--c) 12%,var(--panel));box-shadow:inset 4px 0 0 var(--c)}
+.slot.filled:hover{background:color-mix(in srgb,var(--c) 18%,var(--panel))}
+.slot .content{letter-spacing:-.3px}
+.ygrid{border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.ygrid thead th,.ygrid tbody th{background:color-mix(in srgb,var(--accent) 5%,var(--line2))}
+.pitem,.team,.rname,.namepick button{box-shadow:none;border-color:var(--line)}
+.pitem:hover,.team:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));box-shadow:0 7px 18px rgba(35,54,83,.07)}
+@media(min-width:800px){
+  .topbar{background:color-mix(in srgb,var(--panel) 92%,var(--accent-soft));box-shadow:8px 0 28px rgba(35,54,83,.035)}
+  .brand{padding-bottom:18px}
+  .tabs button{border-radius:10px;padding:10px 12px}
+  .tabs button.on{background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 16%,var(--panel)),var(--panel));box-shadow:inset 3px 0 0 var(--accent)}
+  .tabs button:hover{background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
+}
+@media(max-width:799px){
+  .tabs{box-shadow:0 -7px 25px rgba(35,54,83,.12)}
+  .mobile-week-day{box-shadow:var(--shadow);border-color:var(--line)}
+  .mobile-week-head{background:color-mix(in srgb,var(--accent) 7%,var(--line2))}
+}
 </style>
 </head>
 <body>
@@ -916,7 +962,7 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-10-23c'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27a'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
