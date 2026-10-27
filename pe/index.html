@@ -998,7 +998,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27l'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27m'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
@@ -3370,6 +3370,7 @@ function refreshJournal(){
   $('#teamPool').innerHTML='';
   rebuild();
   // Clear every view, including hidden views, when changing account or snapshot.
+  if(typeof setSubjectBrand==='function')setSubjectBrand(activeSubject);
   renderYear(); renderWeek(); renderLog(); renderTeam(); renderClass(); renderSetup();
   $('#gradeBar').innerHTML=''; $('#gradeTable').innerHTML='';
   $('#gradeTitle').textContent='학년별 수업 계획'; $('#gradeN').value=''; $('#gradeSum').textContent='';
@@ -3384,7 +3385,7 @@ window.PEJournal = {
       /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
          날짜별로 바꾼 학급·장소·삭제·차시 번호·진도는 시간표에 보여야 하므로 남기고,
          일지·명렬표·특이사항·학년 계획 비고는 공개하지 않는다. */
-      const shared=JSON.parse(journalPayload());
+      const shared=cloneData(state);
       delete shared.logs; delete shared.roster;
       const PUBLIC_REC=['cls','place','del','status','reason','prog','lessonNumber'];
       shared.rec=Object.fromEntries(Object.entries(state.rec||{}).map(([id,r])=>
