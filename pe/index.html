@@ -10,17 +10,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="전담일지">
 <style>
+.share-loading main{visibility:hidden}
+/* 열람 전용: 연간·주간 탭만 두고, 편집 안내 문구는 숨긴다. */
+.share-mode .tabs button:not([data-view="year"]):not([data-view="week"]){display:none!important}
+.share-mode .tabs button[data-view="year"],.share-mode .tabs button[data-view="week"]{display:block!important}
+.share-mode #progCard .hint,.share-mode .tip,.share-mode #emptyHint,.share-mode #capNote,.share-mode #storeWarn{display:none!important}
 :root{
-  --bg:#f4f6f9; --panel:#ffffff; --ink:#1b2430; --muted:#6b7684;
-  --line:#e3e8ef; --line2:#eef1f6; --accent:#1f6feb; --accent-soft:#e8f0fe;
-  --danger:#d64545; --shadow:0 1px 3px rgba(18,28,45,.07), 0 6px 18px rgba(18,28,45,.05);
-  --r:12px;
+  --bg:#f4f7fc; --panel:#ffffff; --ink:#1d2a3e; --muted:#64748b;
+  --line:#dbe4f0; --line2:#eef3f9; --accent:#4668d7; --accent-soft:#edf2ff;
+  --danger:#cf4b57; --shadow:0 2px 5px rgba(35,54,83,.06), 0 10px 28px rgba(35,54,83,.055);
+  --r:15px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#11161d; --panel:#181f29; --ink:#e7ecf3; --muted:#93a0b0;
-    --line:#2a3542; --line2:#212b36; --accent:#5b9bff; --accent-soft:#1c2a42;
-    --shadow:0 1px 3px rgba(0,0,0,.4);
+    --bg:#111927; --panel:#182234; --ink:#edf3ff; --muted:#9caec5;
+    --line:#2b3950; --line2:#202d40; --accent:#8ea8ff; --accent-soft:#25385f;
+    --shadow:0 2px 6px rgba(0,0,0,.34), 0 10px 28px rgba(0,0,0,.2);
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -222,13 +227,17 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 .slot .meta{display:flex;align-items:baseline;gap:6px;min-width:0;line-height:1.2}
 .slot .big{font-weight:800;font-size:12.5px;white-space:nowrap}
 .slot .pl{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot .lesson-no{font-size:10.5px;font-weight:800;color:var(--muted);white-space:nowrap}
 .slot .content{font-size:16px;font-weight:800;line-height:1.3;letter-spacing:-.15px;
   overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3}
 .slot .nt{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mobile-week-list{display:none}
 .mobile-more{display:none}
+.mobile-log-nav{display:none}
 .mobile-year-list{display:none}
 .mobile-log-content{display:none}
+/* 휴대폰용 일지 카드 칸은 PC 표에서는 숨긴다(휴대폰 화면에서만 보인다). */
+#logTable td.mobile-log-lesson-cell{display:none}
 /* 웹 일지 표의 네 열을 유지한다. */
 .log-class-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11px;color:var(--muted);margin-top:4px}
 .log-class-meta span{white-space:nowrap}
@@ -248,12 +257,13 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
     border-radius:14px 14px 0 0;border:1px solid var(--line);border-bottom:0;box-shadow:0 -4px 18px rgba(18,28,45,.1);
     display:flex;justify-content:space-around;gap:3px;background:var(--panel)}
   .tabs button{flex:1;padding:8px 5px;font-size:12px;min-width:0}
-  .tabs button[data-view="grade"],.tabs button[data-view="class"],
-  .tabs button[data-view="team"],.tabs button[data-view="setup"]{display:none}
+  /* 휴대폰의 첫 줄은 자주 쓰는 주간·일지·팀뽑기만 둔다. */
+  .tabs button[data-view="year"],.tabs button[data-view="grade"],
+  .tabs button[data-view="class"],.tabs button[data-view="setup"]{display:none}
   .tabs .mobile-more{display:block;max-width:76px}
   .tabs.mobile-expanded{flex-wrap:wrap;justify-content:flex-start;border-radius:14px 14px 0 0}
-  .tabs.mobile-expanded button[data-view="grade"],.tabs.mobile-expanded button[data-view="class"],
-  .tabs.mobile-expanded button[data-view="team"],.tabs.mobile-expanded button[data-view="setup"]{display:block;flex:1 0 21%}
+  .tabs.mobile-expanded button[data-view="year"],.tabs.mobile-expanded button[data-view="grade"],
+  .tabs.mobile-expanded button[data-view="class"],.tabs.mobile-expanded button[data-view="setup"]{display:block;flex:1 0 21%}
   .tabs.mobile-expanded .mobile-more{flex:1 0 21%}
   .account-controls{position:relative;justify-content:flex-end;min-height:34px}
   #cloudAccount{max-width:150px}
@@ -296,22 +306,33 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
   #logTable{display:block;border-collapse:separate;border-spacing:0 9px}
   #logTable thead{display:none}
   #logTable tbody{display:grid;gap:9px;padding:9px}
-  #logTable tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 8px;padding:8px 10px;border:1px solid var(--line);border-radius:11px;background:var(--panel);box-shadow:var(--shadow)}
+  #logTable tr{display:block;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
   #logTable td{display:block;border:0;padding:4px 2px;min-width:0;overflow-wrap:anywhere}
-  #logTable td:nth-child(1){grid-column:1;grid-row:1;color:var(--muted);font-size:12px}
-  #logTable td:nth-child(2){grid-column:2;grid-row:1;text-align:right}
-  #logTable td:nth-child(3){grid-column:1 / -1}
-  #logTable td:nth-child(4){display:none}
-  #logTable td:nth-child(3)>.ntin,#logTable td:nth-child(3)>[data-planhint]{display:none}
-  #logTable .mobile-log-content{display:block;width:100%;border:0;background:transparent;text-align:left;padding:7px 0;font:inherit;font-size:15px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
+  #logTable td:not(.mobile-log-lesson-cell){display:none!important}
+  #logTable .mobile-log-lesson-cell{display:block!important;padding:0}
+  #logTable .mobile-log-lesson-cell .mobile-week-lesson{border:1px solid var(--line);border-radius:11px;background:var(--panel);box-shadow:var(--shadow);margin:0}
   #logTable .ntin,#logTable textarea{width:100%;min-width:0}
   #logTable .log-class-meta{justify-content:flex-end;font-size:10px}
   #logTable tr>td[colspan]{grid-column:1 / -1;text-align:center!important}
   #gText{min-height:100px}
   #view-log .card>h2{padding:11px 12px}
   #view-log .card .pad{padding:11px}
-  #view-log .toolbar input[type=date]{flex:1;min-width:130px}
+  /* 일지는 전날·날짜·오늘·다음 날을 한 줄에 둔다. */
+  #view-log .toolbar{display:grid;grid-template-columns:34px minmax(0,1fr) auto 34px;gap:6px;align-items:center;width:100%}
+  #view-log .toolbar .nav{display:contents}
+  #view-log .toolbar #gLabel,#view-log .toolbar #gDay,#view-log .toolbar #gPrint,#view-log .toolbar #gCsv{display:none}
+  #view-log .toolbar #gPrev,#view-log .toolbar #gNext{width:34px;height:34px;padding:0;line-height:1}
+  #view-log .toolbar #gPrev{grid-column:1}
+  #view-log .toolbar #gDate{grid-column:2;min-width:0;width:100%;height:34px}
+  #view-log .toolbar #gToday{grid-column:3;height:34px;white-space:nowrap}
+  #view-log .toolbar #gNext{grid-column:4}
   #view-log .toolbar #gPrint,#view-log .toolbar #gCsv{margin-left:0!important}
+  /* 기존 도구줄은 데스크톱용으로 남기고, 모바일은 확실히 한 줄짜리 전용 날짜바를 쓴다. */
+  #view-log>.toolbar{display:none}
+  .mobile-log-nav{display:grid;grid-template-columns:34px minmax(0,1fr) auto 34px;gap:6px;align-items:center;margin-bottom:10px}
+  .mobile-log-nav button{height:34px;padding:0;line-height:1}
+  .mobile-log-nav #mLogToday{padding:0 9px;white-space:nowrap}
+  .mobile-log-nav input{width:100%;min-width:0;height:34px}
   .progwrap{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tip{padding:8px 2px 0}
 
@@ -532,6 +553,83 @@ tr.dead .ord{text-decoration:line-through}
 #cloudAccount{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:400}
 .account-controls .btn{font-size:11px;padding:3px 7px}
 @media(max-width:560px){#cloudAccount{max-width:180px}.account-controls{padding:4px 12px}}
+
+/* ---------- visual refresh: calm school planner ---------- */
+body{
+  background:
+    radial-gradient(900px 420px at 82% -120px,color-mix(in srgb,var(--accent) 10%,transparent),transparent 70%),
+    radial-gradient(600px 360px at -8% 22%,color-mix(in srgb,#48b7a1 6%,transparent),transparent 72%),
+    var(--bg);
+}
+button,input,select,textarea{transition:border-color .16s ease,background-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.topbar{background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(14px)}
+.brand .mark{border-radius:11px;background:linear-gradient(145deg,#5c7bf0,var(--accent));box-shadow:0 7px 16px color-mix(in srgb,var(--accent) 28%,transparent);font-weight:800}
+.tabs{padding:4px;background:color-mix(in srgb,var(--line2) 82%,var(--panel))}
+.tabs button{letter-spacing:-.15px}
+.tabs button.on{background:var(--accent-soft);color:var(--accent);box-shadow:none;font-weight:800}
+.card{border-color:color-mix(in srgb,var(--line) 88%,var(--accent));box-shadow:var(--shadow)}
+.card > h2{padding:14px 17px;background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 4%,var(--panel)),var(--panel) 42%);font-size:14.5px}
+.btn{border-color:var(--line);font-weight:700}
+.btn:hover{box-shadow:0 3px 10px color-mix(in srgb,var(--accent) 13%,transparent);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#5878ec,var(--accent));border-color:transparent;box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 23%,transparent)}
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{border-color:var(--line);background:color-mix(in srgb,var(--panel) 97%,var(--accent-soft))}
+input[type=text]:focus,input[type=date]:focus,input[type=time]:focus,input[type=number]:focus,select:focus,textarea:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted)}
+.nav{border-color:var(--line);box-shadow:none;background:color-mix(in srgb,var(--panel) 92%,var(--line2))}
+.wgrid{border-color:var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.wgrid th{background:color-mix(in srgb,var(--accent) 6%,var(--line2))}
+.wgrid td{border-color:color-mix(in srgb,var(--line) 80%,var(--panel))}
+.slot{border-radius:10px;padding:9px}
+.slot.filled{background:color-mix(in srgb,var(--c) 12%,var(--panel));box-shadow:inset 4px 0 0 var(--c)}
+.slot.filled:hover{background:color-mix(in srgb,var(--c) 18%,var(--panel))}
+.slot .content{letter-spacing:-.3px}
+.ygrid{border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.ygrid thead th,.ygrid tbody th{background:color-mix(in srgb,var(--accent) 5%,var(--line2))}
+.pitem,.team,.rname,.namepick button{box-shadow:none;border-color:var(--line)}
+.pitem:hover,.team:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));box-shadow:0 7px 18px rgba(35,54,83,.07)}
+@media(min-width:800px){
+  .topbar{background:color-mix(in srgb,var(--panel) 92%,var(--accent-soft));box-shadow:8px 0 28px rgba(35,54,83,.035)}
+  .brand{padding-bottom:18px}
+  .tabs button{border-radius:10px;padding:10px 12px}
+  .tabs button.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+  .tabs button:hover{background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
+}
+@media(max-width:799px){
+  .tabs{box-shadow:0 -7px 25px rgba(35,54,83,.12)}
+  .mobile-week-day{box-shadow:var(--shadow);border-color:var(--line)}
+  .mobile-week-head{background:color-mix(in srgb,var(--accent) 7%,var(--line2))}
+}
+
+/* Teaching Diary wordmark */
+.brand{min-height:88px}
+#rangeLabel{display:none!important}
+.wordmark{display:grid;justify-items:start;gap:0;padding:2px 0;line-height:1;text-align:left}
+.wordmark-teaching{display:block;width:100%;padding-bottom:7px;border-bottom:1px solid var(--line);
+  font-size:15px;line-height:1.05;letter-spacing:-.04em;color:#8a94a4;font-weight:800}
+.subject-brand{position:relative;margin-top:15px}
+.wordmark-diary{display:block;position:relative;margin:0;padding:0 0 0 12px;border:0;background:transparent;
+  font-size:26px;line-height:1;letter-spacing:-.075em;color:#1d2a3e;font-weight:900;text-align:left;cursor:pointer}
+.wordmark-diary::before{content:"";position:absolute;left:0;top:1px;bottom:1px;width:4px;border-radius:3px;background:#1d2a3e}
+.wordmark-diary:hover,.wordmark-diary[aria-expanded="true"]{color:var(--accent)}
+.wordmark-diary:hover::before,.wordmark-diary[aria-expanded="true"]::before{background:var(--accent)}
+.subject-menu{position:absolute;left:0;top:calc(100% + 8px);z-index:120;min-width:110px;padding:5px;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:0 10px 28px rgba(35,54,83,.18)}
+.subject-menu[hidden]{display:none}
+.subject-menu button{display:block;width:100%;border:0;border-radius:7px;padding:7px 9px;background:transparent;
+  color:var(--ink);font-size:13px;font-weight:700;text-align:left}
+.subject-menu button:hover{background:var(--accent-soft);color:var(--accent)}
+@media(min-width:800px){
+  .brand{padding:3px 5px 18px}
+  .wordmark-teaching{font-size:15px}
+  .wordmark-diary{font-size:28px}
+}
+@media(max-width:799px){
+  .brand{min-height:78px}
+  .wordmark-teaching{font-size:14px}
+  .wordmark-diary{margin-top:12px;font-size:24px}
+}
+.year-actions{display:flex;justify-content:flex-end;gap:8px;margin:10px 0 16px}
+@media(max-width:799px){.year-actions{justify-content:flex-start;margin:10px 0 14px}}
 </style>
 </head>
 <body>
@@ -543,11 +641,20 @@ tr.dead .ord{text-decoration:line-through}
 </div>
 <header class="topbar">
   <div class="brand">
-    <div class="mark">체</div>
-    <div>
-      <b>전담일지</b>
-      <small id="rangeLabel">—</small>
+    <div class="wordmark">
+      <strong class="wordmark-teaching">전담일지</strong>
+      <div class="subject-brand">
+        <button class="wordmark-diary" id="subjectBrand" type="button" aria-expanded="false" aria-controls="subjectMenu">체육</button>
+        <div class="subject-menu" id="subjectMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-subject="체육">체육</button>
+          <button type="button" role="menuitem" data-subject="음악">음악</button>
+          <button type="button" role="menuitem" data-subject="과학">과학</button>
+          <button type="button" role="menuitem" data-subject="영어">영어</button>
+          <button type="button" role="menuitem" data-subject="미술">미술</button>
+        </div>
+      </div>
     </div>
+    <small id="rangeLabel" hidden>—</small>
   </div>
   <nav class="tabs" id="tabs">
     <button data-view="year" class="on">연간</button>
@@ -597,14 +704,13 @@ tr.dead .ord{text-decoration:line-through}
   <section id="view-year" hidden>
     <div class="row noprint" id="yearTerms" style="margin-bottom:12px" aria-label="연간 시간표 학기">
       <button class="btn" data-term="1">1학기</button><button class="btn" data-term="2">2학기</button>
-      <span class="muted" id="yearTermRange"></span>
+      <button type="button" class="btn sm ghost" id="yearTermRange" data-period-settings title="설정에서 이 학기의 수업 기간을 수정합니다">—</button>
+      <button type="button" class="btn sm primary" id="yearPeriodSetup" data-period-settings hidden>수업 기간을 설정해주세요</button>
     </div>
     <div class="toolbar">
       <div class="legend" id="legend3"></div>
       <label class="chk"><input type="checkbox" id="yOrd"> 차시 번호 함께 보기</label>
-      <label class="chk"><input type="checkbox" id="yHide" checked> 안 쓰는 교시 열 숨기기</label>
-      <button class="btn sm" id="yCsv" style="margin-left:auto">CSV</button>
-      <button class="btn sm" id="yPrint">인쇄 (가로)</button>
+ 
     </div>
     <div class="card noprint" id="emptyHint" hidden>
       <h2>먼저 기초 시간표를 넣어주세요</h2>
@@ -649,6 +755,12 @@ tr.dead .ord{text-decoration:line-through}
 
   <!-- ================= LOG (수업 일지) ================= -->
   <section id="view-log" hidden>
+    <div class="mobile-log-nav" aria-label="일지 날짜 이동">
+      <button class="btn sm" id="mLogPrev" title="전날">‹</button>
+      <input type="date" id="mLogDate" aria-label="일지 날짜">
+      <button class="btn sm" id="mLogToday">오늘</button>
+      <button class="btn sm" id="mLogNext" title="다음 날">›</button>
+    </div>
     <div class="toolbar">
       <div class="nav">
         <button id="gPrev" title="이전 날">‹</button>
@@ -658,8 +770,6 @@ tr.dead .ord{text-decoration:line-through}
       <button class="btn sm" id="gToday">오늘</button>
       <input type="date" id="gDate">
       <button class="btn sm" id="gDay">행사 · 휴업일 지정</button>
-      <button class="btn sm" id="gPrint" style="margin-left:auto">인쇄</button>
-      <button class="btn sm" id="gCsv">일지 CSV</button>
     </div>
 
     <div class="card">
@@ -783,7 +893,18 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>2. 수업 장소 <span class="hint">달력에서 색으로 구분됩니다</span></h2>
+      <h2>2. 학급 <span class="hint">기초 시간표에서 선택할 학급을 추가하세요</span></h2>
+      <div class="pad">
+        <table id="classSetup"></table>
+        <div class="row" style="margin-top:10px">
+          <input id="newClass" placeholder="예: 4-1" style="max-width:180px">
+          <button class="btn" id="addClass">학급 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. 수업 장소 <span class="hint">달력에서 색으로 구분됩니다</span></h2>
       <div class="scroll"><table id="placeSetup"></table></div>
       <div class="pad row">
         <input type="text" id="newPlace" placeholder="장소 이름" style="width:130px">
@@ -793,7 +914,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>3. 수업 기간</h2>
+      <h2>4. 수업 기간</h2>
       <div class="pad">
         <div class="row" style="margin-bottom:14px" aria-label="1학기 수업 기간">
           <b>1학기</b>
@@ -810,7 +931,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>4. 행사 · 휴업일 <span class="hint">수업이 없는 날과 학교 행사를 한곳에서 관리합니다</span></h2>
+      <h2>5. 행사 · 휴업일 <span class="hint">수업이 없는 날과 학교 행사를 한곳에서 관리합니다</span></h2>
       <div class="pad">
         <div class="row" style="margin-bottom:12px">
           <button class="btn primary" id="fillHoliday">공휴일 한 번에 넣기</button>
@@ -832,7 +953,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>5. 명렬표 <span class="hint">나이스에서 받은 엑셀 파일을 그대로 올리세요</span></h2>
+      <h2>6. 명렬표 <span class="hint">나이스에서 받은 엑셀 파일을 그대로 올리세요</span></h2>
       <div class="pad">
         <div class="row" style="margin-bottom:10px">
           <label class="f" style="margin:0">학급</label>
@@ -851,7 +972,7 @@ tr.dead .ord{text-decoration:line-through}
     </div>
 
     <div class="card">
-      <h2>6. 데이터 <span class="hint">로그인하면 내 계정으로 동기화됩니다</span></h2>
+      <h2>7. 데이터 <span class="hint">로그인하면 내 계정으로 동기화됩니다</span></h2>
       <div class="pad">
         <div class="row">
           <span id="saveState" role="status"></span>
@@ -870,7 +991,7 @@ tr.dead .ord{text-decoration:line-through}
       </div>
     </div>
     <div class="card">
-      <h2>7. 시간표 공유</h2>
+      <h2>8. 시간표 공유</h2>
       <div class="pad">
         <p style="margin-bottom:12px">링크를 받은 사람은 로그인 없이 연간·주간 시간표와 수업내용을 볼 수 있습니다. 일지·명렬표·특이사항은 공유하지 않습니다.</p>
         <div class="row">
@@ -890,7 +1011,10 @@ tr.dead .ord{text-decoration:line-through}
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27b'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27r'; /* 화면에 표시되는 버전 */
+const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
+/* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
+if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
 const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
@@ -969,35 +1093,103 @@ function defState(){
     extras: []    // {id,date,period,cls,place}
   };
 }
+const SUBJECTS=['체육','음악','과학','영어','미술'];
+const WORKSPACE_VERSION=1;
+let workspace=null, activeSubject='체육';
+
+function cloneData(value){ return JSON.parse(JSON.stringify(value)); }
+function normalizeState(input){
+  const s=input||{}, d=defState();
+  const st=Object.assign(d,s,{times:s.times||d.times});
+  (st.classes||[]).forEach(c=>{
+    if(c.capOn===undefined)c.capOn=false;
+    delete c.done;
+  });
+  for(const k in(st.rec||{})){
+    const r=st.rec[k];
+    if(r.status){delete r.status;delete r.reason;}
+    if(!Object.keys(r).some(x=>r[x]))delete st.rec[k];
+  }
+  (st.extras||[]).forEach(e=>{delete e.forId;});
+  if(!st.roster)st.roster={};
+  if(!st.grades)st.grades={};
+  if(!st.gradeN)st.gradeN={};
+  for(const k in st.roster){
+    st.roster[k]=(st.roster[k]||[]).map(x=>({
+      no:x.no,name:x.name,sex:x.sex||'',skill:x.skill||'',note:x.note||''}));
+  }
+  return applyStateMigrations(st);
+}
+function sharedSettings(st){
+  return {
+    start:st.start,end:st.end,days:cloneData(st.days||{}),
+    semester2:{start:st.semester2?.start||'',end:st.semester2?.end||''}
+  };
+}
+function applySharedSettings(profile,shared){
+  const st=normalizeState(profile);
+  st.start=shared.start??st.start;
+  st.end=shared.end??st.end;
+  st.days=cloneData(shared.days||{});
+  st.semester2=Object.assign({},st.semester2,{start:shared.semester2?.start||'',end:shared.semester2?.end||''});
+  return st;
+}
+function profilePayload(profile){
+  const copy=cloneData(profile);
+  delete copy.start;delete copy.end;delete copy.days;
+  if(copy.semester2){delete copy.semester2.start;delete copy.semester2.end;}
+  return copy;
+}
+function activateSubject(subject){
+  const selected=SUBJECTS.includes(subject)?subject:'체육';
+  if(!workspace)workspace={workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(defState()),subjects:{}};
+  activeSubject=selected;workspace.activeSubject=selected;
+  if(!workspace.subjects[selected])workspace.subjects[selected]=defState();
+  /* state를 처음 만드는 과정에서는 아직 state 변수가 준비되지 않았으므로,
+     여기서는 새 프로필만 돌려주고 호출한 쪽에서 대입한다. */
+  const profile=applySharedSettings(workspace.subjects[selected],workspace.shared);
+  workspace.subjects[selected]=profile;
+  return profile;
+}
+function readWorkspace(input){
+  if(input?.workspaceVersion===WORKSPACE_VERSION&&input.subjects){
+    const first=Object.values(input.subjects)[0]||defState();
+    workspace={
+      workspaceVersion:WORKSPACE_VERSION,
+      activeSubject:SUBJECTS.includes(input.activeSubject)?input.activeSubject:'체육',
+      shared:input.shared||sharedSettings(normalizeState(first)),
+      subjects:{}
+    };
+    for(const subject of SUBJECTS)
+      if(input.subjects[subject])workspace.subjects[subject]=normalizeState(input.subjects[subject]);
+  }else{
+    const legacy=normalizeState(input);
+    workspace={workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(legacy),subjects:{체육:legacy}};
+  }
+  return activateSubject(workspace.activeSubject);
+}
+function journalPayload(){
+  workspace.shared=sharedSettings(state);
+  workspace.subjects[activeSubject]=state;
+  const subjects={};
+  for(const [subject,profile] of Object.entries(workspace.subjects))subjects[subject]=profilePayload(profile);
+  return JSON.stringify({workspaceVersion:WORKSPACE_VERSION,activeSubject,shared:workspace.shared,subjects});
+}
+function switchSubjectDiary(subject){
+  if(!SUBJECTS.includes(subject)||subject===activeSubject)return;
+  workspace.shared=sharedSettings(state);
+  workspace.subjects[activeSubject]=state;
+  state=activateSubject(subject);
+  refreshJournal();
+  save();
+}
 function load(){
   try{
-    const raw = localStorage.getItem(LSKEY);
-    if(!raw) return defState();
-    const s = JSON.parse(raw), d = defState();
-    const st = Object.assign(d, s, {times: s.times||d.times});
-    /* 예전에 차시 개수가 조용히 칸을 비우던 동작은 기본 꺼짐으로 둔다 */
-    (st.classes||[]).forEach(c=>{
-      if(c.capOn===undefined) c.capOn=false;
-      delete c.done;   /* 입력란이 없어진 뒤로도 차시에 몰래 더해지던 예전 값 */
-    });
-    /* 결손·보강 기능을 없앴으므로 예전 자료의 흔적도 정리한다 */
-    for(const k in (st.rec||{})){
-      const r=st.rec[k];
-      if(r.status){ delete r.status; delete r.reason; }
-      if(!Object.keys(r).some(x=>r[x])) delete st.rec[k];
-    }
-    (st.extras||[]).forEach(e=>{ delete e.forId; });
-    if(!st.roster) st.roster={};
-    if(!st.grades) st.grades={};
-    if(!st.gradeN) st.gradeN={};
-    for(const k in st.roster){                 /* 예전 명렬표에 성별·기능·비고 칸을 더한다 */
-      st.roster[k]=(st.roster[k]||[]).map(x=>({
-        no:x.no, name:x.name, sex:x.sex||'', skill:x.skill||'', note:x.note||''}));
-    }
-    return applyStateMigrations(st);
-  }catch(e){ return defState(); }
+    const raw=localStorage.getItem(LSKEY);
+    return readWorkspace(raw?JSON.parse(raw):null);
+  }catch(e){return readWorkspace(null);}
 }
-let state = load();
+let state=SHARE_TOKEN?defState():load();
 let yearTerm=1, baseTerm=1;
 function semester(n){ return n===2 ? state.semester2 : state; }
 function lessonTerm(L){ return semesterForDate(L.date)===state.semester2?2:1; }
@@ -1033,13 +1225,14 @@ function setSaveState(txt, bad){
   const el=$('#saveState'); el.textContent=txt; el.classList.toggle('bad', !!bad);
 }
 function save(){
-  if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
+  if(SHARE_TOKEN) return;
+  if(window.PECloud?.active){ window.PECloud.save(journalPayload()); return; }
   clearTimeout(saveTimer);
   if(STORAGE!=='ok'){ setSaveState('저장 안 됨', true); return; }
   setSaveState('…');
   saveTimer = setTimeout(()=>{
     try{
-      localStorage.setItem(LSKEY, JSON.stringify(state));
+      localStorage.setItem(LSKEY, journalPayload());
       setSaveState('저장됨');
     }catch(e){
       setSaveState('저장 안 됨', true);
@@ -1054,6 +1247,10 @@ let LESSONS=[], BYID={}, BYDATE={}, STATS={};
 
 function placeOf(id){ return state.places.find(p=>p.id===id) || {id:'', name:'', color:'#8a94a4'}; }
 function classNames(){ return state.classes.map(c=>c.name); }
+function formatClassName(name){
+  const m=String(name||'').match(/^(\d+)-(\d+)$/);
+  return m ? m[1]+'학년'+m[2]+'반' : String(name||'');
+}
 
 function rebuildLessonNumbers(){
   const classes=new Map();
@@ -1628,12 +1825,12 @@ function renderMobileYearWeeks(weeks,cols,sd,ed){
 function renderYear(){
   renderTermButtons('yearTerms',yearTerm);
   const term=semester(yearTerm);
-  $('#yearTermRange').textContent=validSemester(term)?term.start+' ~ '+term.end:'설정에서 수업 기간을 입력해 주세요';
+  $('#yearTermRange').textContent=validSemester(term)?term.start+' ~ '+term.end:'수업 기간 설정';
+  $('#yearTermRange').title=yearTerm+'학기 수업 기간을 설정에서 수정합니다';
   $('#legend3').innerHTML = legendHTML();
   const weeks=yearWeeks(), sd=parseD(term.start), ed=parseD(term.end);
   const showOrd=$('#yOrd').checked;
-  const cols = $('#yHide').checked ? usedPeriods()
-             : Array.from({length:state.periods},(_,i)=>i+1);
+  const cols = usedPeriods();
   renderMobileYearWeeks(weeks,cols,sd,ed);
   const P = cols.length;
   const thisMon=isoOf(monday(new Date()));
@@ -1697,7 +1894,9 @@ function renderYear(){
   if(!weeks.length) h+='<tr><td class="muted" style="padding:20px">설정에서 기간과 기초 시간표를 먼저 넣어주세요.</td></tr>';
   $('#ygrid').innerHTML=h+'</tbody>';
   closePick();
-  $('#emptyHint').hidden = Object.keys(term.base).length>0;
+  const hasBase=Object.keys(term.base||{}).some(k=>term.base[k]?.cls);
+  $('#emptyHint').hidden = hasBase;
+  $('#yearPeriodSetup').hidden = hasBase;
   renderCapNote();
   renderProgress();
 }
@@ -1736,8 +1935,8 @@ function renderWeek(){
         for(const L of here){
           const pl=placeOf(L.place), over=L.status==='over';
           h+='<button class="slot filled'+(over?' dead':'')+'" style="--c:'+pl.color+'" data-id="'+L.id+'">'+
-             '<span class="meta"><span class="big">'+esc(L.cls)+'</span>'+
-             '<span class="pl" style="color:'+pl.color+'">'+esc(pl.name)+'</span></span>'+
+             '<span class="meta"><span class="big">'+esc(formatClassName(L.cls))+'</span>'+
+             ((L.lessonNo||L.ord)?'<span class="lesson-no">'+esc(L.lessonNo||L.ord)+'번 수업</span>':'')+'</span>'+
              (weekLessonText(L)?'<span class="content">'+esc(weekLessonText(L))+'</span>':'')+
              (lessonPlan(L)?.note?'<span class="nt">계획 비고: '+esc(lessonPlan(L).note)+'</span>':'')+
              (over?'<span class="nt">수업 기간 밖</span>':'')+
@@ -1762,7 +1961,8 @@ function renderWeek(){
         ? lessons.map(L=>{
             const pl=placeOf(L.place), over=L.status==='over';
             return '<button class="mobile-week-lesson'+(over?' dead':'')+'" data-id="'+L.id+'" style="--c:'+pl.color+'">'+
-              '<span class="mobile-week-meta">'+esc(L.period)+'교시 · '+esc(L.cls)+' · <b style="color:'+pl.color+'">'+esc(pl.name)+'</b></span>'+
+              '<span class="mobile-week-meta">'+esc(L.period)+'교시 · '+esc(formatClassName(L.cls))+
+              ((L.lessonNo||L.ord)?' · '+esc(L.lessonNo||L.ord)+'번 수업':'')+'</span>'+
               '<strong>'+esc(weekLessonText(L)||'수업 내용 미정')+'</strong>'+
               (over?'<small>수업 기간 밖</small>':'')+'</button>';
           }).join('')
@@ -2178,6 +2378,7 @@ function renderLog(){
   const k=logDate, d=parseD(k), day=state.days[k];
   $('#gLabel').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+DOWK[d.getDay()]+')';
   $('#gDate').value=k;
+  $('#mLogDate').value=k;
 
   let head='<span class="loghead">'+k+' ('+DOWK[d.getDay()]+')';
   if(day && day.label) head+=' <span class="daytag'+(day.off?' off':'')+'">'+esc(day.label)+'</span>';
@@ -2197,7 +2398,10 @@ function renderLog(){
          '<span><span class="dot" style="background:'+pl.color+'"></span>'+esc(pl.name)+'</span>'+
          '<span>'+(L.ord?L.ord+'차시 · 수업 '+L.lessonNo+'번':'-')+'</span></div></td>';
     h+='<td>'+lessonProgressInput(L,false)+'<button class="mobile-log-content" data-open="'+L.id+'" title="수업내용 자세히 보기 및 수정">'+esc(lessonProgress(L)||'수업내용 입력')+'</button></td>'+
-            '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>';
+            '<td><input class="ntin" data-f="special" value="'+esc(L.rec.special||'')+'" placeholder="—"></td>'+
+            '<td class="mobile-log-lesson-cell" colspan="4"><button class="mobile-week-lesson" data-open="'+L.id+'" style="--c:'+pl.color+'">'+
+            '<span class="mobile-week-meta">'+L.period+'교시 · '+esc(L.cls)+' · <b style="color:'+pl.color+'">'+esc(pl.name)+'</b></span>'+
+            '<strong>'+esc(weekLessonText(L)||'수업 내용 미정')+'</strong></button></td>';
     h+='</tr>';
   }
   if(!ls.length) h+='<tr><td colspan="4" class="muted" style="padding:18px;text-align:center">'+
@@ -2495,12 +2699,22 @@ function renderBaseTable(){
   $('#btTable').innerHTML=h+'</tbody>';
 
 }
+function renderClassSetup(){
+  const used=name=>[state.base,state.semester2.base].some(base=>
+    Object.values(base||{}).some(slot=>slot&&slot.cls===name));
+  $('#classSetup').innerHTML='<thead><tr><th>학급</th><th style="width:92px">시간표</th><th style="width:68px"></th></tr></thead><tbody>'+
+    state.classes.map(c=>'<tr><td><b>'+esc(c.name)+'</b></td><td class="muted">'+(used(c.name)?'사용 중':'미사용')+'</td>'+
+      '<td style="text-align:right"><button class="btn sm warn" data-delclass="'+esc(c.name)+'"'+(used(c.name)?' disabled title="기초 시간표에서 먼저 이 학급을 비워 주세요"':'')+'>삭제</button></td></tr>').join('')+
+    '</tbody>';
+}
+
 function renderSetup(){
   $('#periodsSel').innerHTML=[4,5,6,7].map(n=>'<option'+(n===state.periods?' selected':'')+'>'+n+'</option>').join('');
   $('#startD').value=state.start; $('#endD').value=state.end;
   $('#startD2').value=state.semester2.start; $('#endD2').value=state.semester2.end;
 
   renderBaseTable();
+  renderClassSetup();
 
   /* 장소 */
   let pl='<thead><tr><th>장소</th><th style="width:90px">색</th><th style="width:60px"></th></tr></thead><tbody>';
@@ -2580,6 +2794,30 @@ function render(){
   if(view==='class') renderClass();
   if(view==='setup') renderSetup();
 }
+
+/* Subject label in the sidebar is a local presentation preference. */
+const subjectBrand=$('#subjectBrand'), subjectMenu=$('#subjectMenu');
+function setSubjectBrand(subject){ subjectBrand.textContent=SUBJECTS.includes(subject)?subject:'체육'; }
+setSubjectBrand(activeSubject);
+subjectBrand.onclick=()=>{
+  const open=subjectMenu.hidden;
+  subjectMenu.hidden=!open;
+  subjectBrand.setAttribute('aria-expanded',String(open));
+};
+subjectMenu.onclick=e=>{
+  const option=e.target.closest('[data-subject]');
+  if(!option)return;
+  switchSubjectDiary(option.dataset.subject);
+  setSubjectBrand(activeSubject);
+  subjectMenu.hidden=true;
+  subjectBrand.setAttribute('aria-expanded','false');
+};
+document.addEventListener('mousedown',e=>{
+  if(!e.target.closest('.subject-brand')){
+    subjectMenu.hidden=true;
+    subjectBrand.setAttribute('aria-expanded','false');
+  }
+});
 
 /* ================= events ================= */
 $('#tabs').onclick=e=>{
@@ -2720,6 +2958,12 @@ $('#ygrid').ondblclick=e=>{
 $('#yOrd').onchange=renderYear;
 $('#classTerms').onclick=e=>{ const b=e.target.closest('[data-term]'); if(b){ yearTerm=Number(b.dataset.term); rebuild(); render(); } };
 $('#yearTerms').onclick=e=>{
+  const period=e.target.closest('[data-period-settings]');
+  if(period){
+    baseTerm=yearTerm; view='setup'; render();
+    requestAnimationFrame(()=>$('#'+(baseTerm===2?'startD2':'startD')).focus());
+    return;
+  }
   const b=e.target.closest('[data-term]'); if(!b) return;
   yearTerm=Number(b.dataset.term); rebuild(); render();
 };
@@ -2735,40 +2979,26 @@ $('#mobileYearList').ondblclick=e=>{
   if(cell.dataset.id)openLesson(cell.dataset.id,{editNumber:true});
   else{const q=cell.dataset.add.split('#');openMakeup({date:q[0],period:Number(q[1])});}
 };
+$('#classSetup').onclick=e=>{
+  const b=e.target.closest('[data-delclass]'); if(!b || b.disabled) return;
+  const name=b.dataset.delclass;
+  if(!confirm(name+' 학급을 삭제할까요?')) return;
+  state.classes=state.classes.filter(c=>c.name!==name);
+  delete state.roster[name];
+  touch(); renderSetup();
+};
+$('#addClass').onclick=()=>{
+  const input=$('#newClass'), name=input.value.trim();
+  if(!name){ input.focus(); return; }
+  if(state.classes.some(c=>c.name===name)){ alert('이미 있는 학급입니다.'); input.focus(); return; }
+  state.classes.push({name,plan:0,capOn:false,from:'',to:''});
+  input.value='';
+  touch(); renderSetup();
+};
+$('#newClass').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();$('#addClass').click();} });
 $('#baseTerms').onclick=e=>{
   const b=e.target.closest('[data-term]'); if(!b) return;
   baseTerm=Number(b.dataset.term); renderBaseTable();
-};
-$('#yHide').onchange=renderYear;
-$('#yPrint').onclick=()=>{
-  $('#printHead').textContent='연간 시간표 · '+yearTerm+'학기  '+semester(yearTerm).start+' ~ '+semester(yearTerm).end;
-  const st=document.createElement('style');
-  st.id='landscape'; st.textContent='@page{size:A4 landscape;margin:8mm}';
-  document.head.appendChild(st);
-  window.print();
-  setTimeout(()=>st.remove(), 500);
-};
-$('#yCsv').onclick=()=>{
-  const cols = $('#yHide').checked ? usedPeriods()
-             : Array.from({length:state.periods},(_,i)=>i+1);
-  const head=['주','기간'];
-  for(let i=1;i<=5;i++) for(const p of cols) head.push(DOWK[i]+p);
-  const rows=[head], sd=parseD(semester(yearTerm).start), ed=parseD(semester(yearTerm).end);
-  yearWeeks().forEach((W,wi)=>{
-    const r=[wi+1, MD(W.from)+'–'+MD(W.to)];
-    for(const d of W.days){
-      const k=isoOf(d), day=state.days[k];
-      const hasExtra=(BYDATE[k]||[]).some(L=>L.kind==='extra');
-      for(const p of cols){
-        if(d<sd||d>ed){ r.push(''); continue; }
-        if(day&&day.off&&!hasExtra){ r.push(p===cols[0]?(day.label||'휴업일'):''); continue; }
-        const L=slotLessons(k,p)[0];
-        r.push(L && L.status==='ok' ? L.cls : '');
-      }
-    }
-    rows.push(r);
-  });
-  csvDL('PE-year-grid-term'+yearTerm+'-'+TODAY+'.csv', rows);
 };
 $('#wPrev').onclick=()=>{ weekCur=addD(weekCur,-7); renderWeek(); };
 $('#wNext').onclick=()=>{ weekCur=addD(weekCur,7); renderWeek(); };
@@ -2861,6 +3091,10 @@ $('#gPrev').onclick=()=>{ logDate=isoOf(addD(parseD(logDate),-1)); renderLog(); 
 $('#gNext').onclick=()=>{ logDate=isoOf(addD(parseD(logDate), 1)); renderLog(); };
 $('#gToday').onclick=()=>{ logDate=TODAY; renderLog(); };
 $('#gDate').onchange=e=>{ if(e.target.value){ logDate=e.target.value; renderLog(); } };
+$('#mLogPrev').onclick=()=>{ logDate=isoOf(addD(parseD(logDate),-1)); renderLog(); };
+$('#mLogNext').onclick=()=>{ logDate=isoOf(addD(parseD(logDate), 1)); renderLog(); };
+$('#mLogToday').onclick=()=>{ logDate=TODAY; renderLog(); };
+$('#mLogDate').onchange=e=>{ if(e.target.value){ logDate=e.target.value; renderLog(); } };
 $('#gText').addEventListener('input', e=>{
   if(!state.logs) state.logs={};
   const v=e.target.value;
@@ -2878,23 +3112,6 @@ $('#logTable').addEventListener('click', e=>{
   const b=e.target.closest('[data-open]'); if(b) openLesson(b.dataset.open);
 });
 $('#gDay').onclick=()=>openDay(logDate);
-$('#gPrint').onclick=()=>{
-  const d=parseD(logDate);
-  $('#printHead').textContent='체육 수업 일지  '+logDate+' ('+DOWK[d.getDay()]+')';
-  window.print();
-};
-$('#gCsv').onclick=()=>{
-  const keys=Object.keys(state.logs||{}).filter(k=>String(state.logs[k]).trim()).sort();
-  const rows=[['날짜','요일','행사','수업','일지']];
-  for(const k of keys){
-    const d=parseD(k), day=state.days[k];
-    const ls=(BYDATE[k]||[]).filter(L=>L.status==='ok').sort((a,b)=>a.period-b.period)
-      .map(L=>L.period+'교시 '+L.cls).join(' / ');
-    rows.push([k, DOWK[d.getDay()], (day&&day.label)||'', ls, state.logs[k]]);
-  }
-  csvDL('PE-journal-'+TODAY+'.csv', rows);
-};
-
 $('#clsStats').onclick=e=>{
   const b=e.target.closest('[data-f]'); if(!b) return;
   clsFilter = (clsFilter===b.dataset.f) ? '' : b.dataset.f;   /* 다시 누르면 접는다 */
@@ -3176,9 +3393,10 @@ function storageNotice(extra){
 
 /* 탭을 닫거나 폰에서 앱을 내릴 때 남은 저장을 즉시 마무리 */
 function flush(){
-  if(window.PECloud?.active){ window.PECloud.save(JSON.stringify(state)); return; }
+  if(SHARE_TOKEN) return;
+  if(window.PECloud?.active){ window.PECloud.save(journalPayload()); return; }
   if(STORAGE!=='ok') return;
-  try{ localStorage.setItem(LSKEY, JSON.stringify(state)); }catch(e){}
+  try{ localStorage.setItem(LSKEY, journalPayload()); }catch(e){}
 }
 window.addEventListener('pagehide', flush);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) flush(); });
@@ -3218,6 +3436,7 @@ function refreshJournal(){
   $('#teamPool').innerHTML='';
   rebuild();
   // Clear every view, including hidden views, when changing account or snapshot.
+  if(typeof setSubjectBrand==='function')setSubjectBrand(activeSubject);
   renderYear(); renderWeek(); renderLog(); renderTeam(); renderClass(); renderSetup();
   $('#gradeBar').innerHTML=''; $('#gradeTable').innerHTML='';
   $('#gradeTitle').textContent='학년별 수업 계획'; $('#gradeN').value=''; $('#gradeSum').textContent='';
@@ -3225,29 +3444,31 @@ function refreshJournal(){
 }
 window.PEJournal = {
   shareSnapshot: payload => {
-    const previous={state,LESSONS,BYID,BYDATE,STATS};
+    const previous={state,LESSONS,BYID,BYDATE,STATS,workspace,activeSubject};
     try {
-      state=applyStateMigrations(Object.assign(defState(),JSON.parse(payload)));
+      state=readWorkspace(JSON.parse(payload));
       rebuild();
-      return {
-        version:1,
-        terms:[state,state.semester2].map(t=>({start:t.start,end:t.end})),
-        periods:state.periods,
-        classes:classNames(),
-        days:Object.entries(state.days).filter(([date])=>semesterForDate(date)).map(([date,d])=>({date,label:String(d.label||''),off:!!d.off})),
-        lessons:LESSONS.map(L=>({date:L.date,period:L.period,cls:L.cls,status:L.status,
-          place:placeOf(L.place).name,color:placeOf(L.place).color,
-          ordinal:L.ord,number:L.lessonNo,content:L.status==='ok'?lessonProgress(L):''}))
-      };
+      /* 공유 화면도 내 연간표와 같은 렌더러를 쓰도록 시간표에 필요한 상태를 그대로 보낸다.
+         날짜별로 바꾼 학급·장소·삭제·차시 번호·진도는 시간표에 보여야 하므로 남기고,
+         일지·명렬표·특이사항·학년 계획 비고는 공개하지 않는다. */
+      const shared=cloneData(state);
+      delete shared.logs; delete shared.roster;
+      const PUBLIC_REC=['cls','place','del','status','reason','prog','lessonNumber'];
+      shared.rec=Object.fromEntries(Object.entries(state.rec||{}).map(([id,r])=>
+        [id,Object.fromEntries(PUBLIC_REC.filter(k=>r&&r[k]!==undefined&&r[k]!=='').map(k=>[k,r[k]]))])
+        .filter(([,r])=>Object.keys(r).length));
+      for(const g in shared.grades||{})
+        shared.grades[g]=(shared.grades[g]||[]).map(x=>x&&typeof x==='object'?Object.assign({},x,{note:''}):x);
+      return {version:2,state:shared};
     } finally {
-      ({state,LESSONS,BYID,BYDATE,STATS}=previous);
+      ({state,LESSONS,BYID,BYDATE,STATS,workspace,activeSubject}=previous);
     }
   },
   localKey: LSKEY,
-  get: () => JSON.stringify(state),
-  empty: () => JSON.stringify(defState()),
+  get: () => journalPayload(),
+  empty: () => JSON.stringify({workspaceVersion:WORKSPACE_VERSION,activeSubject:'체육',shared:sharedSettings(defState()),subjects:{체육:profilePayload(defState())}}),
   replace: payload => {
-    state = payload ? applyStateMigrations(Object.assign(defState(), JSON.parse(payload))) : defState();
+    state=readWorkspace(payload?JSON.parse(payload):null);
     refreshJournal();
   },
   showLocal: () => { state = load(); refreshJournal(); },
@@ -3257,6 +3478,9 @@ window.PEJournal = {
 };
 </script>
 <script src="firebase-config.js"></script>
-<script type="module" src="cloud.js"></script>
+<script type="module">
+  if(new URLSearchParams(location.search).get('share')) import('./share-main.mjs');
+  else import('./cloud.js');
+</script>
 </body>
 </html>

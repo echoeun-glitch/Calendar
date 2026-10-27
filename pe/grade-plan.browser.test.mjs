@@ -36,7 +36,7 @@ try {
   await page.getByRole('button',{name:'일지',exact:true}).click();
   assert.deepEqual(await page.locator('#logTable th').allTextContents(),['교시','학급','수업내용','특이사항']);
   const logRow=page.locator('#logTable tbody tr').first();
-  assert.equal(await logRow.locator('td').count(),4);
+  assert.equal(await logRow.locator('td:visible').count(),4,'desktop journal shows 4 columns');
   assert.equal(await logRow.getAttribute('data-id'),'2026-09-01#1');
   assert.match(await logRow.locator('td').nth(1).innerText(),/3-1/);
   assert.match(await logRow.locator('td').nth(1).innerText(),/체육관/);
@@ -82,13 +82,13 @@ try {
   for(const width of [360,390,430,780]){
     await page.setViewportSize({width,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`editor log fits ${width}px`);
-    assert.equal(await page.locator('#logTable tbody tr').first().evaluate(el=>getComputedStyle(el).display),'grid');
-    assert.equal(await page.locator('#logTable .mobile-log-content').first().isVisible(),true);
+    /* 휴대폰 일지는 주간 화면과 같은 교시 카드만 보여 준다. */
+    assert.equal(await page.locator('#logTable .mobile-log-lesson-cell .mobile-week-lesson').first().isVisible(),true);
     assert.equal(await page.locator('#logTable input[data-f="special"]').first().isVisible(),false);
-    assert.match(await page.locator('#logTable .mobile-log-content').first().innerText(),/표현 · 춤/);
+    assert.match(await page.locator('#logTable .mobile-log-lesson-cell').first().innerText(),/춤/);
     if(process.env.PE_SCREENSHOT_DIR&&width===390)await page.screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-editor-log-mobile.png',fullPage:true});
   }
-  await page.locator('#logTable .mobile-log-content').first().click();
+  await page.locator('#logTable .mobile-log-lesson-cell .mobile-week-lesson').first().click();
   assert.equal(await page.locator('#rSpecial').isVisible(),true);
   await page.locator('#lSave').click();
   await page.evaluate(()=>{view='year';render();});

@@ -274,9 +274,20 @@ async function boot() {
       const provider = new sdk.GoogleAuthProvider();
       provider.setCustomParameters({prompt:'select_account'});
       el('cloudLogin').disabled = true;
-      try { await sdk.signInWithPopup(auth, provider); }
-      catch (error) { notice(errorText(error)); }
-      finally { el('cloudLogin').disabled = false; }
+      try {
+        await sdk.signInWithPopup(auth, provider);
+      } catch (error) {
+        /* 앱 내 브라우저처럼 팝업을 열 수 없는 환경에서는 같은 로그인 과정을 전체 화면으로 이어간다. */
+        const code=error?.code||'';
+        if(code.includes('popup-blocked') || code.includes('operation-not-supported-in-this-environment')){
+          notice('팝업 로그인을 열 수 없어 Google 로그인 화면으로 이동합니다.');
+          await sdk.signInWithRedirect(auth, provider);
+          return;
+        }
+        notice(errorText(error));
+      } finally {
+        el('cloudLogin').disabled = false;
+      }
     };
     let first = true;
     sdk.onAuthStateChanged(auth, user => {

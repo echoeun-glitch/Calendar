@@ -67,6 +67,13 @@ export function createSharing({sdk,db,user,journal,isCurrent,canManage}){
       try{
         const snapshot=await sdk.getDocFromServer(owner);assertCurrent();
         token=validToken(snapshot.data()?.token)?snapshot.data().token:null;paint();
+        /* 이전 축약 공유 문서를, 로그인할 때 현재 원본 연간표용 문서로 한 번 갱신한다. */
+        if(token && canManage()){
+          await sdk.runTransaction(db,async tx=>{
+            const source=await tx.get(sdk.doc(db,'peJournals',user.uid));assertCurrent();
+            if(source.exists())tx.set(sdk.doc(db,'peShares',token),shareData(source.data().payload,source.data().revision));
+          });
+        }
         message(token?'공유 중 · 저장한 변경이 자동 반영됩니다.':'연간·주간만 공개하는 링크를 만들 수 있습니다.');
       }catch{message('공유 상태를 불러오지 못했습니다. 다시 로그인해 주세요.');}
     },

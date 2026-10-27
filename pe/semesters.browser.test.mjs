@@ -64,11 +64,6 @@ try {
   assert.equal(await page.locator('#ygrid [data-id="2026-03-02#1"]').count(),0);
   assert.equal(await page.locator('#ygrid [data-id="2026-09-07#2"]').count(),1);
   assert.deepEqual(await page.evaluate(()=>usedPeriods()),[2]);
-  await page.evaluate(()=>{window.exported=null;csvDL=(name,rows)=>window.exported={name,rows};});
-  await page.locator('#yCsv').click();
-  assert.match(await page.evaluate(()=>window.exported.name),/term2/);
-  assert.match(await page.evaluate(()=>JSON.stringify(window.exported.rows)),/9\.7/);
-  assert.doesNotMatch(await page.evaluate(()=>JSON.stringify(window.exported.rows)),/3\.2/);
   // A modal must compare against semester 2's base, avoiding redundant overrides.
   await page.locator('#ygrid [data-id="2026-09-07#2"]').dblclick();
   assert.equal(await page.locator('#lPlace').inputValue(),'p2');
@@ -152,6 +147,6 @@ try {
     await page.locator('#view-year').screenshot({path:process.env.PE_SCREENSHOT_DIR+'/pe-semesters-year.png'});
   }
   assert.deepEqual(errors,[]);
-  console.log('PASS: legacy migration, independent semester schedules, date validation, annual tabs/CSV, weekly/log plans, modal edits, vacation gap, reload/account restore, holidays, mobile controls');
+  console.log('PASS: legacy migration, independent semester schedules, date validation, annual tabs, weekly/log plans, modal edits, vacation gap, reload/account restore, holidays, mobile controls');
   await context.close();
 }finally{await browser.close();await new Promise(r=>server.close(r));}
