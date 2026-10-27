@@ -601,20 +601,22 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 }
 
 /* Teaching Diary wordmark */
-.brand{min-height:48px}
-.wordmark{position:relative;display:grid;gap:1px;padding:1px 0 1px 13px;line-height:1}
-.wordmark::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:4px;border-radius:4px;
+.brand{min-height:52px}
+.wordmark{position:relative;display:flex;align-items:baseline;gap:6px;padding:6px 0 6px 13px;line-height:1;white-space:nowrap}
+.wordmark::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:4px;border-radius:4px;
   background:linear-gradient(180deg,#7190ff,var(--accent));box-shadow:0 3px 9px color-mix(in srgb,var(--accent) 30%,transparent)}
-.wordmark-teaching{font-size:10px;line-height:1.1;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
-.wordmark-diary{font-family:Georgia,"Times New Roman",serif;font-size:24px;line-height:.95;letter-spacing:-.075em;
-  font-style:italic;font-weight:700;color:var(--ink)}
+.wordmark-teaching{font-size:16px;line-height:1;letter-spacing:-.045em;color:var(--ink);font-weight:800}
+.wordmark-diary{font-family:Georgia,"Times New Roman",serif;font-size:25px;line-height:.95;letter-spacing:-.075em;
+  font-style:italic;font-weight:700;color:var(--accent)}
 @media(min-width:800px){
   .brand{padding:3px 5px 18px}
-  .wordmark-diary{font-size:25px}
+  .wordmark-teaching{font-size:17px}
+  .wordmark-diary{font-size:27px}
 }
 @media(max-width:799px){
-  .brand{min-height:42px}
-  .wordmark-diary{font-size:23px}
+  .brand{min-height:48px}
+  .wordmark-teaching{font-size:16px}
+  .wordmark-diary{font-size:25px}
 }</style>
 </head>
 <body>
@@ -978,7 +980,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27b'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-10-27c'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
