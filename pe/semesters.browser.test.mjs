@@ -46,7 +46,7 @@ try {
   assert.equal(await page.locator('#btTable [data-b="1-1"][data-k="cls"]').inputValue(),'3-1');
   assert.equal(await page.locator('#btTable [data-b="1-2"][data-k="cls"]').inputValue(),'');
   assert.deepEqual(await page.evaluate(()=>LESSONS.map(L=>[L.date,L.period,L.place,L.ord])),[
-    ['2026-03-02',1,'p1',1],['2026-09-07',2,'p2',2]
+    ['2026-03-02',1,'p1',1],['2026-09-07',2,'p2',1]
   ]);
   // Reject reversed or overlapping dates without modifying either semester.
   const dialogs=[];page.on('dialog',async d=>{dialogs.push(d.message());await d.accept();});
@@ -76,9 +76,9 @@ try {
   await page.locator('#lSave').click();
   assert.deepEqual(await page.evaluate(()=>state.rec['2026-09-07#2']),{special:'2학기 기록'});
   await page.evaluate(()=>{weekCur=parseD('2026-09-07');view='week';render();});
-  assert.match(await page.locator('#wgrid').innerText(),/티볼/);
+  assert.match(await page.locator('#wgrid').innerText(),/달리기/);
   await page.evaluate(()=>{logDate='2026-09-07';view='log';render();});
-  assert.equal(await page.locator('#logTable [data-f="prog"]').inputValue(),'티볼');
+  assert.equal(await page.locator('#logTable [data-f="prog"]').inputValue(),'달리기');
   assert.match(await page.locator('#logTable').innerText(),/운동장/);
   await page.evaluate(()=>{logDate='2026-07-06';renderLog();});
   assert.match(await page.locator('#logTable').innerText(),/수업이 없습니다/);
@@ -100,6 +100,40 @@ try {
   assert.equal(await page.evaluate(()=>LESSONS.length),0);
   await page.evaluate(p=>window.PEJournal.replace(p),payload);
   assert.equal(await page.evaluate(()=>BYID['2026-09-07#2'].place),'p2');
+  // Each semester owns its goals, ranges, caps and numbering; existing fields stay intact.
+  await page.evaluate(()=>{
+    yearTerm=2; view='year'; rebuild();render();
+    state.classes[0].plan=34;
+  });
+  const card=page.locator('#progWrap [data-plan="3-1"]');
+  await card.locator('.pin').fill('32');
+  assert.equal(await page.evaluate(()=>state.classes[0].plan),34);
+  assert.equal(await page.evaluate(()=>state.classes[0].termPlans[2].plan),32);
+  await page.locator('#yearTerms [data-term="1"]').click();
+  assert.equal(await card.locator('.pin').inputValue(),'34');
+  await card.locator('.pin').fill('35');
+  await page.locator('#yearTerms [data-term="2"]').click();
+  assert.equal(await card.locator('.pin').inputValue(),'32');
+  assert.equal(await page.evaluate(()=>STATS['3-1'].sched),1);
+  await card.locator('b').first().click();
+  assert.equal(await page.locator('#pFrom').inputValue(),'2026-09-07');
+  await page.locator('#pCap').check(); await page.locator('#pSave').click();
+  assert.equal(await page.evaluate(()=>state.classes[0].termPlans[1].capOn),false);
+  assert.equal(await page.evaluate(()=>state.classes[0].termPlans[2].capOn),true);
+  await page.evaluate(()=>{view='class';clsFilter='all';render();});
+  await page.locator('#classTerms [data-term="2"]').click();
+  assert.equal(await page.locator('#clsTable tbody tr[data-id]').count(),1);
+  assert.match(await page.locator('#clsStats').innerText(),/32/);
+  // Clearing semester 1 dates must not remove either semester's saved data.
+  const before=await page.evaluate(()=>JSON.stringify({base:state.base,rec:state.rec,roster:state.roster,grades:state.grades}));
+  await page.evaluate(()=>{view='setup';render();});
+  await date('#startD','');await date('#endD','');
+  assert.equal(await page.evaluate(()=>LESSONS.length),1);
+  assert.equal(await page.evaluate(()=>BYID['2026-09-07#2'].ord),1);
+  assert.equal(await page.evaluate(()=>JSON.stringify({base:state.base,rec:state.rec,roster:state.roster,grades:state.grades})),before);
+  await page.evaluate(()=>flush());await page.reload();await page.waitForFunction(()=>!!window.PEJournal);
+  assert.equal(await page.evaluate(()=>state.classes[0].termPlans[1].plan),35);
+  assert.equal(await page.evaluate(()=>state.classes[0].termPlans[2].plan),32);
   // Both semester controls remain usable at phone width.
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>{view='setup';render();});
