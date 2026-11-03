@@ -1,6 +1,6 @@
 # 학급일지
 
-담임이 하루 단위로 쓰는 학급일지입니다. Google 계정으로 로그인하면 내 계정에 저장되어 PC·휴대폰에서 이어서 쓸 수 있고, 다른 선생님은 내 일지를 볼 수 없습니다. 로그인 방식과 저장·동기화는 [전담일지](../pe/)와 같습니다(같은 Firebase 프로젝트, 별도 저장소 `homeroomJournals/{사용자 ID}`).
+담임이 하루 단위로 쓰는 학급일지입니다. Google 계정으로 로그인하면 내 계정에 저장되어 PC·휴대폰에서 이어서 쓸 수 있고, 다른 선생님은 내 일지를 볼 수 없습니다. 전담일지와 완전히 분리된 별도 Firebase 프로젝트(`homeroom-journal`)를 사용하며, 데이터는 `homeroomJournals/{사용자 ID}`에 저장됩니다.
 
 ## 쓰는 순서
 
@@ -18,8 +18,8 @@
 
 ## 운영자 설정 (한 번만)
 
-1. Firebase 콘솔 → Firestore → **규칙**에 `pe/firestore.rules` 전체를 붙여넣고 게시합니다. `homeroomJournals` 규칙이 추가되어 있어 게시 전에는 로그인 후 저장이 거부됩니다.
-2. `homeroom/` 폴더를 GitHub Pages 배포 브랜치에 반영합니다. 주소는 `…/Calendar/homeroom/`입니다. 승인된 도메인은 전담일지와 같아 따로 추가할 필요가 없습니다.
+1. Firebase 콘솔 → `homeroom-journal` 프로젝트 → Firestore → **규칙**에 `homeroom/firestore.rules` 전체를 붙여넣고 게시합니다. (Google 로그인, Firestore(서울), 승인된 도메인 `echoeun-glitch.github.io` 설정 완료)
+2. `homeroom/` 폴더를 GitHub Pages 배포 브랜치에 반영합니다. 주소는 `…/Calendar/homeroom/`입니다.
 
 ## 점검
 
