@@ -51,12 +51,82 @@ button{cursor:pointer}
 .brand .mark{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px}
 .brand b{display:block;font-size:16px;letter-spacing:-.3px}
 .brand small{display:block;color:var(--muted);font-size:11.5px}
-.tabs{display:flex;gap:4px;background:var(--line2);padding:3px;border-radius:10px;margin-left:auto;overflow-x:auto;max-width:100%}
-.tabs button{border:0;background:none;padding:7px 14px;border-radius:8px;font-size:13.5px;color:var(--muted);font-weight:700;white-space:nowrap}
+.tabs{display:flex;gap:4px;background:var(--line2);padding:3px;border-radius:10px;overflow-x:auto;max-width:100%;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;padding:7px 12px;border-radius:8px;font-size:13.5px;color:var(--muted);font-weight:700;white-space:nowrap;flex:none;display:flex;align-items:center;gap:9px}
 .tabs button.on{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
-#saveState{font-size:11.5px;color:var(--muted);min-width:52px;text-align:right}
+.tabs button svg{width:17px;height:17px;flex:none;display:none}
+#saveState{font-size:11.5px;color:var(--muted);min-width:52px;text-align:right;margin-left:auto}
 #saveState.bad{color:var(--danger);font-weight:800}
-@media(max-width:640px){.tabs{margin-left:0;width:100%}.tabs button{flex:1;padding:7px 8px}}
+/* 넓은 화면: 왼쪽 세로 탭 */
+@media(min-width:900px){
+  body{padding-left:208px}
+  .topbar{position:fixed;top:0;bottom:0;left:0;width:208px;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:0;
+    border-bottom:0;border-right:1px solid var(--line);padding:18px 12px 14px;overflow-y:auto}
+  .brand{padding:0 6px 16px;border-bottom:1px solid var(--line2);margin-bottom:12px}
+  .tabs{flex-direction:column;background:none;padding:0;gap:2px;overflow:visible}
+  .tabs button{padding:10px 12px;font-size:14.5px;border-radius:10px;width:100%;text-align:left}
+  .tabs button svg{display:block;opacity:.75}
+  .tabs button:hover{background:var(--line2);color:var(--ink)}
+  .tabs button.on{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+  .tabs button.on svg{opacity:1}
+  .tabs .sep{height:1px;background:var(--line2);margin:8px 4px}
+  #saveState{margin:auto 0 0;padding:12px 8px 0;text-align:left}
+}
+/* 좁은 화면: 왼쪽 아이콘 탭 */
+@media(max-width:899px){
+  body{padding-left:68px}
+  .topbar{position:fixed;top:0;bottom:0;left:0;width:68px;flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:0;
+    border-bottom:0;border-right:1px solid var(--line);padding:10px 6px calc(10px + env(safe-area-inset-bottom));overflow-y:auto}
+  .brand{justify-content:center;padding-bottom:10px;border-bottom:1px solid var(--line2);margin-bottom:8px}
+  .brand > div:last-child{display:none}
+  .tabs{flex-direction:column;background:none;padding:0;gap:2px;overflow:visible}
+  .tabs button{flex-direction:column;gap:3px;padding:8px 2px;font-size:10.5px;width:100%;border-radius:10px}
+  .tabs button svg{display:block;width:20px;height:20px}
+  .tabs button.on{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+  .tabs .sep{height:1px;background:var(--line2);margin:6px 4px}
+  #saveState{margin:auto 0 0;padding-top:8px;text-align:center;font-size:10px;min-width:0}
+  main{padding:12px}
+}
+.pagehead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pagehead h2{font-size:21px;letter-spacing:-.4px;margin-right:6px}
+.pagehead .sp{flex:1}
+.pagehead #memoQ{width:200px}
+.sec{font-size:16px;margin:22px 0 10px}
+.sidelayout{display:grid;grid-template-columns:240px 1fr;gap:14px;align-items:start}
+@media(max-width:760px){.sidelayout{grid-template-columns:1fr}}
+.sidelist{display:flex;flex-direction:column;gap:2px;max-height:72vh;overflow:auto;padding:8px}
+.sidelist button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;display:flex;flex-direction:column}
+.sidelist button b{font-size:13.5px}
+.sidelist button small{font-size:11.5px;color:var(--muted)}
+.sidelist button.on{background:var(--accent-soft)}
+.sidelist button.on b{color:var(--accent)}
+@media(max-width:760px){.sidelist{max-height:240px}}
+.crit{background:var(--line2);border-radius:8px;padding:8px 10px;margin-top:10px;white-space:pre-wrap}
+table.evt td.enm{width:90px;font-weight:700}
+table.evt td.lv{width:1%;white-space:nowrap}
+table.evt td.p{width:46px}
+.budsum{display:grid;grid-template-columns:220px 1fr 1fr;gap:14px;align-items:end}
+@media(max-width:640px){.budsum{grid-template-columns:1fr 1fr}.budsum label{grid-column:1/-1}}
+.stat small{display:block;color:var(--muted);font-size:12.5px;font-weight:600}
+.stat b{font-size:22px;letter-spacing:-.5px}
+.stat b.neg{color:var(--danger)} .stat b.pos{color:var(--accent)}
+.bar{height:10px;border-radius:999px;background:var(--line2);overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.bar i.over{background:var(--danger)}
+.budadd{display:grid;grid-template-columns:150px 120px 1fr 130px 1fr auto;gap:8px}
+@media(max-width:860px){.budadd{grid-template-columns:1fr 1fr}.budadd #bItem,.budadd #bNote,.budadd .btn{grid-column:1/-1}.budadd .btn{justify-content:center}}
+table.budt td.amt,table.budt th.amt{text-align:right;white-space:nowrap}
+table.budt td.x{width:60px;text-align:right}
+table.budt tr.tot td{border-top:2px solid var(--line);border-bottom:0}
+.memogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.memogrid .card + .card{margin-top:0}
+.memo{display:flex;flex-direction:column;gap:8px}
+.memo.pin{border-color:var(--accent)}
+.memo .mt{flex:1;font-weight:800;border-color:transparent;padding-left:2px}
+.memo .mt:hover{border-color:var(--line)}
+.memo textarea{min-height:120px}
+table.roster td.nm{width:140px} table.roster td.ph{width:170px}
 
 main{max-width:1180px;margin:0 auto;padding:16px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
@@ -69,7 +139,7 @@ main{max-width:1180px;margin:0 auto;padding:16px}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .muted{color:var(--muted)}
 .small{font-size:12.5px}
-.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.btn{white-space:nowrap;border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{opacity:.9;color:#fff}
@@ -232,11 +302,16 @@ table.base input{width:100%;text-align:center;padding:6px 4px}
     <div><b>학급일지</b><small id="classLabel">학급 정보를 설정하세요</small></div>
   </div>
   <nav class="tabs" id="tabs">
-    <button data-view="log" class="on">일지</button>
-    <button data-view="cal">달력</button>
-    <button data-view="att">출결부</button>
-    <button data-view="stu">학생</button>
-    <button data-view="setup">설정</button>
+    <button data-view="att" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg><span>출결</span></button>
+    <button data-view="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h6M8 8h4"/></svg><span>일지</span></button>
+    <button data-view="roster"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21 20c0-2.6-1.6-4.8-4-5.6"/></svg><span>명렬표</span></button>
+    <button data-view="eval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><span>평가</span></button>
+    <button data-view="rec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h6M8 11h6"/></svg><span>누가기록</span></button>
+    <button data-view="budget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14.5h2"/></svg><span>예산사용</span></button>
+    <button data-view="memo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v12l-6 6H5z"/><path d="M13 21v-6h6"/></svg><span>메모</span></button>
+    <button data-view="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>달력</span></button>
+    <div class="sep"></div>
+    <button data-view="setup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>설정</span></button>
   </nav>
   <span id="saveState">저장됨</span>
 </header>
@@ -272,17 +347,21 @@ table.base input{width:100%;text-align:center;padding:6px 4px}
   </section>
   <div id="printHead"></div>
 
-  <section id="view-log"></section>
+  <section id="view-att"></section>
+  <section id="view-log" hidden></section>
+  <section id="view-roster" hidden></section>
+  <section id="view-eval" hidden></section>
+  <section id="view-rec" hidden></section>
+  <section id="view-budget" hidden></section>
+  <section id="view-memo" hidden></section>
   <section id="view-cal" hidden></section>
-  <section id="view-att" hidden></section>
-  <section id="view-stu" hidden></section>
   <section id="view-setup" hidden></section>
 </main>
 
 <div id="modalRoot"></div>
 
 <script>
-const APP_VER = '2026.11.03';
+const APP_VER = '2026.11.03c';
 const LSKEY = 'homeroom-journal-v1';
 const WEEK = ['일','월','화','수','목','금','토'];
 const TYPES = ['결석','지각','조퇴','결과'];
@@ -312,7 +391,10 @@ function defState(){
     students:[],
     timetable:{1:[],2:[],3:[],4:[],5:[]},
     days:{},
-    records:[]
+    records:[],
+    evals:[],
+    budget:{total:0, items:[]},
+    memos:[]
   };
 }
 function normalize(raw){
@@ -324,6 +406,9 @@ function normalize(raw){
   s.students = Array.isArray(raw.students) ? raw.students.filter(x => x && x.id) : [];
   s.records = Array.isArray(raw.records) ? raw.records.filter(x => x && x.id) : [];
   s.days = raw.days && typeof raw.days === 'object' ? raw.days : {};
+  s.evals = Array.isArray(raw.evals) ? raw.evals.filter(x => x && x.id) : [];
+  s.budget = {total:Number(raw.budget?.total) || 0, items:Array.isArray(raw.budget?.items) ? raw.budget.items.filter(x => x && x.id) : []};
+  s.memos = Array.isArray(raw.memos) ? raw.memos.filter(x => x && x.id) : [];
   s.periods = Math.min(9, Math.max(1, Number(raw.periods) || 6));
   return s;
 }
@@ -423,11 +508,12 @@ function headline(){
 }
 
 /* ---------- 화면 전환 ---------- */
-let view = 'log';
+let view = 'att';
+let attDate = TODAY;
 let logDate = TODAY;
 let calMonth = TODAY.slice(0,7);
 let attMonth = TODAY.slice(0,7);
-let curStu = '';
+let curStu = '*';
 function show(v){
   view = v;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.view === v));
@@ -438,7 +524,7 @@ function show(v){
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-view]'); if(b) show(b.dataset.view); });
 function render(){
   updateClassLabel();
-  ({log:renderLog, cal:renderCal, att:renderAtt, stu:renderStu, setup:renderSetup})[view]();
+  ({att:renderAtt, log:renderLog, roster:renderRoster, eval:renderEval, rec:renderRec, budget:renderBudget, memo:renderMemo, cal:renderCal, setup:renderSetup})[view]();
 }
 
 /* ---------- 모달 ---------- */
@@ -490,6 +576,15 @@ function openAtt(date, sid){
   });
 }
 
+function attGrid(date){
+  const list = students(), att = dayOf(date).att || {};
+  const counts = {}; for(const a of Object.values(att)) if(a) counts[a.type] = (counts[a.type] || 0) + 1;
+  return `<div class="attsum">
+      <span class="pill">재적 ${list.length}</span>
+      <span class="pill ok">출석 ${list.length - (counts['결석'] || 0)}</span>
+      ${[...TYPES,'출석인정'].filter(t => counts[t]).map(t => `<span class="pill t-${t}">${t} ${counts[t]}</span>`).join('')}
+    </div>`;
+}
 /* ---------- 누가기록 ---------- */
 function recItem(r, showStudent){
   return `<li><div class="meta">${esc(shortDate(r.date))}</div>
@@ -531,8 +626,6 @@ function renderLog(){
   const d = logDate, day = dayOf(d), dow = parseD(d).getDay();
   const list = students();
   const att = day.att || {};
-  const counts = {}; for(const a of Object.values(att)) if(a) counts[a.type] = (counts[a.type] || 0) + 1;
-  const absent = counts['결석'] || 0;
   const base = baseSubjects(d);
   const periods = day.periods || [];
   const recs = state.records.filter(r => r.date === d);
@@ -553,20 +646,11 @@ function renderLog(){
       <label class="chk" style="padding-bottom:8px"><input type="checkbox" data-f="holiday" ${day.holiday ? 'checked' : ''}> 휴업일</label>
     </div>
   </div>
-  <div class="grid2" style="margin-top:14px">
+  <div class="grid2 logtop" style="margin-top:14px">
     <div class="card">
-      <h3>출결 <span class="muted">학생을 누르면 결석·지각·조퇴·결과를 입력합니다</span></h3>
-      ${list.length ? `
-      <div class="attsum">
-        <span class="pill">재적 ${list.length}</span>
-        <span class="pill ok">출석 ${list.length - absent}</span>
-        ${[...TYPES,'출석인정'].filter(t => counts[t]).map(t => `<span class="pill t-${t}">${t} ${counts[t]}</span>`).join('')}
-      </div>
-      <div class="stugrid">${list.map(s => { const a = att[s.id]; return `
-        <button class="stu ${a ? 'has t-' + a.type : ''}" data-att="${esc(s.id)}">
-          <b>${esc(s.no ? s.no + ' ' : '')}${esc(s.name)}</b><small>${esc(a ? attText(a) + (a.note ? ' · ' + a.note : '') : '출석')}</small>
-        </button>`; }).join('')}</div>`
-      : `<p class="muted small">설정 → 명렬표에서 학생을 먼저 넣어 주세요.</p> <button class="btn sm" data-gosetup>명렬표 넣기</button>`}
+      <h3>출결 <span class="muted">${Object.keys(att).length ? Object.entries(att).filter(([,a]) => a).map(([sid,a]) => esc((stuById(sid)?.name || '') + ' ' + attText(a))).join(' · ') : '모두 출석'}</span></h3>
+      ${list.length ? attGrid(d) : ''}
+      <button class="btn sm noprint" data-toatt>출결 입력하기</button>
     </div>
     <div class="card">
       <h3>시간표 · 학습 내용 <span class="muted">과목은 기초 시간표에서 자동으로 채워집니다</span></h3>
@@ -593,8 +677,7 @@ function renderLog(){
 $('#view-log').addEventListener('click', e => {
   const go = e.target.closest('[data-go]');
   if(go){ const n = Number(go.dataset.go); logDate = n ? addDays(logDate, n) : TODAY; renderLog(); return; }
-  const a = e.target.closest('[data-att]'); if(a){ openAtt(logDate, a.dataset.att); return; }
-  if(e.target.closest('[data-gosetup]')) show('setup');
+  if(e.target.closest('[data-toatt]')){ attDate = logDate; attMonth = logDate.slice(0,7); show('att'); }
 });
 $('#view-log').addEventListener('change', e => {
   if(e.target.id === 'logDate' && e.target.value){ logDate = e.target.value; renderLog(); return; }
@@ -671,7 +754,25 @@ function renderAtt(){
   const yearS = attStats(syRange(sy)[0], attMonth + '-31');
   $('#printHead').textContent = headline() + ` ${y}년 ${mo}월 출결부`;
   const sumCells = (s, grp) => TYPES.map((t, i) => `<td class="sum ${i === 0 && grp ? 'grp' : ''} t-${t}">${s?.[t] || ''}</td>`).join('');
+  const ad = attDate, adw = parseD(ad).getDay(), aday = dayOf(ad), aatt = aday.att || {};
   el.innerHTML = `
+  <div class="daybar noprint">
+    <h2>${esc(korDate(ad))} <span class="dow-${adw}">${WEEK[adw]}요일</span> 출결</h2>
+    <button class="btn" data-ago="-1" aria-label="이전 날">◀</button>
+    <input type="date" id="attDateIn" value="${ad}" aria-label="날짜 선택">
+    <button class="btn" data-ago="1" aria-label="다음 날">▶</button>
+    <button class="btn" data-ago="0">오늘</button>
+  </div>
+  ${list.length ? `<div class="card noprint">
+    ${aday.holiday || aday.event ? `<p class="small" style="margin-bottom:8px;color:var(--danger);font-weight:700">${esc(aday.event || '휴업일')}${aday.holiday && aday.event ? ' · 휴업일' : ''}</p>` : ''}
+    ${attGrid(ad)}
+    <div class="stugrid">${list.map(s => { const a = aatt[s.id]; return `
+      <button class="stu ${a ? 'has t-' + a.type : ''}" data-att="${esc(s.id)}">
+        <b>${esc(s.no ? s.no + ' ' : '')}${esc(s.name)}</b><small>${esc(a ? attText(a) + (a.note ? ' · ' + a.note : '') : '출석')}</small>
+      </button>`; }).join('')}</div>
+    <p class="muted small" style="margin-top:10px">학생을 누르면 결석·지각·조퇴·결과와 사유를 입력합니다. 누르지 않은 학생은 출석입니다.</p>
+  </div>` : noStudents()}
+  <h3 class="sec noprint">월별 출결부</h3>
   <div class="monthbar">
     <button class="btn" data-m="-1" aria-label="이전 달">◀</button>
     <h2>${y}년 ${mo}월</h2>
@@ -703,22 +804,42 @@ function renderAtt(){
       <span>질지·미지·기지 = 지각</span><span>질조·미조·기조 = 조퇴</span><span>질과·미과·기과 = 결과</span><span>인 = 출석인정</span>
       <span>칸을 누르면 출결을 고칩니다 · 빨간 열은 휴업일</span>
     </div>`
-  : '<p class="muted">설정 → 명렬표에서 학생을 먼저 넣어 주세요.</p>'}
+  : '<p class="muted">명렬표에 학생을 넣으면 출결부가 만들어집니다.</p>'}
   </div>`;
 }
+$('#view-att').addEventListener('change', e => {
+  if(e.target.id === 'attDateIn' && e.target.value){ attDate = e.target.value; attMonth = attDate.slice(0,7); renderAtt(); }
+});
 $('#view-att').addEventListener('click', e => {
   const m = e.target.closest('[data-m]');
   if(m){ const n = Number(m.dataset.m); attMonth = n ? monthShift(attMonth, n) : TODAY.slice(0,7); renderAtt(); return; }
+  const go = e.target.closest('[data-ago]');
+  if(go){ const n = Number(go.dataset.ago); attDate = n ? addDays(attDate, n) : TODAY; attMonth = attDate.slice(0,7); renderAtt(); return; }
+  const st = e.target.closest('[data-att]'); if(st){ openAtt(attDate, st.dataset.att); return; }
   const c = e.target.closest('td[data-d]'); if(c){ openAtt(c.dataset.d, c.dataset.s); return; }
   if(e.target.id === 'attCsv') exportAttCsv();
 });
 
-/* ---------- 학생 ---------- */
-function renderStu(){
-  const el = $('#view-stu');
+/* ---------- 누가기록 화면 ---------- */
+function renderRec(){
+  const el = $('#view-rec');
   const list = students();
-  if(!list.length){ el.innerHTML = '<div class="card"><p class="muted">설정 → 명렬표에서 학생을 먼저 넣어 주세요.</p></div>'; return; }
-  if(!stuById(curStu)) curStu = list[0].id;
+  if(!list.length){ el.innerHTML = '<div class="pagehead"><h2>누가기록</h2></div>' + noStudents(); return; }
+  if(curStu !== '*' && !stuById(curStu)) curStu = '*';
+  const listHtml = `<div class="card stulist" role="list"><button class="${curStu === '*' ? 'on' : ''}" data-stu="*"><span>·</span>전체 기록</button>${list.map(x => `<button class="${x.id === curStu ? 'on' : ''}" data-stu="${esc(x.id)}"><span>${esc(x.no || '')}</span>${esc(x.name)}</button>`).join('')}</div>`;
+  if(curStu === '*'){
+    const all = [...state.records].sort((a,b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+    $('#printHead').textContent = headline() + ' 누가기록';
+    el.innerHTML = `<div class="pagehead"><h2>누가기록</h2><span class="pill">${all.length}건</span><span class="sp"></span><button class="btn noprint" id="recCsv">CSV 내보내기</button><button class="btn noprint" onclick="print()">인쇄</button></div>
+    <div class="stulayout">${listHtml}
+      <div class="card" id="stuRecs">
+        <h3>전체 학생 기록 <span class="muted">학생을 고르면 그 학생의 출결 집계와 기록만 봅니다</span></h3>
+        ${all.length ? `<ul class="reclist">${all.map(r => recItem(r, true)).join('')}</ul>` : '<p class="muted small">아직 기록이 없습니다.</p>'}
+        ${recForm({})}
+      </div></div>`;
+    bindRecForm($('#stuRecs'), {});
+    return;
+  }
   const s = stuById(curStu);
   const sy = state.info.year;
   const [from, to] = syRange(Number(sy));
@@ -727,8 +848,8 @@ function renderStu(){
   const recs = state.records.filter(r => r.sid === s.id).sort((a,b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
   $('#printHead').textContent = headline() + ` · ${stuLabel(s)} 누가기록`;
   el.innerHTML = `
-  <div class="stulayout">
-    <div class="card stulist" role="list">${list.map(x => `<button class="${x.id === s.id ? 'on' : ''}" data-stu="${esc(x.id)}"><span>${esc(x.no || '')}</span>${esc(x.name)}</button>`).join('')}</div>
+  <div class="pagehead"><h2>누가기록</h2></div>
+  <div class="stulayout">${listHtml}
     <div>
       <div class="card">
         <div class="row" style="justify-content:space-between">
@@ -754,8 +875,306 @@ function renderStu(){
   </div>`;
   bindRecForm($('#stuRecs'), {sid:s.id});
 }
-$('#view-stu').addEventListener('click', e => {
-  const b = e.target.closest('[data-stu]'); if(b){ curStu = b.dataset.stu; renderStu(); }
+$('#view-rec').addEventListener('click', e => {
+  const b = e.target.closest('[data-stu]'); if(b){ curStu = b.dataset.stu; renderRec(); }
+  if(e.target.id === 'recCsv') exportRecCsv();
+});
+
+/* ---------- 명렬표 ---------- */
+function noStudents(){
+  return `<div class="card"><p class="muted">명렬표에 학생을 먼저 넣어 주세요.</p><div class="row" style="margin-top:8px"><button class="btn primary" data-goroster>명렬표 넣기</button></div></div>`;
+}
+document.addEventListener('click', e => { if(e.target.closest('[data-goroster]')) show('roster'); });
+function renderRoster(){
+  const el = $('#view-roster');
+  const list = students();
+  const m = list.filter(s => s.gender === '남').length, f = list.filter(s => s.gender === '여').length;
+  $('#printHead').textContent = headline() + ' 명렬표';
+  el.innerHTML = `
+  <div class="pagehead"><h2>명렬표</h2><span class="pill">재적 ${list.length}</span>${m ? `<span class="pill">남 ${m}</span>` : ''}${f ? `<span class="pill">여 ${f}</span>` : ''}
+    <span class="sp"></span><button class="btn noprint" onclick="print()">인쇄</button></div>
+  <div class="card">
+    <div class="tablewrap"><table class="roster"><thead><tr><th>번호</th><th>이름</th><th>성별</th><th>보호자 연락처</th><th>비고</th><th></th></tr></thead><tbody>
+    ${list.map(s => `<tr data-sid="${esc(s.id)}">
+      <td class="no"><input type="number" data-s="no" value="${esc(s.no)}" min="1" aria-label="번호"></td>
+      <td class="nm"><input type="text" data-s="name" value="${esc(s.name)}" maxlength="20" aria-label="이름"></td>
+      <td class="g"><select data-s="gender" aria-label="성별"><option value=""></option><option ${s.gender === '남' ? 'selected' : ''}>남</option><option ${s.gender === '여' ? 'selected' : ''}>여</option></select></td>
+      <td class="ph"><input type="text" data-s="phone" value="${esc(s.phone)}" maxlength="30" inputmode="tel" aria-label="보호자 연락처"></td>
+      <td><input type="text" data-s="note" value="${esc(s.note)}" maxlength="100" aria-label="비고"></td>
+      <td class="x"><button class="btn sm ghost danger noprint" data-delstu aria-label="학생 지우기">✕</button></td></tr>`).join('')}
+    </tbody></table></div>
+    ${list.length ? '' : '<p class="muted small" style="margin-top:8px">아직 학생이 없습니다. 한 명씩 추가하거나 아래에서 엑셀 내용을 붙여넣으세요.</p>'}
+    <div class="row noprint" style="margin-top:10px"><button class="btn" id="addStu">학생 추가</button></div>
+    <details class="noprint" style="margin-top:12px" ${list.length ? '' : 'open'}>
+      <summary class="small" style="cursor:pointer;font-weight:700">엑셀에서 붙여넣기로 한 번에 넣기</summary>
+      <p class="muted small" style="margin:6px 0">한 줄에 한 명씩 «번호 이름 성별» 순서로 붙여넣으세요. 엑셀 칸을 복사해도 됩니다. 같은 번호가 있으면 이름·성별을 고칩니다.</p>
+      <textarea id="pasteRoster" placeholder="1	김하준	남&#10;2	이서윤	여"></textarea>
+      <button class="btn primary" id="applyRoster" style="margin-top:6px">명렬표에 넣기</button>
+    </details>
+  </div>`;
+}
+$('#view-roster').addEventListener('input', e => {
+  const t = e.target;
+  if(!t.dataset.s) return;
+  const s = stuById(t.closest('tr').dataset.sid); if(!s) return;
+  s[t.dataset.s] = t.dataset.s === 'no' ? (t.value ? Number(t.value) : '') : t.value; save();
+});
+$('#view-roster').addEventListener('change', e => { if(e.target.dataset.s === 'no') renderRoster(); });
+$('#view-roster').addEventListener('click', e => {
+  const t = e.target;
+  if(t.id === 'addStu'){
+    const no = Math.max(0, ...state.students.map(s => Number(s.no) || 0)) + 1;
+    state.students.push({id:uid(), no, name:'', gender:'', phone:'', note:''});
+    save(); renderRoster();
+    $$('#view-roster table.roster input[data-s=name]').find(x => !x.value)?.focus();
+    return;
+  }
+  if(t.closest('[data-delstu]')){
+    const sid = t.closest('tr').dataset.sid, s = stuById(sid);
+    const n = state.records.filter(r => r.sid === sid).length;
+    if(!confirm(`${stuLabel(s)} 학생을 명렬표에서 지울까요?\n이 학생의 출결·평가·누가기록${n ? '(' + n + '건)' : ''}도 함께 지워집니다.`)) return;
+    state.students = state.students.filter(x => x.id !== sid);
+    state.records = state.records.filter(r => r.sid !== sid);
+    for(const day of Object.values(state.days)) if(day.att) delete day.att[sid];
+    for(const ev of state.evals) if(ev.marks) delete ev.marks[sid];
+    save(); renderRoster(); return;
+  }
+  if(t.id === 'applyRoster'){
+    const rows = $('#pasteRoster').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    let added = 0, changed = 0;
+    for(const line of rows){
+      const parts = line.split(/\t|,|\s+/).filter(Boolean);
+      let no = '', name = '', gender = '';
+      for(const p of parts){
+        if(!no && /^\d+$/.test(p)) no = Number(p);
+        else if(!gender && /^(남|여|남자|여자|M|F)$/i.test(p)) gender = /^(여|여자|F)$/i.test(p) ? '여' : '남';
+        else if(!name && /[가-힣A-Za-z]/.test(p)) name = p;
+      }
+      if(!name) continue;
+      const ex = no && state.students.find(s => Number(s.no) === no);
+      if(ex){ ex.name = name; if(gender) ex.gender = gender; changed++; }
+      else { state.students.push({id:uid(), no:no || '', name, gender, phone:'', note:''}); added++; }
+    }
+    save(); renderRoster();
+    alert(`${added}명 추가, ${changed}명 수정했습니다.`);
+  }
+});
+
+/* ---------- 평가 ---------- */
+const SCALES = {'3단계':['잘함','보통','노력요함'], '4단계':['매우잘함','잘함','보통','노력요함'], '상중하':['상','중','하'], '점수':null};
+const SUBJECTS = ['국어','수학','사회','과학','영어','도덕','체육','음악','미술','실과','바른 생활','슬기로운 생활','즐거운 생활','창의적 체험활동'];
+let curEval = '';
+const markOf = (ev, sid) => ev.marks?.[sid] || {};
+const hasMark = m => m.v !== undefined && m.v !== '';
+function renderEval(){
+  const el = $('#view-eval');
+  const list = students();
+  const evals = [...state.evals].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  if(!evals.find(x => x.id === curEval)) curEval = evals[0]?.id || '';
+  const ev = evals.find(x => x.id === curEval);
+  $('#printHead').textContent = headline() + (ev ? ` · ${ev.subject || ''} ${ev.title || ''} 평가` : ' 평가');
+  el.innerHTML = `
+  <div class="pagehead"><h2>평가</h2><span class="sp"></span><button class="btn primary noprint" id="newEval">평가 추가</button></div>
+  ${!list.length ? noStudents() : !evals.length ? `<div class="card"><p class="muted">«평가 추가»로 과목·평가 영역·척도를 정하면 학생별 결과와 관찰 내용을 적을 수 있습니다.</p></div>` : `
+  <div class="sidelayout">
+    <div class="card sidelist">${evals.map(x => `<button class="${x.id === curEval ? 'on' : ''}" data-ev="${esc(x.id)}">
+      <b>${esc(x.subject ? x.subject + ' · ' : '')}${esc(x.title || '(제목 없음)')}</b>
+      <small>${esc(x.date ? shortDate(x.date) + ' · ' : '')}${esc(x.scale)} · ${list.filter(s => hasMark(markOf(x, s.id))).length}/${list.length}명</small></button>`).join('')}</div>
+    <div class="card">${evalBody(ev, list)}</div>
+  </div>`}`;
+}
+function evalDist(ev, list){
+  const levels = SCALES[ev.scale];
+  const marked = list.map(s => markOf(ev, s.id)).filter(hasMark);
+  if(levels) return levels.map(l => `<span class="pill">${esc(l)} ${marked.filter(m => m.v === l).length}</span>`).join('') + `<span class="pill">미입력 ${list.length - marked.length}</span>`;
+  const nums = marked.map(m => Number(m.v)).filter(n => !isNaN(n));
+  return nums.length ? `<span class="pill">평균 ${(nums.reduce((a,b) => a+b, 0) / nums.length).toFixed(1)}</span><span class="pill">최고 ${Math.max(...nums)}</span><span class="pill">최저 ${Math.min(...nums)}</span><span class="pill">미입력 ${list.length - nums.length}</span>` : '<span class="pill">미입력</span>';
+}
+function evalBody(ev, list){
+  const levels = SCALES[ev.scale];
+  return `
+  <div class="row" style="justify-content:space-between;align-items:flex-start">
+    <div><h3 style="margin:0;font-size:18px">${esc(ev.subject ? ev.subject + ' · ' : '')}${esc(ev.title || '(제목 없음)')}</h3>
+      <div class="muted small">${esc(ev.date ? korDate(ev.date) : '')} · ${esc(ev.scale)}</div></div>
+    <div class="row noprint"><button class="btn sm" id="evEdit">수정</button><button class="btn sm" id="evCsv">CSV</button><button class="btn sm" onclick="print()">인쇄</button><button class="btn sm danger" id="evDel">삭제</button></div>
+  </div>
+  ${ev.criteria ? `<p class="small crit">${esc(ev.criteria)}</p>` : ''}
+  <div class="row" id="evDist" style="margin:10px 0">${evalDist(ev, list)}</div>
+  <div class="tablewrap"><table class="tt evt"><thead><tr><th style="text-align:center">번호</th><th>이름</th><th>결과</th><th>관찰 내용</th></tr></thead><tbody>
+  ${list.map(s => { const m = markOf(ev, s.id); return `<tr>
+    <td class="p">${esc(s.no || '')}</td><td class="enm">${esc(s.name)}</td>
+    <td class="lv">${levels ? `<div class="row" style="gap:4px;flex-wrap:nowrap">${levels.map(l => `<button class="btn sm ${m.v === l ? 'on' : ''}" data-lv="${esc(l)}" data-s="${esc(s.id)}">${esc(l)}</button>`).join('')}</div>`
+      : `<input type="number" data-score data-s="${esc(s.id)}" value="${esc(m.v ?? '')}" style="width:90px" aria-label="${esc(s.name)} 점수">`}</td>
+    <td><input type="text" data-enote data-s="${esc(s.id)}" value="${esc(m.note || '')}" maxlength="500" aria-label="${esc(s.name)} 관찰 내용"></td></tr>`; }).join('')}
+  </tbody></table></div>`;
+}
+function openEvalModal(ev){
+  const isNew = !ev;
+  ev = ev || {subject:'', title:'', date:TODAY, scale:'3단계', criteria:''};
+  openModal(`
+    <h3>${isNew ? '평가 추가' : '평가 수정'}</h3>
+    <div class="grp"><div>과목</div><input type="text" id="eSubj" list="subjList" value="${esc(ev.subject)}" maxlength="30" autofocus>
+      <datalist id="subjList">${SUBJECTS.map(s => `<option value="${esc(s)}">`).join('')}</datalist></div>
+    <div class="grp"><div>평가 영역 · 제목</div><input type="text" id="eTitle" value="${esc(ev.title)}" maxlength="80" placeholder="예: 분수의 덧셈 수행평가"></div>
+    <div class="grp"><div>날짜</div><input type="date" id="eDate" value="${esc(ev.date)}"></div>
+    <div class="grp"><div>척도</div><div class="row" id="eScale">${Object.keys(SCALES).map(k => `<button class="btn ${ev.scale === k ? 'on' : ''}" data-sc="${k}">${k === '점수' ? '점수' : SCALES[k].join('·')}</button>`).join('')}</div></div>
+    <div class="grp"><div>성취기준 · 평가 요소 <span class="muted">(선택)</span></div><textarea id="eCrit" maxlength="1000">${esc(ev.criteria)}</textarea></div>
+    <div class="acts"><button class="btn ghost" data-close>취소</button><button class="btn primary" id="eSave">저장</button></div>`,
+  m => {
+    let scale = ev.scale;
+    $('#eScale', m).onclick = e => { const b = e.target.closest('button'); if(!b) return; scale = b.dataset.sc; $$('#eScale button', m).forEach(x => x.classList.toggle('on', x === b)); };
+    $('[data-close]', m).onclick = closeModal;
+    $('#eSave', m).onclick = () => {
+      const title = $('#eTitle', m).value.trim(), subject = $('#eSubj', m).value.trim();
+      if(!title && !subject){ $('#eTitle', m).focus(); return; }
+      if(!isNew && scale !== ev.scale && Object.keys(ev.marks || {}).length && !confirm('척도를 바꾸면 입력한 결과가 맞지 않을 수 있습니다. 결과를 지우고 바꿀까요? (관찰 내용은 남습니다)')) return;
+      const target = isNew ? {id:uid(), marks:{}} : ev;
+      if(!isNew && scale !== ev.scale) for(const k of Object.keys(target.marks || {})) delete target.marks[k].v;
+      Object.assign(target, {subject, title, date:$('#eDate', m).value, scale, criteria:$('#eCrit', m).value.trim()});
+      if(isNew) state.evals.push(target);
+      curEval = target.id;
+      closeModal(); save(); renderEval();
+    };
+  });
+}
+function setMark(sid, key, value){
+  const ev = state.evals.find(x => x.id === curEval); if(!ev) return;
+  ev.marks ||= {};
+  const m = ev.marks[sid] ||= {};
+  if(value === '' || value === undefined) delete m[key]; else m[key] = value;
+  if(!Object.keys(m).length) delete ev.marks[sid];
+  save();
+  $('#evDist').innerHTML = evalDist(ev, students());
+}
+$('#view-eval').addEventListener('click', e => {
+  const t = e.target;
+  if(t.id === 'newEval'){ openEvalModal(); return; }
+  const b = t.closest('[data-ev]'); if(b){ curEval = b.dataset.ev; renderEval(); return; }
+  const lv = t.closest('[data-lv]');
+  if(lv){
+    const ev = state.evals.find(x => x.id === curEval);
+    const same = markOf(ev, lv.dataset.s).v === lv.dataset.lv;
+    setMark(lv.dataset.s, 'v', same ? '' : lv.dataset.lv);
+    $$(`[data-lv][data-s="${lv.dataset.s}"]`).forEach(x => x.classList.toggle('on', !same && x === lv));
+    return;
+  }
+  const ev = state.evals.find(x => x.id === curEval); if(!ev) return;
+  if(t.id === 'evEdit') openEvalModal(ev);
+  if(t.id === 'evDel' && confirm(`«${ev.title || ev.subject}» 평가와 입력한 결과를 지울까요?`)){ state.evals = state.evals.filter(x => x !== ev); save(); renderEval(); }
+  if(t.id === 'evCsv'){
+    const rows = [['과목', ev.subject], ['평가', ev.title], ['날짜', ev.date], ['척도', ev.scale], [], ['번호','이름','결과','관찰 내용']];
+    students().forEach(s => { const m = markOf(ev, s.id); rows.push([s.no, s.name, m.v ?? '', m.note || '']); });
+    download(`학급일지-평가-${ev.subject || ''}-${ev.title || ''}.csv`, csv(rows), 'text/csv;charset=utf-8');
+  }
+});
+$('#view-eval').addEventListener('input', e => {
+  const t = e.target;
+  if(t.hasAttribute('data-score')) setMark(t.dataset.s, 'v', t.value === '' ? '' : Number(t.value));
+  if(t.hasAttribute('data-enote')) setMark(t.dataset.s, 'note', t.value);
+});
+
+/* ---------- 예산사용 ---------- */
+const BUDGET_CATS = ['학급운영','학습자료','행사·체험','간식·다과','환경구성','상품·시상','기타'];
+const won = n => (Number(n) || 0).toLocaleString('ko-KR') + '원';
+function renderBudget(){
+  const el = $('#view-budget'), b = state.budget;
+  const items = [...b.items].sort((x,y) => x.date < y.date ? 1 : x.date > y.date ? -1 : 0);
+  const used = items.reduce((s,i) => s + (Number(i.amount) || 0), 0);
+  const total = Number(b.total) || 0, left = total - used, pct = total ? Math.min(100, used / total * 100) : 0;
+  const byCat = BUDGET_CATS.map(c => [c, items.filter(i => i.cat === c).reduce((s,i) => s + (Number(i.amount) || 0), 0)]).filter(x => x[1]);
+  $('#printHead').textContent = headline() + ' 학급 예산 사용 내역';
+  el.innerHTML = `
+  <div class="pagehead"><h2>예산사용</h2><span class="sp"></span><button class="btn noprint" id="budCsv">CSV 내보내기</button><button class="btn noprint" onclick="print()">인쇄</button></div>
+  <div class="card">
+    <div class="budsum">
+      <label class="f">예산 총액 (원)<input type="number" id="budTotal" value="${esc(b.total || '')}" min="0" step="1000" placeholder="예: 300000"></label>
+      <div class="stat"><small>사용</small><b>${won(used)}</b></div>
+      <div class="stat"><small>잔액</small><b class="${left < 0 ? 'neg' : 'pos'}">${won(left)}</b></div>
+    </div>
+    ${total ? `<div class="bar" role="img" aria-label="${pct.toFixed(0)}% 사용"><i style="width:${pct}%" class="${left < 0 ? 'over' : ''}"></i></div><p class="muted small" style="margin-top:4px">${pct.toFixed(1)}% 사용${left < 0 ? ' · 예산을 넘었습니다' : ''}</p>` : '<p class="muted small" style="margin-top:8px">예산 총액을 넣으면 잔액과 사용 비율이 나옵니다.</p>'}
+    ${byCat.length ? `<div class="row" style="margin-top:10px">${byCat.map(([c,v]) => `<span class="pill">${esc(c)} ${won(v)}</span>`).join('')}</div>` : ''}
+  </div>
+  <div class="card noprint">
+    <h3>사용 내역 추가</h3>
+    <div class="budadd">
+      <input type="date" id="bDate" value="${TODAY}" aria-label="날짜">
+      <select id="bCat" aria-label="구분">${BUDGET_CATS.map(c => `<option>${c}</option>`).join('')}</select>
+      <input type="text" id="bItem" placeholder="내용 (예: 학급 문구 구입)" maxlength="100">
+      <input type="number" id="bAmt" placeholder="금액" min="0" aria-label="금액">
+      <input type="text" id="bNote" placeholder="비고 (구입처 등)" maxlength="100">
+      <button class="btn primary" id="bAdd">추가</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>사용 내역 <span class="muted">${items.length}건</span></h3>
+    ${items.length ? `<div class="tablewrap"><table class="tt budt"><thead><tr><th>날짜</th><th>구분</th><th>내용</th><th class="amt">금액</th><th>비고</th><th></th></tr></thead><tbody>
+      ${items.map(i => `<tr><td>${esc(i.date)}</td><td>${esc(i.cat)}</td><td>${esc(i.item)}</td><td class="amt">${won(i.amount)}</td><td class="muted">${esc(i.note || '')}</td>
+        <td class="x"><button class="btn sm ghost danger noprint" data-delbud="${esc(i.id)}">지우기</button></td></tr>`).join('')}
+      <tr class="tot"><td colspan="3"><b>합계</b></td><td class="amt"><b>${won(used)}</b></td><td colspan="2"></td></tr>
+    </tbody></table></div>` : '<p class="muted small">아직 사용 내역이 없습니다.</p>'}
+  </div>`;
+}
+function addBudget(){
+  const amount = Number($('#bAmt').value), item = $('#bItem').value.trim();
+  if(!item){ $('#bItem').focus(); return; }
+  if(!amount){ $('#bAmt').focus(); return; }
+  state.budget.items.push({id:uid(), date:$('#bDate').value || TODAY, cat:$('#bCat').value, item, amount, note:$('#bNote').value.trim()});
+  save(); renderBudget(); $('#bItem').focus();
+}
+$('#view-budget').addEventListener('click', e => {
+  const t = e.target;
+  if(t.id === 'bAdd') addBudget();
+  if(t.id === 'budCsv'){
+    const rows = [['날짜','구분','내용','금액','비고']];
+    [...state.budget.items].sort((a,b) => a.date < b.date ? -1 : 1).forEach(i => rows.push([i.date, i.cat, i.item, i.amount, i.note || '']));
+    rows.push([], ['예산 총액','','',state.budget.total || 0], ['사용','','',state.budget.items.reduce((s,i) => s + (Number(i.amount) || 0), 0)]);
+    download(`학급일지-예산사용-${TODAY}.csv`, csv(rows), 'text/csv;charset=utf-8');
+  }
+  const d = t.closest('[data-delbud]');
+  if(d && confirm('이 사용 내역을 지울까요?')){ state.budget.items = state.budget.items.filter(i => i.id !== d.dataset.delbud); save(); renderBudget(); }
+});
+$('#view-budget').addEventListener('keydown', e => { if(e.key === 'Enter' && !e.isComposing && ['bItem','bAmt','bNote'].includes(e.target.id)){ e.preventDefault(); addBudget(); } });
+$('#view-budget').addEventListener('change', e => { if(e.target.id === 'budTotal'){ state.budget.total = Number(e.target.value) || 0; save(); renderBudget(); } });
+
+/* ---------- 메모 ---------- */
+let memoQ = '';
+const stamp = () => { const d = new Date(); return `${ymd(d)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function renderMemo(){
+  const el = $('#view-memo');
+  const q = memoQ.trim();
+  const memos = state.memos.filter(m => !q || `${m.title} ${m.text}`.includes(q))
+    .sort((a,b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (b.created || '').localeCompare(a.created || ''));
+  $('#printHead').textContent = headline() + ' 메모';
+  el.innerHTML = `
+  <div class="pagehead"><h2>메모</h2><input type="text" id="memoQ" class="noprint" placeholder="메모 검색" value="${esc(memoQ)}" aria-label="메모 검색"><span class="sp"></span><button class="btn primary noprint" id="newMemo">새 메모</button></div>
+  ${memos.length ? `<div class="memogrid">${memos.map(m => `<div class="card memo ${m.pin ? 'pin' : ''}" data-mid="${esc(m.id)}">
+    <div class="row" style="flex-wrap:nowrap"><input type="text" class="mt" data-mf="title" value="${esc(m.title)}" placeholder="제목" maxlength="80" aria-label="메모 제목">
+      <button class="btn sm ghost noprint ${m.pin ? 'on' : ''}" data-mpin title="위에 고정">${m.pin ? '고정됨' : '고정'}</button>
+      <button class="btn sm ghost danger noprint" data-mdel>지우기</button></div>
+    <textarea data-mf="text" placeholder="내용" maxlength="20000" aria-label="메모 내용">${esc(m.text)}</textarea>
+    <small class="muted">${esc(m.updated || '')}</small></div>`).join('')}</div>`
+  : `<div class="card"><p class="muted">${q ? '검색 결과가 없습니다.' : '학급 운영 아이디어, 회의 내용, 할 일 등을 자유롭게 적어 두세요.'}</p></div>`}`;
+}
+$('#view-memo').addEventListener('click', e => {
+  const t = e.target;
+  if(t.id === 'newMemo'){
+    const now = stamp();
+    state.memos.push({id:uid(), title:'', text:'', pin:false, created:now, updated:now});
+    memoQ = ''; save(); renderMemo(); $('#view-memo .memo .mt')?.focus(); return;
+  }
+  const card = t.closest('[data-mid]'); if(!card) return;
+  const m = state.memos.find(x => x.id === card.dataset.mid); if(!m) return;
+  if(t.closest('[data-mpin]')){ m.pin = !m.pin; save(); renderMemo(); }
+  if(t.closest('[data-mdel]') && (!(m.title || m.text) || confirm('이 메모를 지울까요?'))){ state.memos = state.memos.filter(x => x !== m); save(); renderMemo(); }
+});
+$('#view-memo').addEventListener('input', e => {
+  const t = e.target;
+  if(t.id === 'memoQ'){ memoQ = t.value; renderMemo(); const q = $('#memoQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); return; }
+  const card = t.closest('[data-mid]'); if(!card || !t.dataset.mf) return;
+  const m = state.memos.find(x => x.id === card.dataset.mid); if(!m) return;
+  m[t.dataset.mf] = t.value; m.updated = stamp();
+  $('small', card).textContent = m.updated;
+  save();
 });
 
 /* ---------- 설정 ---------- */
@@ -766,8 +1185,9 @@ function renderSetup(){
   let legacy = false;
   try{ legacy = window.HRCloud?.active && !!localStorage.getItem(LSKEY); }catch(e){}
   el.innerHTML = `
+  <div class="pagehead"><h2>설정</h2></div>
   <div class="card">
-    <h3>1. 학급 정보</h3>
+    <h3>학급 정보</h3>
     <div class="form">
       <label class="f">학년도<input type="number" data-i="year" value="${esc(i.year)}" min="2000" max="2100"></label>
       <label class="f">학교<input type="text" data-i="school" value="${esc(i.school)}" maxlength="40"></label>
@@ -777,25 +1197,7 @@ function renderSetup(){
     </div>
   </div>
   <div class="card">
-    <h3>2. 명렬표 <span class="muted">${state.students.length}명</span></h3>
-    <table class="roster"><thead><tr><th>번호</th><th>이름</th><th>성별</th><th>비고</th><th></th></tr></thead><tbody>
-    ${students().map(s => `<tr data-sid="${esc(s.id)}">
-      <td class="no"><input type="number" data-s="no" value="${esc(s.no)}" min="1" aria-label="번호"></td>
-      <td><input type="text" data-s="name" value="${esc(s.name)}" maxlength="20" aria-label="이름"></td>
-      <td class="g"><select data-s="gender" aria-label="성별"><option value=""></option><option ${s.gender === '남' ? 'selected' : ''}>남</option><option ${s.gender === '여' ? 'selected' : ''}>여</option></select></td>
-      <td><input type="text" data-s="note" value="${esc(s.note)}" maxlength="100" aria-label="비고"></td>
-      <td class="x"><button class="btn sm ghost danger" data-delstu aria-label="학생 지우기">✕</button></td></tr>`).join('')}
-    </tbody></table>
-    <div class="row" style="margin-top:10px"><button class="btn" id="addStu">학생 추가</button></div>
-    <details style="margin-top:12px">
-      <summary class="small" style="cursor:pointer;font-weight:700">엑셀에서 붙여넣기로 한 번에 넣기</summary>
-      <p class="muted small" style="margin:6px 0">한 줄에 한 명씩 «번호 이름 성별» 순서로 붙여넣으세요. 엑셀 칸을 복사해도 됩니다. 같은 번호가 있으면 이름·성별을 고칩니다.</p>
-      <textarea id="pasteRoster" placeholder="1	김하준	남&#10;2	이서윤	여"></textarea>
-      <button class="btn primary" id="applyRoster" style="margin-top:6px">명렬표에 넣기</button>
-    </details>
-  </div>
-  <div class="card">
-    <h3>3. 기초 시간표 <span class="muted">일지의 과목 칸에 자동으로 채워집니다</span></h3>
+    <h3>기초 시간표 <span class="muted">일지의 과목 칸에 자동으로 채워집니다</span></h3>
     <div class="row" style="margin-bottom:8px"><label class="chk">하루 교시 수
       <select id="periods">${[4,5,6,7,8].map(n => `<option ${state.periods === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
     <div class="tablewrap"><table class="base"><thead><tr><th>교시</th>${[1,2,3,4,5].map(w => `<th>${WEEK[w]}</th>`).join('')}</tr></thead><tbody>
@@ -803,7 +1205,7 @@ function renderSetup(){
     </tbody></table></div>
   </div>
   <div class="card">
-    <h3>4. 데이터</h3>
+    <h3>데이터</h3>
     <p class="muted small" style="margin-bottom:10px">로그인하면 학생 이름을 포함한 학급일지가 내 Google 계정의 온라인 저장소에 저장됩니다. 로그인하지 않으면 이 브라우저에만 저장됩니다.</p>
     <div class="row">
       <button class="btn" id="expBackup">백업 파일 내보내기</button>
@@ -820,10 +1222,6 @@ function renderSetup(){
 $('#view-setup').addEventListener('input', e => {
   const t = e.target;
   if(t.dataset.i){ state.info[t.dataset.i] = t.dataset.i === 'year' ? (Number(t.value) || schoolYearOf(TODAY)) : t.value; save(); updateClassLabel(); return; }
-  if(t.dataset.s){
-    const s = stuById(t.closest('tr').dataset.sid); if(!s) return;
-    s[t.dataset.s] = t.dataset.s === 'no' ? (t.value ? Number(t.value) : '') : t.value; save(); return;
-  }
   if(t.dataset.tw){
     const w = t.dataset.tw, p = Number(t.dataset.tp);
     const arr = state.timetable[w] ||= [];
@@ -834,47 +1232,10 @@ $('#view-setup').addEventListener('input', e => {
 });
 $('#view-setup').addEventListener('change', e => {
   if(e.target.id === 'periods'){ state.periods = Number(e.target.value); save(); renderSetup(); }
-  if(e.target.dataset.s === 'no') renderSetup();
   if(e.target.id === 'impBackup' && e.target.files[0]) importBackup(e.target.files[0]);
 });
 $('#view-setup').addEventListener('click', e => {
   const t = e.target;
-  if(t.id === 'addStu'){
-    const no = Math.max(0, ...state.students.map(s => Number(s.no) || 0)) + 1;
-    state.students.push({id:uid(), no, name:'', gender:'', note:''});
-    save(); renderSetup();
-    $$('#view-setup table.roster input[data-s=name]').find(x => !x.value)?.focus();
-    return;
-  }
-  if(t.closest('[data-delstu]')){
-    const sid = t.closest('tr').dataset.sid, s = stuById(sid);
-    const n = state.records.filter(r => r.sid === sid).length;
-    if(!confirm(`${stuLabel(s)} 학생을 명렬표에서 지울까요?\n이 학생의 출결과 누가기록${n ? ' ' + n + '건' : ''}도 함께 지워집니다.`)) return;
-    state.students = state.students.filter(x => x.id !== sid);
-    state.records = state.records.filter(r => r.sid !== sid);
-    for(const day of Object.values(state.days)) if(day.att) delete day.att[sid];
-    save(); renderSetup(); return;
-  }
-  if(t.id === 'applyRoster'){
-    const rows = $('#pasteRoster').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    let added = 0, changed = 0;
-    for(const line of rows){
-      const parts = line.split(/\t|,|\s+/).filter(Boolean);
-      let no = '', name = '', gender = '';
-      for(const p of parts){
-        if(!no && /^\d+$/.test(p)) no = Number(p);
-        else if(!gender && /^(남|여|남자|여자|M|F)$/i.test(p)) gender = /^(여|여자|F)$/i.test(p) ? '여' : '남';
-        else if(!name && /[가-힣A-Za-z]/.test(p)) name = p;
-      }
-      if(!name) continue;
-      const ex = no && state.students.find(s => Number(s.no) === no);
-      if(ex){ ex.name = name; if(gender) ex.gender = gender; changed++; }
-      else { state.students.push({id:uid(), no:no || '', name, gender, note:''}); added++; }
-    }
-    save(); renderSetup();
-    alert(`${added}명 추가, ${changed}명 수정했습니다.`);
-    return;
-  }
   if(t.id === 'expBackup') exportBackup();
   if(t.id === 'expAtt') exportAttCsv(true);
   if(t.id === 'expRec') exportRecCsv();
@@ -926,7 +1287,7 @@ function exportRecCsv(){
 function refreshJournal(){
   clearTimeout(saveTimer);
   closeModal();
-  curStu = '';
+  curStu = '*'; curEval = ''; memoQ = '';
   render();
 }
 window.HRJournal = {
