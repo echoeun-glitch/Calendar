@@ -65,7 +65,20 @@ try {
   await page.locator('#pasteRoster').fill('1\t김하준\t남\n2\t이서윤\t여\n3\t박도윤\t남');
   await page.locator('#applyRoster').click();
   assert.equal(await page.locator('table.roster tbody tr').count(),3);
+  // 명렬표: 1열 번호, 2열 이름, 3열부터 체크 항목
+  assert.deepEqual((await page.locator('table.chk-t thead th').allInnerTexts()).slice(0,2),['번호','이름']);
+  assert.equal(await page.locator('table.chk-t [data-colt]').count(),5);
+  await page.locator('table.chk-t [data-colt]').first().fill('가정통신문');
+  await page.locator('table.chk-t tbody tr').nth(0).locator('input[type=checkbox]').first().check();
+  await page.locator('table.chk-t tbody tr').nth(2).locator('input[type=checkbox]').first().check();
+  assert.equal(await page.locator('table.chk-t tfoot td.ck').first().innerText(),'2/3');
+  await page.locator('#addCol').click();
+  assert.equal(await page.locator('table.chk-t [data-colt]').count(),6);
+  await page.locator('table.chk-t [data-delcol]').last().click();
+  assert.equal(await page.locator('table.chk-t [data-colt]').count(),5);
+  await page.locator('#stuInfo summary').click();
   await page.locator('table.roster tbody tr').first().locator('[data-s=phone]').fill('010-1234-5678');
+  if(process.env.HR_SCREENSHOT_DIR) await page.screenshot({path:process.env.HR_SCREENSHOT_DIR+'/8-roster.png',fullPage:true});
 
   // 출결 (첫 탭)
   await tab('출결');
@@ -128,7 +141,7 @@ try {
   assert.match(await page.locator(`[data-day="${logDay}"]`).innerText(),/결1/);
   await page.waitForTimeout(400);
   const local = await page.evaluate(()=>localStorage.getItem('homeroom-journal-v1'));
-  for(const t of ['리코더','통분','학급 문구','상담 일정표','010-1234-5678']) assert.ok(local.includes(t), t);
+  for(const t of ['리코더','통분','학급 문구','상담 일정표','010-1234-5678','가정통신문']) assert.ok(local.includes(t), t);
   if(process.env.HR_SCREENSHOT_DIR){
     const D=process.env.HR_SCREENSHOT_DIR;
     await tab('출결'); await page.screenshot({path:D+'/1-att.png',fullPage:true});

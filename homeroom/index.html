@@ -126,6 +126,23 @@ table.budt tr.tot td{border-top:2px solid var(--line);border-bottom:0}
 .memo .mt{flex:1;font-weight:800;border-color:transparent;padding-left:2px}
 .memo .mt:hover{border-color:var(--line)}
 .memo textarea{min-height:120px}
+table.chk-t{border-collapse:collapse;min-width:100%}
+table.chk-t th,table.chk-t td{border:1px solid var(--line);padding:3px 4px;text-align:center;vertical-align:middle}
+table.chk-t thead th{background:var(--line2)}
+table.chk-t th.no,table.chk-t td.no{width:64px}
+table.chk-t th.nm,table.chk-t td.nm{width:120px;text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+table.chk-t thead th.nm{background:var(--line2)}
+table.chk-t td.no input,table.chk-t td.nm input{width:100%;border-color:transparent;padding:5px 6px}
+table.chk-t td.no input:hover,table.chk-t td.nm input:hover{border-color:var(--line)}
+table.chk-t th.ck,table.chk-t td.ck{min-width:96px}
+table.chk-t .colh{display:flex;align-items:center;gap:2px}
+table.chk-t .colh input{flex:1;width:100%;min-width:64px;text-align:center;font-weight:700;border-color:transparent;background:transparent;padding:5px 4px}
+table.chk-t .colh input:hover{border-color:var(--line);background:var(--panel)}
+table.chk-t .colh .btn{padding:2px 5px}
+table.chk-t input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
+table.chk-t tbody tr:hover td{background:var(--accent-soft)}
+table.chk-t tfoot td{font-size:12.5px;font-weight:700;color:var(--muted)}
+@media print{table.chk-t th.nm,table.chk-t td.nm{position:static}}
 table.roster td.nm{width:140px} table.roster td.ph{width:170px}
 
 main{max-width:1180px;margin:0 auto;padding:16px}
@@ -361,7 +378,7 @@ table.base input{width:100%;text-align:center;padding:6px 4px}
 <div id="modalRoot"></div>
 
 <script>
-const APP_VER = '2026.11.03c';
+const APP_VER = '2026.11.03d';
 const LSKEY = 'homeroom-journal-v1';
 const WEEK = ['일','월','화','수','목','금','토'];
 const TYPES = ['결석','지각','조퇴','결과'];
@@ -394,7 +411,8 @@ function defState(){
     records:[],
     evals:[],
     budget:{total:0, items:[]},
-    memos:[]
+    memos:[],
+    checks:{cols:Array.from({length:5}, () => ({id:uid(), title:''})), marks:{}}
   };
 }
 function normalize(raw){
@@ -409,6 +427,7 @@ function normalize(raw){
   s.evals = Array.isArray(raw.evals) ? raw.evals.filter(x => x && x.id) : [];
   s.budget = {total:Number(raw.budget?.total) || 0, items:Array.isArray(raw.budget?.items) ? raw.budget.items.filter(x => x && x.id) : []};
   s.memos = Array.isArray(raw.memos) ? raw.memos.filter(x => x && x.id) : [];
+  s.checks = raw.checks && Array.isArray(raw.checks.cols) ? {cols:raw.checks.cols.filter(x => x && x.id), marks:raw.checks.marks && typeof raw.checks.marks === 'object' ? raw.checks.marks : {}} : defState().checks;
   s.periods = Math.min(9, Math.max(1, Number(raw.periods) || 6));
   return s;
 }
@@ -885,34 +904,81 @@ function noStudents(){
   return `<div class="card"><p class="muted">명렬표에 학생을 먼저 넣어 주세요.</p><div class="row" style="margin-top:8px"><button class="btn primary" data-goroster>명렬표 넣기</button></div></div>`;
 }
 document.addEventListener('click', e => { if(e.target.closest('[data-goroster]')) show('roster'); });
+function checkCount(col){ const m = state.checks.marks[col.id] || {}; return students().filter(s => m[s.id]).length; }
 function renderRoster(){
   const el = $('#view-roster');
   const list = students();
+  const cols = state.checks.cols;
   const m = list.filter(s => s.gender === '남').length, f = list.filter(s => s.gender === '여').length;
   $('#printHead').textContent = headline() + ' 명렬표';
   el.innerHTML = `
   <div class="pagehead"><h2>명렬표</h2><span class="pill">재적 ${list.length}</span>${m ? `<span class="pill">남 ${m}</span>` : ''}${f ? `<span class="pill">여 ${f}</span>` : ''}
-    <span class="sp"></span><button class="btn noprint" onclick="print()">인쇄</button></div>
+    <span class="sp"></span><button class="btn noprint" id="addCol">체크 항목 추가</button><button class="btn noprint" onclick="print()">인쇄</button></div>
   <div class="card">
-    <div class="tablewrap"><table class="roster"><thead><tr><th>번호</th><th>이름</th><th>성별</th><th>보호자 연락처</th><th>비고</th><th></th></tr></thead><tbody>
+    ${list.length ? `<div class="tablewrap"><table class="chk-t">
+      <thead><tr><th class="no">번호</th><th class="nm">이름</th>
+        ${cols.map(c => `<th class="ck"><div class="colh"><input type="text" data-colt="${esc(c.id)}" value="${esc(c.title)}" placeholder="항목" maxlength="20" aria-label="체크 항목 이름"><button class="btn sm ghost danger noprint" data-delcol="${esc(c.id)}" title="이 항목 지우기" aria-label="항목 지우기">✕</button></div></th>`).join('')}
+      </tr></thead>
+      <tbody>
+      ${list.map(s => `<tr data-sid="${esc(s.id)}"><td class="no"><input type="number" data-s="no" value="${esc(s.no)}" min="1" aria-label="번호"></td>
+        <td class="nm"><input type="text" data-s="name" value="${esc(s.name)}" maxlength="20" aria-label="이름"></td>
+        ${cols.map(c => `<td class="ck"><input type="checkbox" data-ck="${esc(c.id)}" ${state.checks.marks[c.id]?.[s.id] ? 'checked' : ''} aria-label="${esc(s.name)} ${esc(c.title || '항목')}"></td>`).join('')}</tr>`).join('')}
+      </tbody>
+      ${cols.length ? `<tfoot><tr><td colspan="2" class="nm"><b>체크</b></td>${cols.map(c => `<td class="ck" data-cnt="${esc(c.id)}">${checkCount(c)}/${list.length}</td>`).join('')}</tr></tfoot>` : ''}
+    </table></div>
+    <p class="muted small noprint" style="margin-top:8px">첫 줄에 항목(예: 가정통신문 회수, 우유 신청, 과제 제출)을 적고, 학생마다 체크합니다. 항목을 지우면 그 칸의 체크도 지워집니다.</p>`
+    : '<p class="muted small">아직 학생이 없습니다. 아래 «학생 추가 · 정보»에서 한 명씩 추가하거나 엑셀 내용을 붙여넣으세요.</p>'}
+  </div>
+  <details class="card noprint" id="stuInfo" ${list.length ? '' : 'open'}>
+    <summary style="cursor:pointer;font-weight:800">학생 추가 · 정보 (성별, 보호자 연락처, 비고)</summary>
+    <div class="tablewrap" style="margin-top:10px"><table class="roster"><thead><tr><th>번호</th><th>이름</th><th>성별</th><th>보호자 연락처</th><th>비고</th><th></th></tr></thead><tbody>
     ${list.map(s => `<tr data-sid="${esc(s.id)}">
       <td class="no"><input type="number" data-s="no" value="${esc(s.no)}" min="1" aria-label="번호"></td>
       <td class="nm"><input type="text" data-s="name" value="${esc(s.name)}" maxlength="20" aria-label="이름"></td>
       <td class="g"><select data-s="gender" aria-label="성별"><option value=""></option><option ${s.gender === '남' ? 'selected' : ''}>남</option><option ${s.gender === '여' ? 'selected' : ''}>여</option></select></td>
       <td class="ph"><input type="text" data-s="phone" value="${esc(s.phone)}" maxlength="30" inputmode="tel" aria-label="보호자 연락처"></td>
       <td><input type="text" data-s="note" value="${esc(s.note)}" maxlength="100" aria-label="비고"></td>
-      <td class="x"><button class="btn sm ghost danger noprint" data-delstu aria-label="학생 지우기">✕</button></td></tr>`).join('')}
+      <td class="x"><button class="btn sm ghost danger" data-delstu aria-label="학생 지우기">✕</button></td></tr>`).join('')}
     </tbody></table></div>
-    ${list.length ? '' : '<p class="muted small" style="margin-top:8px">아직 학생이 없습니다. 한 명씩 추가하거나 아래에서 엑셀 내용을 붙여넣으세요.</p>'}
-    <div class="row noprint" style="margin-top:10px"><button class="btn" id="addStu">학생 추가</button></div>
-    <details class="noprint" style="margin-top:12px" ${list.length ? '' : 'open'}>
-      <summary class="small" style="cursor:pointer;font-weight:700">엑셀에서 붙여넣기로 한 번에 넣기</summary>
-      <p class="muted small" style="margin:6px 0">한 줄에 한 명씩 «번호 이름 성별» 순서로 붙여넣으세요. 엑셀 칸을 복사해도 됩니다. 같은 번호가 있으면 이름·성별을 고칩니다.</p>
-      <textarea id="pasteRoster" placeholder="1	김하준	남&#10;2	이서윤	여"></textarea>
-      <button class="btn primary" id="applyRoster" style="margin-top:6px">명렬표에 넣기</button>
-    </details>
-  </div>`;
+    <div class="row" style="margin-top:10px"><button class="btn" id="addStu">학생 추가</button></div>
+    <p class="small" style="margin:14px 0 6px;font-weight:700">엑셀에서 붙여넣기로 한 번에 넣기</p>
+    <p class="muted small" style="margin-bottom:6px">한 줄에 한 명씩 «번호 이름 성별» 순서로 붙여넣으세요. 엑셀 칸을 복사해도 됩니다. 같은 번호가 있으면 이름·성별을 고칩니다.</p>
+    <textarea id="pasteRoster" placeholder="1	김하준	남&#10;2	이서윤	여"></textarea>
+    <button class="btn primary" id="applyRoster" style="margin-top:6px">명렬표에 넣기</button>
+  </details>`;
 }
+$('#view-roster').addEventListener('change', e => {
+  const t = e.target;
+  if(t.dataset.ck){
+    const sid = t.closest('tr').dataset.sid, m = state.checks.marks[t.dataset.ck] ||= {};
+    if(t.checked) m[sid] = true; else delete m[sid];
+    const col = state.checks.cols.find(c => c.id === t.dataset.ck);
+    const cell = $(`[data-cnt="${t.dataset.ck}"]`); if(cell && col) cell.textContent = `${checkCount(col)}/${students().length}`;
+    save();
+  }
+});
+$('#view-roster').addEventListener('input', e => {
+  const t = e.target;
+  if(t.dataset.colt){ const c = state.checks.cols.find(x => x.id === t.dataset.colt); if(c){ c.title = t.value; save(); } }
+});
+$('#view-roster').addEventListener('click', e => {
+  const t = e.target;
+  if(t.id === 'addCol'){
+    state.checks.cols.push({id:uid(), title:''});
+    save(); renderRoster();
+    $$('#view-roster [data-colt]').at(-1)?.focus();
+    return;
+  }
+  const d = t.closest('[data-delcol]');
+  if(d){
+    const c = state.checks.cols.find(x => x.id === d.dataset.delcol); if(!c) return;
+    const n = checkCount(c);
+    if(n && !confirm(`«${c.title || '항목'}» 항목과 체크 ${n}개를 지울까요?`)) return;
+    state.checks.cols = state.checks.cols.filter(x => x !== c);
+    delete state.checks.marks[c.id];
+    save(); renderRoster();
+  }
+});
 $('#view-roster').addEventListener('input', e => {
   const t = e.target;
   if(!t.dataset.s) return;
@@ -926,7 +992,7 @@ $('#view-roster').addEventListener('click', e => {
     const no = Math.max(0, ...state.students.map(s => Number(s.no) || 0)) + 1;
     state.students.push({id:uid(), no, name:'', gender:'', phone:'', note:''});
     save(); renderRoster();
-    $$('#view-roster table.roster input[data-s=name]').find(x => !x.value)?.focus();
+    $('#stuInfo').open = true; $$('#view-roster table.roster input[data-s=name]').find(x => !x.value)?.focus();
     return;
   }
   if(t.closest('[data-delstu]')){
@@ -937,6 +1003,7 @@ $('#view-roster').addEventListener('click', e => {
     state.records = state.records.filter(r => r.sid !== sid);
     for(const day of Object.values(state.days)) if(day.att) delete day.att[sid];
     for(const ev of state.evals) if(ev.marks) delete ev.marks[sid];
+    for(const m of Object.values(state.checks.marks)) delete m[sid];
     save(); renderRoster(); return;
   }
   if(t.id === 'applyRoster'){
