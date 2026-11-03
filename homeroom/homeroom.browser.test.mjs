@@ -138,8 +138,16 @@ try {
     await tab('메모'); await page.screenshot({path:D+'/5-memo.png'});
     await page.setViewportSize({width:390,height:844});
     await tab('출결'); await page.screenshot({path:D+'/6-mobile.png'});
+    await page.setViewportSize({width:820,height:1100});
+    await page.screenshot({path:D+'/7-tablet.png'});
     await page.setViewportSize({width:1280,height:900});
   }
+
+  // 휴대폰에서도 탭은 왼쪽
+  await page.setViewportSize({width:390,height:844});
+  const rail = await page.locator('#tabs').boundingBox();
+  assert.ok(rail.x < 10 && rail.width < 70 && rail.height > 500, 'tabs are a left rail on phones');
+  await page.setViewportSize({width:1280,height:900});
 
   // 로그인: 계정별 저장, 기존 일지 가져오기, 계정 분리
   await context.route('**/firebase-config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.HR_FIREBASE_CONFIG={apiKey:"t",authDomain:"t",projectId:"t",appId:"t"};'}));
