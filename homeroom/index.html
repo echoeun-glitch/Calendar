@@ -158,6 +158,7 @@ main{max-width:1180px;margin:0 auto;padding:16px}
 .small{font-size:12.5px}
 .btn{white-space:nowrap;border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 12px;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
 .btn:hover{border-color:var(--accent);color:var(--accent)}
+a.btn{text-decoration:none;color:inherit}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{opacity:.9;color:#fff}
 .btn.ghost{border-color:transparent;color:var(--muted)}
@@ -219,6 +220,46 @@ table.tt td.s{width:120px}
 .addrec.wide{grid-template-columns:150px 110px 1fr auto}
 @media(max-width:640px){.addrec,.addrec.wide{grid-template-columns:1fr 1fr}.addrec input[type=text]{grid-column:1/-1}.addrec .btn{grid-column:1/-1;justify-content:center}}
 
+/* 일지 머리 */
+.datehead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.dh-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+.yearpill{align-self:flex-start;margin-left:52px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px;border-radius:999px;padding:2px 12px}
+.dh-main{display:flex;align-items:center;gap:14px;position:relative}
+.dh-main svg{width:38px;height:38px;color:var(--accent);flex:none}
+.dh-date{border:0;background:none;font-size:42px;font-weight:900;letter-spacing:-1.5px;line-height:1.15;padding:0;color:var(--ink)}
+.dh-date small{font-size:24px;font-weight:700;letter-spacing:0;margin-left:2px;color:var(--ink)}
+.dh-date small.dow-0{color:var(--danger)} .dh-date small.dow-6{color:var(--info)}
+.dh-date:hover{color:var(--accent)}
+.dh-picker{position:absolute;left:52px;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+.dh-sub{margin-left:52px;color:var(--muted);font-size:14.5px;display:flex;align-items:center;gap:8px}
+.dh-sub b{color:var(--ink)}
+.help{width:22px;height:22px;border-radius:50%;border:0;background:var(--accent-soft);color:var(--accent);font-weight:900;font-size:12px;line-height:22px;padding:0}
+.dh-nav{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:640px){.dh-date{font-size:34px}.dh-date small{font-size:20px}.dh-main svg{width:30px;height:30px}.yearpill,.dh-sub{margin-left:44px}.dh-picker{left:44px}}
+.logtop{align-items:stretch}
+table.tt tr.morning td{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
+table.tt tr.morning td.p{font-size:12.5px}
+.mlabel{font-size:13px;font-weight:700;color:var(--accent)}
+table.tt select{width:100%}
+.gcal{display:flex;flex-direction:column}
+.gcal h3 .sp{flex:1}
+.gcal iframe{flex:1;width:100%;min-height:440px;border:1px solid var(--line2);border-radius:10px;background:#fff}
+.gcal > p{margin-top:6px}
+.gcal-empty{flex:1;min-height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:6px;border:1px dashed var(--line);border-radius:10px;padding:20px}
+.todos{list-style:none;display:flex;flex-direction:column;gap:4px}
+.todos li{display:flex;align-items:center;gap:8px}
+.todos input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none;cursor:pointer}
+.todos input[type=text]{flex:1;border-color:transparent;border-bottom:1px solid var(--line2);border-radius:0;padding:6px 2px}
+.todos input[type=text]:focus{outline:0;border-bottom-color:var(--accent)}
+.todos li.done input[type=text]{text-decoration:line-through;color:var(--muted)}
+.todos .btn{opacity:.5} .todos li:hover .btn{opacity:1}
+.helplist{margin:10px 0 0 18px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chipx{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 12px;font-size:13.5px;font-weight:600}
+.chipx button{border:0;background:none;color:var(--muted);width:22px;height:22px;border-radius:50%;font-size:11px}
+.chipx button:hover{background:var(--line2);color:var(--danger)}
+@media print{.gcal iframe{min-height:300px}.todos input[type=text]{border:0!important}}
+
 /* 달력 */
 .monthbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .monthbar h2{font-size:20px;min-width:140px;text-align:center}
@@ -277,7 +318,7 @@ table.roster td.no{width:70px} table.roster td.g{width:80px} table.roster td.x{w
 table.base{border-collapse:collapse;width:100%}
 table.base th,table.base td{border:1px solid var(--line2);padding:3px;text-align:center}
 table.base th{font-size:12px;color:var(--muted)}
-table.base input{width:100%;text-align:center;padding:6px 4px}
+table.base input,table.base select{width:100%;text-align:center;padding:6px 4px}
 
 /* 모달 */
 .overlay{position:fixed;inset:0;background:rgba(10,20,18,.45);display:grid;place-items:center;z-index:100;padding:16px}
@@ -319,8 +360,8 @@ table.base input{width:100%;text-align:center;padding:6px 4px}
     <div><b>학급일지</b><small id="classLabel">학급 정보를 설정하세요</small></div>
   </div>
   <nav class="tabs" id="tabs">
-    <button data-view="att" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg><span>출결</span></button>
-    <button data-view="log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h6M8 8h4"/></svg><span>일지</span></button>
+    <button data-view="log" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h6M8 8h4"/></svg><span>일지</span></button>
+    <button data-view="att"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg><span>출결</span></button>
     <button data-view="roster"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21 20c0-2.6-1.6-4.8-4-5.6"/></svg><span>명렬표</span></button>
     <button data-view="eval"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><span>평가</span></button>
     <button data-view="rec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h6M8 11h6"/></svg><span>누가기록</span></button>
@@ -364,8 +405,8 @@ table.base input{width:100%;text-align:center;padding:6px 4px}
   </section>
   <div id="printHead"></div>
 
-  <section id="view-att"></section>
-  <section id="view-log" hidden></section>
+  <section id="view-log"></section>
+  <section id="view-att" hidden></section>
   <section id="view-roster" hidden></section>
   <section id="view-eval" hidden></section>
   <section id="view-rec" hidden></section>
@@ -378,13 +419,14 @@ table.base input{width:100%;text-align:center;padding:6px 4px}
 <div id="modalRoot"></div>
 
 <script>
-const APP_VER = '2026.11.03d';
+const APP_VER = '2026.11.04a';
 const LSKEY = 'homeroom-journal-v1';
 const WEEK = ['일','월','화','수','목','금','토'];
 const TYPES = ['결석','지각','조퇴','결과'];
 const REASONS = ['질병','미인정','기타'];
 const CATS = ['학습','생활','교우관계','상담','학부모','건강','칭찬','기타'];
 const SHORT = {결석:'결',지각:'지',조퇴:'조',결과:'과'};
+const DEFAULT_SUBJECTS = ['국어','수학','사회','과학','영어','도덕','체육','음악','미술','실과','바른 생활','슬기로운 생활','즐거운 생활','창체'];
 const WEATHER = ['','맑음','구름 조금','흐림','비','눈','바람','미세먼지'];
 
 const $ = (s, r=document) => r.querySelector(s);
@@ -405,6 +447,7 @@ function defState(){
     version:1,
     info:{year:schoolYearOf(TODAY), school:'', grade:'', cls:'', teacher:''},
     periods:6,
+    subjects:[...DEFAULT_SUBJECTS],
     students:[],
     timetable:{1:[],2:[],3:[],4:[],5:[]},
     days:{},
@@ -427,6 +470,14 @@ function normalize(raw){
   s.evals = Array.isArray(raw.evals) ? raw.evals.filter(x => x && x.id) : [];
   s.budget = {total:Number(raw.budget?.total) || 0, items:Array.isArray(raw.budget?.items) ? raw.budget.items.filter(x => x && x.id) : []};
   s.memos = Array.isArray(raw.memos) ? raw.memos.filter(x => x && x.id) : [];
+  s.subjects = Array.isArray(raw.subjects) ? raw.subjects.filter(x => typeof x === 'string' && x.trim()) : [...DEFAULT_SUBJECTS];
+  for(const day of Object.values(s.days)){
+    if(day && typeof day.guide === 'string' && !day.todos){
+      const lines = day.guide.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      if(lines.length) day.todos = lines.map(text => ({text, done:false}));
+      delete day.guide;
+    }
+  }
   s.checks = raw.checks && Array.isArray(raw.checks.cols) ? {cols:raw.checks.cols.filter(x => x && x.id), marks:raw.checks.marks && typeof raw.checks.marks === 'object' ? raw.checks.marks : {}} : defState().checks;
   s.periods = Math.min(9, Math.max(1, Number(raw.periods) || 6));
   return s;
@@ -452,6 +503,7 @@ function pruneDays(){
     if(d.att) for(const sid of Object.keys(d.att)) if(!d.att[sid]) delete d.att[sid];
     if(d.att && !Object.keys(d.att).length) delete d.att;
     if(d.periods && !d.periods.some(p => p && (p.subj || p.content))) delete d.periods;
+    if(d.todos && !d.todos.some(t => t && t.text)) delete d.todos;
     for(const f of Object.keys(d)) if(d[f] === '' || d[f] === false) delete d[f];
     if(!Object.keys(d).length) delete state.days[k];
   }
@@ -527,7 +579,7 @@ function headline(){
 }
 
 /* ---------- 화면 전환 ---------- */
-let view = 'att';
+let view = 'log';
 let attDate = TODAY;
 let logDate = TODAY;
 let calMonth = TODAY.slice(0,7);
@@ -640,73 +692,166 @@ document.addEventListener('click', e => {
 });
 
 /* ---------- 일지 ---------- */
-function renderLog(){
-  const el = $('#view-log');
-  const d = logDate, day = dayOf(d), dow = parseD(d).getDay();
-  const list = students();
-  const att = day.att || {};
-  const base = baseSubjects(d);
-  const periods = day.periods || [];
-  const recs = state.records.filter(r => r.date === d);
-  $('#printHead').textContent = headline() + ' 학급일지';
-  el.innerHTML = `
-  <div class="daybar">
-    <h2>${esc(korDate(d))} <span class="dow-${dow}">${WEEK[dow]}요일</span></h2>
-    <button class="btn" data-go="-1" aria-label="이전 날">◀</button>
-    <input type="date" id="logDate" value="${d}" aria-label="날짜 선택">
-    <button class="btn" data-go="1" aria-label="다음 날">▶</button>
-    <button class="btn" data-go="0">오늘</button>
-    <button class="btn" onclick="print()">인쇄</button>
-  </div>
-  <div class="card">
-    <div class="daymeta">
-      <label class="f">날씨<select data-f="weather">${WEATHER.map(w => `<option value="${w}" ${day.weather === w ? 'selected' : ''}>${w || '—'}</option>`).join('')}</select></label>
-      <label class="f">행사·학사일정<input type="text" data-f="event" value="${esc(day.event)}" placeholder="예: 현장체험학습, 학부모 상담주간" maxlength="200"></label>
-      <label class="chk" style="padding-bottom:8px"><input type="checkbox" data-f="holiday" ${day.holiday ? 'checked' : ''}> 휴업일</label>
+function subjOptions(cur){
+  const opts = ['', ...state.subjects];
+  if(cur && !opts.includes(cur)) opts.push(cur);
+  return opts.map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${o ? esc(o) : '—'}</option>`).join('');
+}
+function teacherName(){ return (state.info.teacher || window.HRUser?.displayName || '').trim(); }
+/* Google 캘린더: 설정에 넣은 캘린더 ID(여러 개는 쉼표) 또는 삽입 주소. 비우면 로그인한 계정의 기본 캘린더. */
+function gcalUrl(){
+  const raw = (state.info.gcal || '').trim();
+  const embed = raw.match(/https:\/\/calendar\.google\.com\/calendar\/embed\?[^"'\s<>]+/);
+  if(embed) return embed[0].replace(/&amp;/g, '&');
+  const ids = (raw ? raw.split(/[,\s]+/) : [window.HRUser?.email || '']).map(x => x.trim()).filter(Boolean);
+  if(!ids.length) return '';
+  ids.push('ko.south_korea#holiday@group.v.calendar.google.com');
+  const q = ids.map(id => 'src=' + encodeURIComponent(id)).join('&');
+  return `https://calendar.google.com/calendar/embed?${q}&ctz=Asia%2FSeoul&hl=ko&mode=MONTH&wkst=1&showTitle=0&showPrint=0&showTz=0&showCalendars=0&showTabs=1&showNav=1&showDate=1`;
+}
+function gcalCard(){
+  const url = gcalUrl();
+  return `<div class="card gcal" id="gcalCard">
+    <h3>달력 <span class="muted">Google 캘린더</span><span class="sp"></span>
+      <a class="btn sm noprint" href="https://calendar.google.com/calendar/r" target="_blank" rel="noopener">새 창에서 열기</a>
+      <button class="btn sm noprint" data-gcalset>연결 설정</button></h3>
+    ${url ? `<iframe src="${esc(url)}" title="Google 캘린더" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <p class="muted small noprint">일정이 비어 보이면 이 브라우저에서 같은 Google 계정에 로그인되어 있는지 확인하세요.</p>`
+    : `<div class="gcal-empty"><p>Google로 로그인하면 내 Google 캘린더가 여기에 보입니다.</p><p class="muted small">학교 캘린더 등 다른 캘린더는 «연결 설정»에서 캘린더 ID를 넣으세요.</p></div>`}
+  </div>`;
+}
+function todoHtml(day){
+  const items = day.todos || [];
+  const rows = [...items, null];
+  return rows.map((t, i) => `<li class="${t?.done ? 'done' : ''}">
+    <input type="checkbox" data-td="${i}" ${t?.done ? 'checked' : ''} ${t ? '' : 'disabled'} aria-label="완료">
+    <input type="text" data-tt="${i}" value="${esc(t?.text || '')}" placeholder="${t ? '' : '할 일 추가'}" maxlength="200" aria-label="할 일 ${i+1}">
+    ${t ? `<button class="btn sm ghost danger noprint" data-tdel="${i}" aria-label="지우기">✕</button>` : ''}</li>`).join('');
+}
+function logHeadHtml(d){
+  const dt = parseD(d), dow = dt.getDay(), name = teacherName();
+  return `<div class="datehead">
+    <div class="dh-left">
+      <span class="yearpill">${dt.getFullYear()}년</span>
+      <div class="dh-main">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <button class="dh-date" id="dhDate" title="날짜 고르기">${dt.getMonth()+1}월 ${dt.getDate()}일 <small class="dow-${dow}">(${WEEK[dow]})</small></button>
+        <input type="date" id="logDate" class="dh-picker" value="${d}" tabindex="-1" aria-label="날짜 선택">
+      </div>
+      <div class="dh-sub"><span>환영합니다, ${name ? `<b>${esc(name)}</b> ` : ''}선생님!</span><button class="help noprint" data-help aria-label="사용법">?</button></div>
     </div>
-  </div>
-  <div class="grid2 logtop" style="margin-top:14px">
-    <div class="card">
-      <h3>출결 <span class="muted">${Object.keys(att).length ? Object.entries(att).filter(([,a]) => a).map(([sid,a]) => esc((stuById(sid)?.name || '') + ' ' + attText(a))).join(' · ') : '모두 출석'}</span></h3>
-      ${list.length ? attGrid(d) : ''}
-      <button class="btn sm noprint" data-toatt>출결 입력하기</button>
+    <div class="dh-nav noprint">
+      <button class="btn" data-go="-1" aria-label="이전 날">◀</button>
+      <button class="btn" data-go="0">오늘</button>
+      <button class="btn" data-go="1" aria-label="다음 날">▶</button>
+      <button class="btn" onclick="print()">인쇄</button>
     </div>
-    <div class="card">
-      <h3>시간표 · 학습 내용 <span class="muted">과목은 기초 시간표에서 자동으로 채워집니다</span></h3>
-      <table class="tt"><thead><tr><th style="text-align:center">교시</th><th>과목</th><th>학습 내용</th></tr></thead><tbody>
-      ${Array.from({length:state.periods}, (_, i) => `<tr>
-        <td class="p">${i+1}</td>
-        <td class="s"><input type="text" data-p="${i}" data-k="subj" value="${esc(periods[i]?.subj || base[i] || '')}" placeholder="—" maxlength="30" aria-label="${i+1}교시 과목"></td>
-        <td><input type="text" data-p="${i}" data-k="content" value="${esc(periods[i]?.content || '')}" maxlength="300" aria-label="${i+1}교시 학습 내용"></td></tr>`).join('')}
-      </tbody></table>
-    </div>
-  </div>
-  <div class="grid2" style="margin-top:14px">
+  </div>`;
+}
+function logTTHtml(d){
+  const day = dayOf(d), base = baseSubjects(d), periods = day.periods || [];
+  return `<h3>시간표 · 학습 내용 <span class="muted">과목은 설정의 기초 시간표에서 자동으로 채워집니다</span></h3>
+    <table class="tt"><thead><tr><th style="text-align:center">교시</th><th>과목</th><th>학습 내용</th></tr></thead><tbody>
+    <tr class="morning"><td class="p">아침</td><td class="s"><span class="mlabel">아침 활동</span></td>
+      <td><input type="text" data-f="morning" value="${esc(day.morning)}" placeholder="예: 독서, 받아쓰기, 줄넘기" maxlength="300" aria-label="아침 활동"></td></tr>
+    ${Array.from({length:state.periods}, (_, i) => `<tr>
+      <td class="p">${i+1}</td>
+      <td class="s"><select data-p="${i}" data-k="subj" aria-label="${i+1}교시 과목">${subjOptions(periods[i]?.subj || base[i] || '')}</select></td>
+      <td><input type="text" data-p="${i}" data-k="content" value="${esc(periods[i]?.content || '')}" maxlength="300" aria-label="${i+1}교시 학습 내용"></td></tr>`).join('')}
+    </tbody></table>`;
+}
+function logRestHtml(d){
+  const day = dayOf(d), list = students(), recs = state.records.filter(r => r.date === d);
+  return `<div class="grid2" style="margin-top:14px">
     <div class="card"><h3>알림장 · 과제 · 준비물</h3><textarea data-f="notice" placeholder="내일 준비물, 가정통신문, 과제">${esc(day.notice)}</textarea></div>
-    <div class="card"><h3>생활지도 · 학급 특이사항</h3><textarea data-f="guide" placeholder="생활지도, 안전교육, 학급 회의, 보건실 이용 등">${esc(day.guide)}</textarea></div>
+    <div class="card"><h3>할일 <span class="muted">Enter로 다음 줄</span></h3><ul class="todos" id="todoList">${todoHtml(day)}</ul></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>메모</h3><textarea data-f="memo" placeholder="그 밖에 남길 내용">${esc(day.memo)}</textarea></div>
   <div class="card" style="margin-top:14px" id="logRecs">
-    <h3>오늘의 학생 기록 <span class="muted">학생 탭의 누가기록에 함께 모입니다</span></h3>
+    <h3>오늘의 학생 기록 <span class="muted">누가기록 탭에 함께 모입니다</span></h3>
     ${recs.length ? `<ul class="reclist">${recs.map(r => recItem(r, true)).join('')}</ul>` : '<p class="muted small">아직 기록이 없습니다.</p>'}
     ${list.length ? recForm({date:d}) : ''}
   </div>`;
-  if(list.length) bindRecForm($('#logRecs'), {date:d});
+}
+function renderLog(){
+  const el = $('#view-log'), d = logDate, url = gcalUrl();
+  $('#printHead').textContent = headline() + ' 학급일지';
+  // 날짜만 바뀔 때 Google 캘린더를 다시 불러오지 않도록 달력 칸은 그대로 둔다.
+  if(el.dataset.gcal === url && $('#gcalCard', el)){
+    $('#logHead', el).innerHTML = logHeadHtml(d);
+    $('#logTT', el).innerHTML = logTTHtml(d);
+    $('#logRest', el).innerHTML = logRestHtml(d);
+  } else {
+    el.dataset.gcal = url;
+    el.innerHTML = `<div id="logHead">${logHeadHtml(d)}</div>
+      <div class="grid2 logtop"><div class="card" id="logTT">${logTTHtml(d)}</div>${gcalCard()}</div>
+      <div id="logRest">${logRestHtml(d)}</div>`;
+  }
+  if(students().length) bindRecForm($('#logRecs'), {date:d});
+}
+function renderTodos(focusIdx){
+  $('#todoList').innerHTML = todoHtml(dayOf(logDate));
+  if(focusIdx !== undefined){ const t = $(`#todoList [data-tt="${focusIdx}"]`); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }
+}
+function openGcalModal(){
+  openModal(`
+    <h3>Google 캘린더 연결</h3>
+    <p class="muted small" style="margin-top:6px">비워 두면 로그인한 Google 계정의 기본 캘린더를 보여 줍니다${window.HRUser?.email ? ` (${esc(window.HRUser.email)})` : ''}.</p>
+    <div class="grp"><div>캘린더 ID 또는 삽입 코드</div>
+      <input type="text" id="gcalIn" value="${esc(state.info.gcal || '')}" placeholder="예: abc@group.calendar.google.com" autofocus></div>
+    <p class="muted small" style="margin-top:8px">학교·학년 캘린더는 Google 캘린더 → 해당 캘린더 «설정 및 공유» → «캘린더 통합»의 캘린더 ID(또는 삽입 코드)를 붙여넣으세요. 여러 개는 쉼표로 구분합니다. 대한민국 공휴일은 자동으로 함께 보입니다.</p>
+    <div class="acts"><button class="btn ghost" data-close>취소</button><button class="btn primary" id="gcalSave">저장</button></div>`,
+  m => {
+    $('[data-close]', m).onclick = closeModal;
+    $('#gcalSave', m).onclick = () => { state.info.gcal = $('#gcalIn', m).value.trim(); save(); closeModal(); renderLog(); };
+  });
+}
+function openHelp(){
+  openModal(`
+    <h3>일지 사용법</h3>
+    <ul class="helplist">
+      <li>큰 날짜를 누르면 날짜를 고를 수 있고, ◀ ▶로 하루씩 옮깁니다.</li>
+      <li>과목은 <b>설정 → 기초 시간표</b>에서 자동으로 채워지고, 그날만 다르면 목록에서 바꿉니다. 과목 목록도 설정에서 고칩니다.</li>
+      <li>오른쪽 달력은 Google 캘린더입니다. «연결 설정»에서 학교 캘린더를 넣을 수 있습니다.</li>
+      <li>할일은 Enter로 다음 줄을 만들고, 체크하면 완료로 표시됩니다.</li>
+      <li>출결은 왼쪽 <b>출결</b> 탭에서 입력합니다.</li>
+    </ul>
+    <div class="acts"><button class="btn primary" data-close autofocus>확인</button></div>`,
+  m => { $('[data-close]', m).onclick = closeModal; });
 }
 $('#view-log').addEventListener('click', e => {
-  const go = e.target.closest('[data-go]');
+  const t = e.target;
+  const go = t.closest('[data-go]');
   if(go){ const n = Number(go.dataset.go); logDate = n ? addDays(logDate, n) : TODAY; renderLog(); return; }
-  if(e.target.closest('[data-toatt]')){ attDate = logDate; attMonth = logDate.slice(0,7); show('att'); }
+  if(t.closest('#dhDate')){
+    const inp = $('#logDate');
+    try{ inp.showPicker(); }catch(err){ inp.focus(); inp.click(); }
+    return;
+  }
+  if(t.closest('[data-help]')){ openHelp(); return; }
+  if(t.closest('[data-gcalset]')){ openGcalModal(); return; }
+  const del = t.closest('[data-tdel]');
+  if(del){ const day = dayW(logDate); day.todos?.splice(Number(del.dataset.tdel), 1); save(); renderTodos(); }
 });
 $('#view-log').addEventListener('change', e => {
-  if(e.target.id === 'logDate' && e.target.value){ logDate = e.target.value; renderLog(); return; }
-  if(e.target.dataset.f === 'holiday' || e.target.dataset.f === 'weather'){
-    dayW(logDate)[e.target.dataset.f] = e.target.type === 'checkbox' ? e.target.checked : e.target.value; save();
+  const t = e.target;
+  if(t.id === 'logDate' && t.value){ logDate = t.value; renderLog(); return; }
+  if(t.dataset.td !== undefined){
+    const item = dayW(logDate).todos?.[Number(t.dataset.td)]; if(!item) return;
+    item.done = t.checked; t.closest('li').classList.toggle('done', t.checked); save();
   }
 });
 $('#view-log').addEventListener('input', e => {
   const t = e.target;
-  if(t.dataset.f && t.dataset.f !== 'holiday' && t.dataset.f !== 'weather'){ dayW(logDate)[t.dataset.f] = t.value; save(); return; }
+  if(t.dataset.f){ dayW(logDate)[t.dataset.f] = t.value; save(); return; }
+  if(t.dataset.tt !== undefined){
+    const i = Number(t.dataset.tt), day = dayW(logDate), todos = day.todos ||= [];
+    const isNew = i >= todos.length;
+    while(todos.length <= i) todos.push({text:'', done:false});
+    todos[i].text = t.value; save();
+    if(isNew) renderTodos(i);
+    return;
+  }
   if(t.dataset.p !== undefined){
     const i = Number(t.dataset.p), day = dayW(logDate);
     day.periods ||= [];
@@ -718,6 +863,24 @@ $('#view-log').addEventListener('input', e => {
     if(!Object.keys(p).length) day.periods[i] = null;
     save();
   }
+});
+$('#view-log').addEventListener('keydown', e => {
+  const t = e.target;
+  if(t.dataset.tt === undefined || e.isComposing) return;
+  const i = Number(t.dataset.tt);
+  if(e.key === 'Enter'){ e.preventDefault(); if(t.value.trim()) $(`#todoList [data-tt="${i+1}"]`)?.focus(); }
+  if(e.key === 'Backspace' && !t.value && i > 0 && i < (dayOf(logDate).todos || []).length){
+    e.preventDefault(); dayW(logDate).todos.splice(i, 1); save(); renderTodos(i - 1);
+  }
+});
+document.addEventListener('focusout', e => {
+  const t = e.target;
+  if(t.dataset?.tt === undefined || view !== 'log') return;
+  setTimeout(() => {
+    if($('#todoList')?.contains(document.activeElement)) return;
+    const day = dayOf(logDate);
+    if(day.todos?.some(x => !x.text.trim())){ day.todos = day.todos.filter(x => x.text.trim()); save(); renderTodos(); }
+  }, 0);
 });
 
 /* ---------- 달력 ---------- */
@@ -744,7 +907,7 @@ function renderCal(){
       const att = Object.values(day.att || {}).filter(Boolean);
       const c = {}; att.forEach(a => c[a.type] = (c[a.type] || 0) + 1);
       const ab = TYPES.filter(t => c[t]).map(t => SHORT[t] + c[t]).join(' ');
-      const memo = [day.guide, day.memo, day.notice].find(Boolean) || '';
+      const memo = [(day.todos || []).filter(t => t && t.text).map(t => (t.done ? '✓ ' : '') + t.text).join(', '), day.memo, day.notice].find(Boolean) || '';
       return `<button class="cell d${dow} ${day.holiday ? 'hol' : ''} ${d === TODAY ? 'today' : ''}" data-day="${d}">
         <span class="n">${Number(d.slice(8))}</span>
         ${day.event ? `<span class="ev">${esc(day.event)}</span>` : day.holiday ? '<span class="ev">휴업일</span>' : ''}
@@ -1261,6 +1424,15 @@ function renderSetup(){
       <label class="f">학년<input type="text" data-i="grade" value="${esc(i.grade)}" maxlength="4" inputmode="numeric"></label>
       <label class="f">반<input type="text" data-i="cls" value="${esc(i.cls)}" maxlength="6"></label>
       <label class="f">담임<input type="text" data-i="teacher" value="${esc(i.teacher)}" maxlength="20"></label>
+      <label class="f" style="grid-column:span 2">Google 캘린더 ID<input type="text" data-i="gcal" value="${esc(i.gcal || '')}" placeholder="비우면 로그인한 계정의 캘린더"></label>
+    </div>
+  </div>
+  <div class="card">
+    <h3>과목 목록 <span class="muted">기초 시간표와 일지에서 이 목록으로 과목을 고릅니다</span></h3>
+    <div class="chips">${state.subjects.map((x, k) => `<span class="chipx">${esc(x)}<button data-delsubj="${k}" aria-label="${esc(x)} 지우기">✕</button></span>`).join('')}</div>
+    <div class="row" style="margin-top:10px">
+      <input type="text" id="newSubj" placeholder="과목 이름 (예: 안전한 생활)" maxlength="20">
+      <button class="btn" id="addSubj">추가</button>
     </div>
   </div>
   <div class="card">
@@ -1268,7 +1440,7 @@ function renderSetup(){
     <div class="row" style="margin-bottom:8px"><label class="chk">하루 교시 수
       <select id="periods">${[4,5,6,7,8].map(n => `<option ${state.periods === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label></div>
     <div class="tablewrap"><table class="base"><thead><tr><th>교시</th>${[1,2,3,4,5].map(w => `<th>${WEEK[w]}</th>`).join('')}</tr></thead><tbody>
-    ${Array.from({length:state.periods}, (_, p) => `<tr><th>${p+1}</th>${[1,2,3,4,5].map(w => `<td><input type="text" data-tw="${w}" data-tp="${p}" value="${esc(state.timetable[w]?.[p] || '')}" maxlength="20" aria-label="${WEEK[w]}요일 ${p+1}교시"></td>`).join('')}</tr>`).join('')}
+    ${Array.from({length:state.periods}, (_, p) => `<tr><th>${p+1}</th>${[1,2,3,4,5].map(w => `<td><select data-tw="${w}" data-tp="${p}" aria-label="${WEEK[w]}요일 ${p+1}교시">${subjOptions(state.timetable[w]?.[p] || '')}</select></td>`).join('')}</tr>`).join('')}
     </tbody></table></div>
   </div>
   <div class="card">
@@ -1301,8 +1473,18 @@ $('#view-setup').addEventListener('change', e => {
   if(e.target.id === 'periods'){ state.periods = Number(e.target.value); save(); renderSetup(); }
   if(e.target.id === 'impBackup' && e.target.files[0]) importBackup(e.target.files[0]);
 });
+$('#view-setup').addEventListener('keydown', e => { if(e.target.id === 'newSubj' && e.key === 'Enter' && !e.isComposing){ e.preventDefault(); addSubject(); } });
+function addSubject(){
+  const v = $('#newSubj').value.trim();
+  if(!v){ $('#newSubj').focus(); return; }
+  if(!state.subjects.includes(v)) state.subjects.push(v);
+  save(); renderSetup(); $('#newSubj').focus();
+}
 $('#view-setup').addEventListener('click', e => {
   const t = e.target;
+  if(t.id === 'addSubj'){ addSubject(); return; }
+  const ds = t.closest('[data-delsubj]');
+  if(ds){ state.subjects.splice(Number(ds.dataset.delsubj), 1); save(); renderSetup(); return; }
   if(t.id === 'expBackup') exportBackup();
   if(t.id === 'expAtt') exportAttCsv(true);
   if(t.id === 'expRec') exportRecCsv();

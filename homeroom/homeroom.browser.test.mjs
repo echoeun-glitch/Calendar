@@ -40,6 +40,8 @@ export const onSnapshot=(ref,opts,cb)=>{b.listeners[ref.uid]=cb;queueMicrotask((
 `;
 try {
   const context = await browser.newContext({serviceWorkers:'block',viewport:{width:1280,height:900}});
+  const gcalHits = [];
+  await context.route('https://calendar.google.com/**',route=>{gcalHits.push(route.request().url());route.fulfill({contentType:'text/html',body:'<p>Google Calendar</p>'});});
   await context.route('**/firebase-config.js',route=>route.fulfill({contentType:'text/javascript',body:'window.HR_FIREBASE_CONFIG=null;'}));
   const page = await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));
@@ -49,7 +51,18 @@ try {
 
   const tab = name => page.getByRole('button',{name,exact:true}).click();
   // 왼쪽 탭 메뉴
-  assert.deepEqual(await page.locator('#tabs button').allInnerTexts(),['출결','일지','명렬표','평가','누가기록','예산사용','메모','달력','설정']);
+  assert.deepEqual(await page.locator('#tabs button').allInnerTexts(),['일지','출결','명렬표','평가','누가기록','예산사용','메모','달력','설정']);
+  // 기본 화면은 일지, 날짜는 하나로 크게, 날씨·행사 칸 없음, 출결 칸 없음
+  assert.equal(await page.locator('#view-log').isVisible(),true);
+  assert.match(await page.locator('.dh-date').innerText(),/^\d+월 \d+일 \([일월화수목금토]\)$/);
+  assert.match(await page.locator('.yearpill').innerText(),/^\d{4}년$/);
+  assert.equal(await page.locator('#view-log [data-f=weather], #view-log [data-f=event], #view-log [data-f=holiday]').count(),0);
+  assert.equal(await page.locator('#view-log .gcal-empty').isVisible(),true);
+  // 시간표 왼쪽, 달력 오른쪽, 같은 크기
+  const tt = await page.locator('#logTT').boundingBox(), gc = await page.locator('#gcalCard').boundingBox();
+  assert.ok(tt.x < gc.x && Math.abs(tt.width-gc.width) < 2 && Math.abs(tt.height-gc.height) < 2, 'timetable left, calendar right, same size');
+  assert.equal(await page.locator('#logTT tbody tr').first().innerText().then(t=>t.includes('아침')),true);
+  assert.ok(true);
   const nav = await page.locator('#tabs').boundingBox();
   assert.ok(nav.x < 20 && nav.height > 400, 'tabs are a left sidebar on desktop');
   // 설정: 학급 정보 · 기초 시간표
@@ -59,7 +72,11 @@ try {
   assert.equal(await page.locator('#classLabel').innerText(),'3학년 2반');
   const dow = await page.evaluate(()=>new Date().getDay());
   const w = dow>=1&&dow<=5 ? dow : 1;
-  await page.locator(`[data-tw="${w}"][data-tp="0"]`).fill('국어');
+  await page.locator('#newSubj').fill('안전한 생활'); await page.locator('#newSubj').press('Enter');
+  assert.match(await page.locator('.chips').innerText(),/안전한 생활/);
+  await page.locator('[data-i=teacher]').fill('eun cho');
+  await page.locator(`[data-tw="${w}"][data-tp="0"]`).selectOption('국어');
+  await page.locator(`[data-tw="${w}"][data-tp="1"]`).selectOption('안전한 생활');
   // 명렬표 붙여넣기
   await tab('명렬표');
   await page.locator('#pasteRoster').fill('1\t김하준\t남\n2\t이서윤\t여\n3\t박도윤\t남');
@@ -96,10 +113,26 @@ try {
   // 일지
   await page.evaluate(d=>{logDate=d;},logDay);
   await tab('일지');
-  assert.match(await page.locator('#view-log').innerText(),/이서윤 질병결석/);
+  assert.match(await page.locator('.dh-sub').innerText(),/환영합니다, eun cho 선생님!/);
   assert.equal(await page.locator('[data-p="0"][data-k=subj]').inputValue(),'국어');
   await page.locator('[data-p="0"][data-k=content]').fill('문단의 중심 문장 찾기');
+  assert.equal(await page.locator('[data-p="1"][data-k=subj]').inputValue(),'안전한 생활');
+  await page.locator('[data-p="2"][data-k=subj]').selectOption('체육');
+  await page.locator('[data-f=morning]').fill('아침 독서');
   await page.locator('[data-f=notice]').fill('내일 리코더 준비');
+  // 할일: 체크박스 + 여러 줄
+  await page.locator('#todoList [data-tt="0"]').fill('가정통신문 회수');
+  await page.locator('#todoList [data-tt="0"]').press('Enter');
+  await page.keyboard.type('우유 신청서 정리');
+  assert.equal(await page.locator('#todoList [data-tt="1"]').inputValue(),'우유 신청서 정리');
+  await page.locator('#todoList [data-td="0"]').check();
+  assert.equal(await page.locator('#todoList li').first().getAttribute('class'),'done');
+  assert.equal(await page.evaluate(d=>JSON.stringify(state.days[d].todos),await page.evaluate(()=>logDate)),JSON.stringify([{text:'가정통신문 회수',done:true},{text:'우유 신청서 정리',done:false}]));
+  // 날짜를 옮겨도 Google 캘린더 칸은 다시 만들지 않음
+  await page.evaluate(()=>{window.__gc=document.getElementById('gcalCard');});
+  await page.locator('[data-go="1"]').click(); await page.locator('[data-go="-1"]').click();
+  assert.equal(await page.evaluate(()=>window.__gc===document.getElementById('gcalCard')),true);
+  assert.equal(await page.locator('#todoList [data-tt="1"]').inputValue(),'우유 신청서 정리');
   await page.locator('#logRecs [data-rf=sid]').selectOption({label:'1. 김하준'});
   await page.locator('#logRecs [data-rf=text]').fill('발표를 적극적으로 함');
   await page.locator('#logRecs [data-rf=text]').press('Enter');
@@ -141,10 +174,11 @@ try {
   assert.match(await page.locator(`[data-day="${logDay}"]`).innerText(),/결1/);
   await page.waitForTimeout(400);
   const local = await page.evaluate(()=>localStorage.getItem('homeroom-journal-v1'));
-  for(const t of ['리코더','통분','학급 문구','상담 일정표','010-1234-5678','가정통신문']) assert.ok(local.includes(t), t);
+  for(const t of ['리코더','통분','학급 문구','상담 일정표','010-1234-5678','가정통신문','아침 독서','우유 신청서 정리','안전한 생활']) assert.ok(local.includes(t), t);
   if(process.env.HR_SCREENSHOT_DIR){
     const D=process.env.HR_SCREENSHOT_DIR;
     await tab('출결'); await page.screenshot({path:D+'/1-att.png',fullPage:true});
+    await tab('설정'); await page.screenshot({path:D+'/9-setup.png',fullPage:true});
     await tab('일지'); await page.screenshot({path:D+'/2-log.png',fullPage:true});
     await tab('평가'); await page.screenshot({path:D+'/3-eval.png'});
     await tab('예산사용'); await page.screenshot({path:D+'/4-budget.png'});
@@ -171,6 +205,9 @@ try {
   await page.locator('#welcomeLogin').click();
   await page.waitForFunction(()=>document.getElementById('cloudStatus').textContent==='온라인 저장 완료');
   assert.equal(await page.evaluate(()=>window.__backend.collection),'homeroomJournals');
+  // 로그인하면 내 Google 캘린더가 일지 오른쪽에 보임
+  await page.locator('#view-log iframe').waitFor();
+  assert.match(await page.locator('#view-log iframe').getAttribute('src'),/src=A%40example\.test&src=ko\.south_korea/);
   assert.equal(await page.evaluate(()=>state.students.length),0);
   assert.equal(await page.locator('#loginWelcome').isVisible(),false);
   await page.getByRole('button',{name:'설정',exact:true}).click();
