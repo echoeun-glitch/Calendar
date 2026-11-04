@@ -113,7 +113,8 @@ try {
   // 일지
   await page.evaluate(d=>{logDate=d;},logDay);
   await tab('일지');
-  assert.match(await page.locator('.dh-sub').innerText(),/환영합니다, eun cho 선생님!/);
+  assert.equal(await page.locator('#view-log .dh-sub, #view-log [data-help], #view-log .dh-main svg').count(),0);
+  assert.doesNotMatch(await page.locator('#logHead').innerText(),/환영합니다/);
   assert.equal(await page.locator('[data-p="0"][data-k=subj]').inputValue(),'국어');
   await page.locator('[data-p="0"][data-k=content]').fill('문단의 중심 문장 찾기');
   assert.equal(await page.locator('[data-p="1"][data-k=subj]').inputValue(),'안전한 생활');
