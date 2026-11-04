@@ -57,9 +57,10 @@ try {
   assert.match(await page.locator('.dh-date').innerText(),/^\d+월 \d+일 \([일월화수목금토]\)$/);
   assert.match(await page.locator('.yearpill').innerText(),/^\d{4}년$/);
   assert.equal(await page.locator('#view-log [data-f=weather], #view-log [data-f=event], #view-log [data-f=holiday]').count(),0);
-  assert.equal(await page.locator('#view-log .gcal-empty').isVisible(),true);
-  // 시간표 왼쪽, 달력 오른쪽, 같은 크기
-  const tt = await page.locator('#logTT').boundingBox(), gc = await page.locator('#gcalCard').boundingBox();
+  assert.equal(await page.locator('#view-log iframe, #view-log [data-gcalset], #view-log a[href*="calendar.google"]').count(),0);
+  assert.equal(await page.getByRole('button',{name:'인쇄'}).filter({visible:true}).count(),0);
+  // 시간표 왼쪽, 직접 만든 달력 오른쪽, 같은 크기
+  const tt = await page.locator('#logTT').boundingBox(), gc = await page.locator('#logCal').boundingBox();
   assert.ok(tt.x < gc.x && Math.abs(tt.width-gc.width) < 2 && Math.abs(tt.height-gc.height) < 2, 'timetable left, calendar right, same size');
   assert.equal(await page.locator('#logTT tbody tr').first().innerText().then(t=>t.includes('아침')),true);
   assert.ok(true);
@@ -92,6 +93,32 @@ try {
   await page.locator('#addCol').click();
   assert.equal(await page.locator('table.chk-t [data-colt]').count(),6);
   await page.locator('table.chk-t [data-delcol]').last().click();
+  // 전체 선택 / 해제
+  const all0 = page.locator('table.chk-t [data-ckall]').first();
+  assert.equal(await all0.evaluate(e=>e.indeterminate),true);
+  await all0.check();
+  assert.equal(await page.locator('table.chk-t tfoot td.ck').first().innerText(),'3/3');
+  assert.equal(await page.locator('table.chk-t tbody tr').nth(1).locator('[data-ck]').first().isChecked(),true);
+  await all0.uncheck();
+  assert.equal(await page.locator('table.chk-t tfoot td.ck').first().innerText(),'0/3');
+  await page.locator('table.chk-t tbody tr').nth(0).locator('[data-ck]').first().check();
+  await page.locator('table.chk-t tbody tr').nth(2).locator('[data-ck]').first().check();
+  // 두 번 누르면 비고
+  await page.locator('table.chk-t tbody tr').nth(1).locator('td.ck').first().dblclick();
+  await page.locator('#ckNote').fill('내일 가져오기로 함');
+  await page.locator('#ckNoteSave').click();
+  assert.match(await page.locator('table.chk-t tbody tr').nth(1).locator('td.ck').first().innerText(),/내일 가져오기로 함/);
+  assert.equal(await page.locator('table.chk-t tbody tr').nth(1).locator('[data-ck]').first().isChecked(),false);
+  await page.locator('table.chk-t thead th.ck').first().dblclick();
+  await page.locator('#ckNote').fill('11월 7일까지');
+  await page.locator('#ckNoteSave').click();
+  assert.match(await page.locator('table.chk-t thead th.ck').first().innerText(),/11월 7일까지/);
+  // 항목을 모두 지워도 번호·이름 칸 너비가 그대로
+  const nmW = (await page.locator('table.chk-t thead th.nm').boundingBox()).width;
+  await page.evaluate(()=>{window.__cols=JSON.stringify(state.checks);state.checks.cols=[];renderRoster();});
+  assert.ok(Math.abs((await page.locator('table.chk-t thead th.nm').boundingBox()).width-nmW) < 2,'name column width stays');
+  assert.ok((await page.locator('table.chk-t').boundingBox()).width < 260,'table does not stretch');
+  await page.evaluate(()=>{state.checks=JSON.parse(window.__cols);renderRoster();});
   assert.equal(await page.locator('table.chk-t [data-colt]').count(),5);
   await page.locator('#stuInfo summary').click();
   await page.locator('table.roster tbody tr').first().locator('[data-s=phone]').fill('010-1234-5678');
@@ -129,11 +156,42 @@ try {
   await page.locator('#todoList [data-td="0"]').check();
   assert.equal(await page.locator('#todoList li').first().getAttribute('class'),'done');
   assert.equal(await page.evaluate(d=>JSON.stringify(state.days[d].todos),await page.evaluate(()=>logDate)),JSON.stringify([{text:'가정통신문 회수',done:true},{text:'우유 신청서 정리',done:false}]));
-  // 날짜를 옮겨도 Google 캘린더 칸은 다시 만들지 않음
-  await page.evaluate(()=>{window.__gc=document.getElementById('gcalCard');});
-  await page.locator('[data-go="1"]').click(); await page.locator('[data-go="-1"]').click();
-  assert.equal(await page.evaluate(()=>window.__gc===document.getElementById('gcalCard')),true);
   assert.equal(await page.locator('#todoList [data-tt="1"]').inputValue(),'우유 신청서 정리');
+  // 달력: 일지 칸에서 바로 추가·수정·삭제
+  const today = await page.evaluate(()=>logDate);
+  const next = await page.evaluate(d=>addDays(d,2),today);
+  await page.locator(`#logCal [data-sel="${next}"]`).click();
+  await page.locator('#evTitle').fill('학부모 상담');
+  await page.locator('#evTime').fill('15:30');
+  await page.locator('#evTitle').press('Enter');
+  assert.match(await page.locator(`#logCal [data-sel="${next}"]`).innerText(),/학부모 상담/);
+  await page.locator('#evTitle').fill('현장체험학습 안내');
+  await page.locator('#evAdd').click();
+  assert.equal(await page.locator('#logCal .mc-list li').count(),2);
+  assert.equal(await page.locator('#logCal .mc-list li').first().locator('[data-en]').inputValue(),'학부모 상담');
+  await page.locator('#logCal .mc-list [data-en]').nth(0).fill('학부모 상담 (2명)');
+  await page.locator('#logCal .mc-list [data-en]').nth(0).press('Enter');
+  assert.match(await page.locator(`#logCal [data-sel="${next}"]`).innerText(),/학부모 상담 \(2명\)/);
+  await page.locator('#logCal [data-edel]').nth(1).click();
+  assert.equal(await page.evaluate(d=>eventsOn(d).map(e=>e.time+' '+e.title).join('|'),next),'15:30 학부모 상담 (2명)');
+  assert.equal(await page.evaluate(()=>logDate),today,'selecting a calendar date does not move the journal');
+  await page.locator('[data-gotolog]').click();
+  assert.equal(await page.evaluate(()=>logDate),next);
+  await page.locator('[data-go="0"]').click();
+  if(await page.evaluate(()=>logDate)!==today) await page.evaluate(d=>setLogDate(d),today);
+  // 메모: 저장하면 메모 탭에 새 메모로
+  await page.locator('#logMemoIn').fill('교실 환경 정리 아이디어');
+  await page.locator('#logMemoSave').click();
+  assert.equal(await page.locator('#logMemoIn').inputValue(),'');
+  assert.match(await page.locator('#memoSavedNote').innerText(),/메모 탭에 저장/);
+  await page.locator('#logMemoIn').fill('두 번째 메모');
+  await page.locator('#logMemoIn').press('Control+Enter');
+  assert.equal(await page.locator('#logMemo [data-openmemo]').count(),2);
+  assert.equal(await page.evaluate(d=>state.memos.filter(m=>m.date===d).map(m=>m.text).join('|'),today),'교실 환경 정리 아이디어|두 번째 메모');
+  await page.locator('#logMemo [data-openmemo]').first().click();
+  assert.equal(await page.locator('#view-memo').isVisible(),true);
+  assert.equal(await page.locator('#view-memo .memo').count(),2);
+  await tab('일지');
   await page.locator('#logRecs [data-rf=sid]').selectOption({label:'1. 김하준'});
   await page.locator('#logRecs [data-rf=text]').fill('발표를 적극적으로 함');
   await page.locator('#logRecs [data-rf=text]').press('Enter');
@@ -166,8 +224,8 @@ try {
   // 메모
   await tab('메모');
   await page.locator('#newMemo').click();
-  await page.locator('.memo .mt').fill('학부모 상담 준비');
-  await page.locator('.memo textarea').fill('상담 일정표 출력');
+  await page.keyboard.type('학부모 상담 준비');
+  await page.locator('.memo:focus-within textarea').fill('상담 일정표 출력');
 
   // 달력
   await page.evaluate(d=>{calMonth=d.slice(0,7);},logDay);
@@ -175,7 +233,7 @@ try {
   assert.match(await page.locator(`[data-day="${logDay}"]`).innerText(),/결1/);
   await page.waitForTimeout(400);
   const local = await page.evaluate(()=>localStorage.getItem('homeroom-journal-v1'));
-  for(const t of ['리코더','통분','학급 문구','상담 일정표','010-1234-5678','가정통신문','아침 독서','우유 신청서 정리','안전한 생활']) assert.ok(local.includes(t), t);
+  for(const t of ['리코더','통분','학급 문구','상담 일정표','010-1234-5678','가정통신문','아침 독서','우유 신청서 정리','안전한 생활','학부모 상담 (2명)','교실 환경 정리 아이디어','내일 가져오기로 함','11월 7일까지']) assert.ok(local.includes(t), t);
   if(process.env.HR_SCREENSHOT_DIR){
     const D=process.env.HR_SCREENSHOT_DIR;
     await tab('출결'); await page.screenshot({path:D+'/1-att.png',fullPage:true});
@@ -206,9 +264,8 @@ try {
   await page.locator('#welcomeLogin').click();
   await page.waitForFunction(()=>document.getElementById('cloudStatus').textContent==='온라인 저장 완료');
   assert.equal(await page.evaluate(()=>window.__backend.collection),'homeroomJournals');
-  // 로그인하면 내 Google 캘린더가 일지 오른쪽에 보임
-  await page.locator('#view-log iframe').waitFor();
-  assert.match(await page.locator('#view-log iframe').getAttribute('src'),/src=A%40example\.test&src=ko\.south_korea/);
+  // 로그인 후 일지는 메모 칸까지 한 화면(1280×900)에 들어옴
+  assert.ok((await page.locator('#logMemo').boundingBox()).y + (await page.locator('#logMemo').boundingBox()).height <= 900, 'memo fits in one screen');
   assert.equal(await page.evaluate(()=>state.students.length),0);
   assert.equal(await page.locator('#loginWelcome').isVisible(),false);
   await page.getByRole('button',{name:'설정',exact:true}).click();
