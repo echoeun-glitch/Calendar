@@ -129,6 +129,7 @@ async function openUser(user) {
   deferred = null;
   backedUp = false;
   currentUser = user;
+  window.HRUser = user || null;
   el('cloudConflict').hidden = true;
   el('cloudRetry').hidden = true;
   if (el('cloudMigrate')) el('cloudMigrate').hidden = true;
