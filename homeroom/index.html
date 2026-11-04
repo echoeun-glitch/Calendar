@@ -126,22 +126,28 @@ table.budt tr.tot td{border-top:2px solid var(--line);border-bottom:0}
 .memo .mt{flex:1;font-weight:800;border-color:transparent;padding-left:2px}
 .memo .mt:hover{border-color:var(--line)}
 .memo textarea{min-height:120px}
-table.chk-t{border-collapse:collapse;min-width:100%}
+table.chk-t{border-collapse:collapse;width:auto;table-layout:fixed;touch-action:manipulation}
 table.chk-t th,table.chk-t td{border:1px solid var(--line);padding:3px 4px;text-align:center;vertical-align:middle}
 table.chk-t thead th{background:var(--line2)}
-table.chk-t th.no,table.chk-t td.no{width:64px}
-table.chk-t th.nm,table.chk-t td.nm{width:120px;text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+table.chk-t th.no,table.chk-t td.no{width:64px;min-width:64px;max-width:64px}
+table.chk-t th.nm,table.chk-t td.nm{width:120px;min-width:120px;max-width:120px;text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
 table.chk-t thead th.nm{background:var(--line2)}
 table.chk-t td.no input,table.chk-t td.nm input{width:100%;border-color:transparent;padding:5px 6px}
 table.chk-t td.no input:hover,table.chk-t td.nm input:hover{border-color:var(--line)}
-table.chk-t th.ck,table.chk-t td.ck{min-width:96px}
+table.chk-t th.ck,table.chk-t td.ck{width:132px;min-width:132px;max-width:132px}
+table.chk-t th.ck{cursor:default;vertical-align:top}
+table.chk-t .colnote{font-size:11px;font-weight:500;color:var(--muted);text-align:left;white-space:pre-wrap;margin-top:2px;padding:0 2px}
+table.chk-t td.ck{user-select:none}
+table.chk-t .cnote{font-size:11px;color:var(--muted);line-height:1.3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.chk-t td.has-note{background:color-mix(in srgb,var(--warn) 7%,transparent)}
 table.chk-t .colh{display:flex;align-items:center;gap:2px}
-table.chk-t .colh input{flex:1;width:100%;min-width:64px;text-align:center;font-weight:700;border-color:transparent;background:transparent;padding:5px 4px}
-table.chk-t .colh input:hover{border-color:var(--line);background:var(--panel)}
+table.chk-t .colh input[type=text]{flex:1;width:100%;min-width:64px;text-align:center;font-weight:700;border-color:transparent;background:transparent;padding:5px 4px}
+table.chk-t .colh input[type=text]:hover{border-color:var(--line);background:var(--panel)}
 table.chk-t .colh .btn{padding:2px 5px}
 table.chk-t input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
 table.chk-t tbody tr:hover td{background:var(--accent-soft)}
 table.chk-t tfoot td{font-size:12.5px;font-weight:700;color:var(--muted)}
+table.chk-t .colh input[type=checkbox]{width:17px;height:17px;flex:none}
 @media print{table.chk-t th.nm,table.chk-t td.nm{position:static}}
 table.roster td.nm{width:140px} table.roster td.ph{width:170px}
 
@@ -221,27 +227,65 @@ table.tt td.s{width:120px}
 @media(max-width:640px){.addrec,.addrec.wide{grid-template-columns:1fr 1fr}.addrec input[type=text]{grid-column:1/-1}.addrec .btn{grid-column:1/-1;justify-content:center}}
 
 /* 일지 머리 */
-.datehead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.datehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .dh-left{display:flex;flex-direction:column;gap:2px;min-width:0}
-.yearpill{align-self:flex-start;margin-left:0;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px;border-radius:999px;padding:2px 12px}
+.yearpill{align-self:flex-start;margin-left:0;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:11.5px;border-radius:999px;padding:1px 10px}
 .dh-main{display:flex;align-items:center;gap:14px;position:relative}
-.dh-date{border:0;background:none;font-size:42px;font-weight:900;letter-spacing:-1.5px;line-height:1.15;padding:0;color:var(--ink)}
-.dh-date small{font-size:24px;font-weight:700;letter-spacing:0;margin-left:2px;color:var(--ink)}
+.dh-date{border:0;background:none;font-size:30px;font-weight:900;letter-spacing:-1px;line-height:1.15;padding:0;color:var(--ink)}
+.dh-date small{font-size:18px;font-weight:700;letter-spacing:0;margin-left:2px;color:var(--ink)}
 .dh-date small.dow-0{color:var(--danger)} .dh-date small.dow-6{color:var(--info)}
 .dh-date:hover{color:var(--accent)}
 .dh-picker{position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
 .dh-nav{display:flex;gap:6px;flex-wrap:wrap}
-@media(max-width:640px){.dh-date{font-size:34px}.dh-date small{font-size:20px}}
+@media(max-width:640px){.dh-date{font-size:26px}.dh-date small{font-size:16px}}
 .logtop{align-items:stretch}
+#view-log .card{padding:12px 14px}
+#view-log .card h3{margin-bottom:6px;font-size:14.5px}
+#view-log .grid2{gap:10px}
+#view-log table.tt td,#view-log table.tt th{padding:2px 3px}
+#view-log table.tt input,#view-log table.tt select{padding:4px 7px;font-size:13.5px}
+#view-log textarea{min-height:58px}
+#view-log .todos input[type=text]{padding:3px 2px}
+#view-log .todos{gap:1px}
+.mcal{display:flex;flex-direction:column;gap:6px}
+.mc-head{display:flex;align-items:center;gap:6px}
+.mc-head b{font-size:14.5px;min-width:92px;text-align:center}
+.mc-head .sp{flex:1}
+.mc-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(44px,1fr);gap:2px;flex:1}
+.mc-hd{text-align:center;font-size:11px;font-weight:800;color:var(--muted);align-self:end;padding-bottom:2px}
+.mc-hd:first-child{color:var(--danger)} .mc-hd:nth-child(7){color:var(--info)}
+.mc-cell{border:1px solid var(--line2);background:var(--panel);border-radius:7px;padding:2px 3px;text-align:left;display:flex;flex-direction:column;gap:1px;overflow:hidden;min-width:0}
+.mc-cell:hover{border-color:var(--accent)}
+.mc-cell.blank{border:0;background:none;pointer-events:none}
+.mc-cell .n{font-size:11.5px;font-weight:800;line-height:1.2}
+.mc-cell.d0 .n,.mc-cell.hol .n{color:var(--danger)} .mc-cell.d6 .n{color:var(--info)}
+.mc-cell.today .n{background:var(--accent);color:#fff;border-radius:999px;padding:0 5px;align-self:flex-start}
+.mc-cell.sel{border-color:var(--accent);background:var(--accent-soft)}
+.mc-ev{font-size:10.5px;line-height:1.25;background:var(--line2);border-radius:4px;padding:0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-ev.h{color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent)}
+.mc-more{font-size:10px;color:var(--muted);font-weight:700}
+.mc-day{border-top:1px solid var(--line2);padding-top:6px;display:flex;flex-direction:column;gap:4px}
+.mc-day .sp{flex:1}
+.hol-tag{font-size:11.5px;font-weight:800;color:var(--danger)}
+.mc-list{list-style:none;display:flex;flex-direction:column;gap:2px}
+.mc-list li,.mc-add{display:grid;grid-template-columns:104px 1fr auto;gap:4px;align-items:center}
+.mc-list input,.mc-add input{padding:3px 6px;font-size:13px}
+.mc-list input[type=text]{border-color:transparent}
+.mc-list input[type=text]:hover{border-color:var(--line)}
+.memo-in{display:flex;gap:8px;align-items:stretch}
+.memo-in textarea{flex:1}
+.memo-in .btn{align-self:stretch;justify-content:center;min-width:64px}
+.memo-saved{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chipbtn{border:1px solid var(--line);background:var(--line2);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chipbtn:hover{border-color:var(--accent);color:var(--accent)}
+.saved-note{font-size:12px;font-weight:700;color:var(--accent)}
+#view-log .card h3 .sp{flex:1}
+.memo.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:var(--shadow)}}
 table.tt tr.morning td{background:color-mix(in srgb,var(--accent-soft) 55%,transparent)}
 table.tt tr.morning td.p{font-size:12.5px}
 .mlabel{font-size:13px;font-weight:700;color:var(--accent)}
 table.tt select{width:100%}
-.gcal{display:flex;flex-direction:column}
-.gcal h3 .sp{flex:1}
-.gcal iframe{flex:1;width:100%;min-height:440px;border:1px solid var(--line2);border-radius:10px;background:#fff}
-.gcal > p{margin-top:6px}
-.gcal-empty{flex:1;min-height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:6px;border:1px dashed var(--line);border-radius:10px;padding:20px}
 .todos{list-style:none;display:flex;flex-direction:column;gap:4px}
 .todos li{display:flex;align-items:center;gap:8px}
 .todos input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none;cursor:pointer}
@@ -253,7 +297,7 @@ table.tt select{width:100%}
 .chipx{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:3px 4px 3px 12px;font-size:13.5px;font-weight:600}
 .chipx button{border:0;background:none;color:var(--muted);width:22px;height:22px;border-radius:50%;font-size:11px}
 .chipx button:hover{background:var(--line2);color:var(--danger)}
-@media print{.gcal iframe{min-height:300px}.todos input[type=text]{border:0!important}}
+@media print{.todos input[type=text]{border:0!important}}
 
 /* 달력 */
 .monthbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
@@ -414,7 +458,7 @@ table.base input,table.base select{width:100%;text-align:center;padding:6px 4px}
 <div id="modalRoot"></div>
 
 <script>
-const APP_VER = '2026.11.04b';
+const APP_VER = '2026.11.04c';
 const LSKEY = 'homeroom-journal-v1';
 const WEEK = ['일','월','화','수','목','금','토'];
 const TYPES = ['결석','지각','조퇴','결과'];
@@ -450,7 +494,8 @@ function defState(){
     evals:[],
     budget:{total:0, items:[]},
     memos:[],
-    checks:{cols:Array.from({length:5}, () => ({id:uid(), title:''})), marks:{}}
+    events:[],
+    checks:{cols:Array.from({length:5}, () => ({id:uid(), title:''})), marks:{}, notes:{}}
   };
 }
 function normalize(raw){
@@ -465,6 +510,16 @@ function normalize(raw){
   s.evals = Array.isArray(raw.evals) ? raw.evals.filter(x => x && x.id) : [];
   s.budget = {total:Number(raw.budget?.total) || 0, items:Array.isArray(raw.budget?.items) ? raw.budget.items.filter(x => x && x.id) : []};
   s.memos = Array.isArray(raw.memos) ? raw.memos.filter(x => x && x.id) : [];
+  s.events = Array.isArray(raw.events) ? raw.events.filter(x => x && x.id && x.date) : [];
+  // 예전 일지의 «행사» 칸은 달력 일정으로, «메모» 칸은 메모 탭의 메모로 옮긴다.
+  for(const [d, day] of Object.entries(s.days)){
+    if(!day) continue;
+    if(typeof day.event === 'string'){ if(day.event.trim()) s.events.push({id:uid(), date:d, time:'', title:day.event.trim()}); delete day.event; }
+    if(typeof day.memo === 'string'){
+      if(day.memo.trim()){ const [, mo, dd] = d.split('-').map(Number); s.memos.push({id:uid(), title:`${mo}월 ${dd}일 일지 메모`, text:day.memo, date:d, pin:false, created:d + ' 00:00', updated:d + ' 00:00'}); }
+      delete day.memo;
+    }
+  }
   s.subjects = Array.isArray(raw.subjects) ? raw.subjects.filter(x => typeof x === 'string' && x.trim()) : [...DEFAULT_SUBJECTS];
   for(const day of Object.values(s.days)){
     if(day && typeof day.guide === 'string' && !day.todos){
@@ -473,7 +528,7 @@ function normalize(raw){
       delete day.guide;
     }
   }
-  s.checks = raw.checks && Array.isArray(raw.checks.cols) ? {cols:raw.checks.cols.filter(x => x && x.id), marks:raw.checks.marks && typeof raw.checks.marks === 'object' ? raw.checks.marks : {}} : defState().checks;
+  s.checks = raw.checks && Array.isArray(raw.checks.cols) ? {cols:raw.checks.cols.filter(x => x && x.id), marks:raw.checks.marks && typeof raw.checks.marks === 'object' ? raw.checks.marks : {}, notes:raw.checks.notes && typeof raw.checks.notes === 'object' ? raw.checks.notes : {}} : defState().checks;
   s.periods = Math.min(9, Math.max(1, Number(raw.periods) || 6));
   return s;
 }
@@ -572,6 +627,12 @@ function headline(){
   const i = state.info;
   return `${i.year}학년도 ${i.school || ''} ${i.grade || ''}${i.grade ? '학년 ' : ''}${i.cls || ''}${i.cls ? '반' : ''}${i.teacher ? ' · 담임 ' + i.teacher : ''}`.replace(/\s+/g,' ').trim();
 }
+
+/* ---------- 일정 ---------- */
+const FIXED_HOLIDAYS = {'01-01':'신정','03-01':'삼일절','05-05':'어린이날','06-06':'현충일','08-15':'광복절','10-03':'개천절','10-09':'한글날','12-25':'성탄절'};
+const holidayOf = d => FIXED_HOLIDAYS[d.slice(5)] || '';
+const eventsOn = d => state.events.filter(e => e.date === d).sort((a,b) => (a.time || '99').localeCompare(b.time || '99') || 0);
+const dayLabels = d => [holidayOf(d), ...eventsOn(d).map(e => e.title)].filter(Boolean);
 
 /* ---------- 화면 전환 ---------- */
 let view = 'log';
@@ -692,28 +753,6 @@ function subjOptions(cur){
   if(cur && !opts.includes(cur)) opts.push(cur);
   return opts.map(o => `<option value="${esc(o)}" ${o === cur ? 'selected' : ''}>${o ? esc(o) : '—'}</option>`).join('');
 }
-/* Google 캘린더: 설정에 넣은 캘린더 ID(여러 개는 쉼표) 또는 삽입 주소. 비우면 로그인한 계정의 기본 캘린더. */
-function gcalUrl(){
-  const raw = (state.info.gcal || '').trim();
-  const embed = raw.match(/https:\/\/calendar\.google\.com\/calendar\/embed\?[^"'\s<>]+/);
-  if(embed) return embed[0].replace(/&amp;/g, '&');
-  const ids = (raw ? raw.split(/[,\s]+/) : [window.HRUser?.email || '']).map(x => x.trim()).filter(Boolean);
-  if(!ids.length) return '';
-  ids.push('ko.south_korea#holiday@group.v.calendar.google.com');
-  const q = ids.map(id => 'src=' + encodeURIComponent(id)).join('&');
-  return `https://calendar.google.com/calendar/embed?${q}&ctz=Asia%2FSeoul&hl=ko&mode=MONTH&wkst=1&showTitle=0&showPrint=0&showTz=0&showCalendars=0&showTabs=1&showNav=1&showDate=1`;
-}
-function gcalCard(){
-  const url = gcalUrl();
-  return `<div class="card gcal" id="gcalCard">
-    <h3>달력 <span class="muted">Google 캘린더</span><span class="sp"></span>
-      <a class="btn sm noprint" href="https://calendar.google.com/calendar/r" target="_blank" rel="noopener">새 창에서 열기</a>
-      <button class="btn sm noprint" data-gcalset>연결 설정</button></h3>
-    ${url ? `<iframe src="${esc(url)}" title="Google 캘린더" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-      <p class="muted small noprint">일정이 비어 보이면 이 브라우저에서 같은 Google 계정에 로그인되어 있는지 확인하세요.</p>`
-    : `<div class="gcal-empty"><p>Google로 로그인하면 내 Google 캘린더가 여기에 보입니다.</p><p class="muted small">학교 캘린더 등 다른 캘린더는 «연결 설정»에서 캘린더 ID를 넣으세요.</p></div>`}
-  </div>`;
-}
 function todoHtml(day){
   const items = day.todos || [];
   const rows = [...items, null];
@@ -736,7 +775,6 @@ function logHeadHtml(d){
       <button class="btn" data-go="-1" aria-label="이전 날">◀</button>
       <button class="btn" data-go="0">오늘</button>
       <button class="btn" data-go="1" aria-label="다음 날">▶</button>
-      <button class="btn" onclick="print()">인쇄</button>
     </div>
   </div>`;
 }
@@ -754,66 +792,130 @@ function logTTHtml(d){
 }
 function logRestHtml(d){
   const day = dayOf(d), list = students(), recs = state.records.filter(r => r.date === d);
-  return `<div class="grid2" style="margin-top:14px">
+  return `<div class="grid2" style="margin-top:10px">
     <div class="card"><h3>알림장 · 과제 · 준비물</h3><textarea data-f="notice" placeholder="내일 준비물, 가정통신문, 과제">${esc(day.notice)}</textarea></div>
     <div class="card"><h3>할일 <span class="muted">Enter로 다음 줄</span></h3><ul class="todos" id="todoList">${todoHtml(day)}</ul></div>
   </div>
-  <div class="card" style="margin-top:14px"><h3>메모</h3><textarea data-f="memo" placeholder="그 밖에 남길 내용">${esc(day.memo)}</textarea></div>
-  <div class="card" style="margin-top:14px" id="logRecs">
+  <div class="card" style="margin-top:10px" id="logMemo">${logMemoHtml(d)}</div>
+  <div class="card" style="margin-top:10px" id="logRecs">
     <h3>오늘의 학생 기록 <span class="muted">누가기록 탭에 함께 모입니다</span></h3>
     ${recs.length ? `<ul class="reclist">${recs.map(r => recItem(r, true)).join('')}</ul>` : '<p class="muted small">아직 기록이 없습니다.</p>'}
     ${list.length ? recForm({date:d}) : ''}
   </div>`;
 }
+let calSel = TODAY, miniMonth = TODAY.slice(0,7);
+const memoDrafts = {};
+function miniCalHtml(){
+  const days = monthDays(miniMonth), first = parseD(days[0]).getDay();
+  const [y, mo] = miniMonth.split('-').map(Number);
+  const sel = parseD(calSel), selHol = holidayOf(calSel), evs = eventsOn(calSel);
+  return `<div class="mc-head">
+      <button class="btn sm" data-mm="-1" aria-label="이전 달">◀</button>
+      <b>${y}년 ${mo}월</b>
+      <button class="btn sm" data-mm="1" aria-label="다음 달">▶</button>
+      <span class="sp"></span><button class="btn sm" data-mm="0">이번 달</button>
+    </div>
+    <div class="mc-grid" id="mcGrid">
+      ${WEEK.map(w => `<div class="mc-hd">${w}</div>`).join('')}
+      ${'<div class="mc-cell blank"></div>'.repeat(first)}
+      ${days.map(d => { const dow = parseD(d).getDay(), hol = holidayOf(d), ev = eventsOn(d), dy = dayOf(d);
+        return `<button class="mc-cell d${dow} ${hol || dy.holiday ? 'hol' : ''} ${d === TODAY ? 'today' : ''} ${d === calSel ? 'sel' : ''}" data-sel="${d}" aria-label="${d}">
+          <span class="n">${Number(d.slice(8))}</span>
+          ${hol ? `<span class="mc-ev h">${esc(hol)}</span>` : ''}
+          ${ev.slice(0, hol ? 1 : 2).map(e => `<span class="mc-ev">${esc(e.title)}</span>`).join('')}
+          ${ev.length > (hol ? 1 : 2) ? `<span class="mc-more">+${ev.length - (hol ? 1 : 2)}</span>` : ''}
+        </button>`; }).join('')}
+    </div>
+    <div class="mc-day">
+      <div class="row"><b>${sel.getMonth()+1}월 ${sel.getDate()}일 (${WEEK[sel.getDay()]})</b>${selHol ? `<span class="hol-tag">${esc(selHol)}</span>` : ''}
+        <span class="sp"></span>${calSel !== logDate ? '<button class="btn sm ghost" data-gotolog>이 날 일지 보기</button>' : ''}</div>
+      ${evs.length ? `<ul class="mc-list">${evs.map(e => `<li>
+        <input type="time" data-et="${esc(e.id)}" value="${esc(e.time || '')}" aria-label="시간">
+        <input type="text" data-en="${esc(e.id)}" value="${esc(e.title)}" maxlength="100" aria-label="일정 제목">
+        <button class="btn sm ghost danger" data-edel="${esc(e.id)}" aria-label="일정 지우기">✕</button></li>`).join('')}</ul>` : ''}
+      <div class="mc-add">
+        <input type="time" id="evTime" aria-label="시간 (선택)">
+        <input type="text" id="evTitle" placeholder="일정 추가 (Enter)" maxlength="100" aria-label="일정 제목">
+        <button class="btn primary sm" id="evAdd">추가</button>
+      </div>
+    </div>`;
+}
+function logMemoHtml(d){
+  const saved = state.memos.filter(m => m.date === d).sort((a,b) => (a.created || '').localeCompare(b.created || ''));
+  return `<h3>메모 <span class="muted">저장하면 메모 탭에 새 메모로 추가됩니다</span><span class="sp"></span><span class="saved-note" id="memoSavedNote" aria-live="polite"></span></h3>
+    <div class="memo-in">
+      <textarea id="logMemoIn" placeholder="메모를 적고 저장 (Ctrl+Enter)" maxlength="20000">${esc(memoDrafts[d] || '')}</textarea>
+      <button class="btn primary" id="logMemoSave">저장</button>
+    </div>
+    ${saved.length ? `<div class="memo-saved">${saved.map(m => `<button class="chipbtn" data-openmemo="${esc(m.id)}" title="메모 탭에서 열기">${esc((m.text || m.title || '').split('\n')[0].slice(0, 40) || '(빈 메모)')}</button>`).join('')}</div>` : ''}`;
+}
+function renderMiniCal(focusSel){
+  $('#logCal').innerHTML = miniCalHtml();
+  if(focusSel) $(focusSel)?.focus();
+}
+function addEvent(){
+  const title = $('#evTitle').value.trim();
+  if(!title){ $('#evTitle').focus(); return; }
+  state.events.push({id:uid(), date:calSel, time:$('#evTime').value || '', title});
+  save(); renderMiniCal('#evTitle');
+}
+function saveLogMemo(){
+  const ta = $('#logMemoIn'), text = ta.value.trim();
+  if(!text){ ta.focus(); return; }
+  const d = logDate, [, mo, dd] = d.split('-').map(Number), now = stamp();
+  state.memos.push({id:uid(), title:`${mo}월 ${dd}일 일지 메모`, text, date:d, pin:false, created:now, updated:now});
+  delete memoDrafts[d];
+  save();
+  $('#logMemo').innerHTML = logMemoHtml(d);
+  $('#memoSavedNote').textContent = '메모 탭에 저장했습니다';
+  $('#logMemoIn').focus();
+}
 function renderLog(){
-  const el = $('#view-log'), d = logDate, url = gcalUrl();
+  const el = $('#view-log'), d = logDate;
   $('#printHead').textContent = headline() + ' 학급일지';
-  // 날짜만 바뀔 때 Google 캘린더를 다시 불러오지 않도록 달력 칸은 그대로 둔다.
-  if(el.dataset.gcal === url && $('#gcalCard', el)){
-    $('#logHead', el).innerHTML = logHeadHtml(d);
-    $('#logTT', el).innerHTML = logTTHtml(d);
-    $('#logRest', el).innerHTML = logRestHtml(d);
-  } else {
-    el.dataset.gcal = url;
-    el.innerHTML = `<div id="logHead">${logHeadHtml(d)}</div>
-      <div class="grid2 logtop"><div class="card" id="logTT">${logTTHtml(d)}</div>${gcalCard()}</div>
-      <div id="logRest">${logRestHtml(d)}</div>`;
-  }
+  el.innerHTML = `<div id="logHead">${logHeadHtml(d)}</div>
+    <div class="grid2 logtop"><div class="card" id="logTT">${logTTHtml(d)}</div><div class="card mcal" id="logCal">${miniCalHtml()}</div></div>
+    <div id="logRest">${logRestHtml(d)}</div>`;
   if(students().length) bindRecForm($('#logRecs'), {date:d});
 }
+function setLogDate(d){ logDate = d; calSel = d; miniMonth = d.slice(0,7); renderLog(); }
 function renderTodos(focusIdx){
   $('#todoList').innerHTML = todoHtml(dayOf(logDate));
   if(focusIdx !== undefined){ const t = $(`#todoList [data-tt="${focusIdx}"]`); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }
 }
-function openGcalModal(){
-  openModal(`
-    <h3>Google 캘린더 연결</h3>
-    <p class="muted small" style="margin-top:6px">비워 두면 로그인한 Google 계정의 기본 캘린더를 보여 줍니다${window.HRUser?.email ? ` (${esc(window.HRUser.email)})` : ''}.</p>
-    <div class="grp"><div>캘린더 ID 또는 삽입 코드</div>
-      <input type="text" id="gcalIn" value="${esc(state.info.gcal || '')}" placeholder="예: abc@group.calendar.google.com" autofocus></div>
-    <p class="muted small" style="margin-top:8px">학교·학년 캘린더는 Google 캘린더 → 해당 캘린더 «설정 및 공유» → «캘린더 통합»의 캘린더 ID(또는 삽입 코드)를 붙여넣으세요. 여러 개는 쉼표로 구분합니다. 대한민국 공휴일은 자동으로 함께 보입니다.</p>
-    <div class="acts"><button class="btn ghost" data-close>취소</button><button class="btn primary" id="gcalSave">저장</button></div>`,
-  m => {
-    $('[data-close]', m).onclick = closeModal;
-    $('#gcalSave', m).onclick = () => { state.info.gcal = $('#gcalIn', m).value.trim(); save(); closeModal(); renderLog(); };
-  });
-}
 $('#view-log').addEventListener('click', e => {
   const t = e.target;
   const go = t.closest('[data-go]');
-  if(go){ const n = Number(go.dataset.go); logDate = n ? addDays(logDate, n) : TODAY; renderLog(); return; }
+  if(go){ const n = Number(go.dataset.go); setLogDate(n ? addDays(logDate, n) : TODAY); return; }
+  const mm = t.closest('[data-mm]');
+  if(mm){ const n = Number(mm.dataset.mm); miniMonth = n ? monthShift(miniMonth, n) : TODAY.slice(0,7); if(!n) calSel = TODAY; renderMiniCal(); return; }
+  const sel = t.closest('[data-sel]');
+  if(sel){ calSel = sel.dataset.sel; renderMiniCal(); return; }
+  if(t.closest('[data-gotolog]')){ setLogDate(calSel); return; }
+  if(t.id === 'evAdd'){ addEvent(); return; }
+  const ed = t.closest('[data-edel]');
+  if(ed){ state.events = state.events.filter(x => x.id !== ed.dataset.edel); save(); renderMiniCal(); return; }
+  if(t.id === 'logMemoSave'){ saveLogMemo(); return; }
+  const om = t.closest('[data-openmemo]');
+  if(om){ memoQ = ''; show('memo'); const c = $(`#view-memo [data-mid="${om.dataset.openmemo}"]`); if(c){ c.scrollIntoView({block:'center'}); c.classList.add('flash'); $('textarea', c)?.focus(); } return; }
   if(t.closest('#dhDate')){
     const inp = $('#logDate');
     try{ inp.showPicker(); }catch(err){ inp.focus(); inp.click(); }
     return;
   }
-  if(t.closest('[data-gcalset]')){ openGcalModal(); return; }
   const del = t.closest('[data-tdel]');
   if(del){ const day = dayW(logDate); day.todos?.splice(Number(del.dataset.tdel), 1); save(); renderTodos(); }
 });
 $('#view-log').addEventListener('change', e => {
   const t = e.target;
-  if(t.id === 'logDate' && t.value){ logDate = t.value; renderLog(); return; }
+  if(t.id === 'logDate' && t.value){ setLogDate(t.value); return; }
+  if(t.dataset.en || t.dataset.et){
+    const ev = state.events.find(x => x.id === (t.dataset.en || t.dataset.et)); if(!ev) return;
+    if(t.dataset.en){ if(t.value.trim()) ev.title = t.value.trim(); else state.events = state.events.filter(x => x !== ev); }
+    else ev.time = t.value;
+    save(); renderMiniCal();
+    return;
+  }
   if(t.dataset.td !== undefined){
     const item = dayW(logDate).todos?.[Number(t.dataset.td)]; if(!item) return;
     item.done = t.checked; t.closest('li').classList.toggle('done', t.checked); save();
@@ -821,6 +923,7 @@ $('#view-log').addEventListener('change', e => {
 });
 $('#view-log').addEventListener('input', e => {
   const t = e.target;
+  if(t.id === 'logMemoIn'){ memoDrafts[logDate] = t.value; $('#memoSavedNote').textContent = ''; return; }
   if(t.dataset.f){ dayW(logDate)[t.dataset.f] = t.value; save(); return; }
   if(t.dataset.tt !== undefined){
     const i = Number(t.dataset.tt), day = dayW(logDate), todos = day.todos ||= [];
@@ -844,7 +947,11 @@ $('#view-log').addEventListener('input', e => {
 });
 $('#view-log').addEventListener('keydown', e => {
   const t = e.target;
-  if(t.dataset.tt === undefined || e.isComposing) return;
+  if(e.isComposing) return;
+  if(t.id === 'evTitle' && e.key === 'Enter'){ e.preventDefault(); addEvent(); return; }
+  if(t.dataset.en && e.key === 'Enter'){ e.preventDefault(); t.blur(); return; }
+  if(t.id === 'logMemoIn' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); saveLogMemo(); return; }
+  if(t.dataset.tt === undefined) return;
   const i = Number(t.dataset.tt);
   if(e.key === 'Enter'){ e.preventDefault(); if(t.value.trim()) $(`#todoList [data-tt="${i+1}"]`)?.focus(); }
   if(e.key === 'Backspace' && !t.value && i > 0 && i < (dayOf(logDate).todos || []).length){
@@ -885,10 +992,11 @@ function renderCal(){
       const att = Object.values(day.att || {}).filter(Boolean);
       const c = {}; att.forEach(a => c[a.type] = (c[a.type] || 0) + 1);
       const ab = TYPES.filter(t => c[t]).map(t => SHORT[t] + c[t]).join(' ');
-      const memo = [(day.todos || []).filter(t => t && t.text).map(t => (t.done ? '✓ ' : '') + t.text).join(', '), day.memo, day.notice].find(Boolean) || '';
-      return `<button class="cell d${dow} ${day.holiday ? 'hol' : ''} ${d === TODAY ? 'today' : ''}" data-day="${d}">
+      const memo = [(day.todos || []).filter(t => t && t.text).map(t => (t.done ? '✓ ' : '') + t.text).join(', '), day.notice].find(Boolean) || '';
+      const labels = dayLabels(d), hol = holidayOf(d);
+      return `<button class="cell d${dow} ${day.holiday || hol ? 'hol' : ''} ${d === TODAY ? 'today' : ''}" data-day="${d}">
         <span class="n">${Number(d.slice(8))}</span>
-        ${day.event ? `<span class="ev">${esc(day.event)}</span>` : day.holiday ? '<span class="ev">휴업일</span>' : ''}
+        ${labels.length ? labels.map(x => `<span class="ev">${esc(x)}</span>`).join('') : day.holiday ? '<span class="ev">휴업일</span>' : ''}
         ${ab ? `<span class="ab">${esc(ab)}</span>` : ''}
         ${memo ? `<span class="memo">${esc(memo)}</span>` : ''}
       </button>`;
@@ -900,7 +1008,7 @@ $('#view-cal').addEventListener('click', e => {
   const m = e.target.closest('[data-m]');
   if(m){ const n = Number(m.dataset.m); calMonth = n ? monthShift(calMonth, n) : TODAY.slice(0,7); renderCal(); return; }
   const c = e.target.closest('[data-day]');
-  if(c){ logDate = c.dataset.day; show('log'); }
+  if(c){ logDate = calSel = c.dataset.day; miniMonth = logDate.slice(0,7); show('log'); }
 });
 
 /* ---------- 출결부 ---------- */
@@ -924,7 +1032,7 @@ function renderAtt(){
     <button class="btn" data-ago="0">오늘</button>
   </div>
   ${list.length ? `<div class="card noprint">
-    ${aday.holiday || aday.event ? `<p class="small" style="margin-bottom:8px;color:var(--danger);font-weight:700">${esc(aday.event || '휴업일')}${aday.holiday && aday.event ? ' · 휴업일' : ''}</p>` : ''}
+    ${aday.holiday || dayLabels(ad).length ? `<p class="small" style="margin-bottom:8px;color:var(--danger);font-weight:700">${esc([...dayLabels(ad), aday.holiday ? '휴업일' : ''].filter(Boolean).join(' · '))}</p>` : ''}
     ${attGrid(ad)}
     <div class="stugrid">${list.map(s => { const a = aatt[s.id]; return `
       <button class="stu ${a ? 'has t-' + a.type : ''}" data-att="${esc(s.id)}">
@@ -946,7 +1054,7 @@ function renderAtt(){
   <div class="card">
   ${list.length ? `<div class="tablewrap"><table class="att">
     <thead><tr><th class="nm" rowspan="2">번호 · 이름</th>
-      ${days.map(d => `<th class="${dayOf(d).holiday ? 'hol' : ''}" title="${esc(dayOf(d).event || '')}">${Number(d.slice(8))}</th>`).join('')}
+      ${days.map(d => `<th class="${dayOf(d).holiday ? 'hol' : ''}" title="${esc(dayLabels(d).join(', '))}">${Number(d.slice(8))}</th>`).join('')}
       <th colspan="4" class="grp">이번 달</th><th colspan="4" class="grp">${sy}학년도 누계</th></tr>
       <tr>${days.map(d => `<th class="${dayOf(d).holiday ? 'hol' : ''}">${WEEK[parseD(d).getDay()]}</th>`).join('')}
       ${TYPES.map((t, i) => `<th class="${i === 0 ? 'grp' : ''}">${SHORT[t]}</th>`).join('')}
@@ -1058,16 +1166,20 @@ function renderRoster(){
   <div class="card">
     ${list.length ? `<div class="tablewrap"><table class="chk-t">
       <thead><tr><th class="no">번호</th><th class="nm">이름</th>
-        ${cols.map(c => `<th class="ck"><div class="colh"><input type="text" data-colt="${esc(c.id)}" value="${esc(c.title)}" placeholder="항목" maxlength="20" aria-label="체크 항목 이름"><button class="btn sm ghost danger noprint" data-delcol="${esc(c.id)}" title="이 항목 지우기" aria-label="항목 지우기">✕</button></div></th>`).join('')}
+        ${cols.map(c => { const k = checkCount(c); return `<th class="ck" data-colnote="${esc(c.id)}" title="두 번 누르면 항목 비고를 적습니다"><div class="colh">
+          <input type="checkbox" data-ckall="${esc(c.id)}" ${list.length && k === list.length ? 'checked' : ''} data-some="${k > 0 && k < list.length ? 1 : ''}" aria-label="${esc(c.title || '항목')} 전체 선택">
+          <input type="text" data-colt="${esc(c.id)}" value="${esc(c.title)}" placeholder="항목" maxlength="20" aria-label="체크 항목 이름">
+          <button class="btn sm ghost danger noprint" data-delcol="${esc(c.id)}" title="이 항목 지우기" aria-label="항목 지우기">✕</button></div>
+          ${c.note ? `<div class="colnote">${esc(c.note)}</div>` : ''}</th>`; }).join('')}
       </tr></thead>
       <tbody>
       ${list.map(s => `<tr data-sid="${esc(s.id)}"><td class="no"><input type="number" data-s="no" value="${esc(s.no)}" min="1" aria-label="번호"></td>
         <td class="nm"><input type="text" data-s="name" value="${esc(s.name)}" maxlength="20" aria-label="이름"></td>
-        ${cols.map(c => `<td class="ck"><input type="checkbox" data-ck="${esc(c.id)}" ${state.checks.marks[c.id]?.[s.id] ? 'checked' : ''} aria-label="${esc(s.name)} ${esc(c.title || '항목')}"></td>`).join('')}</tr>`).join('')}
+        ${cols.map(c => { const note = state.checks.notes[c.id]?.[s.id] || ''; return `<td class="ck ${note ? 'has-note' : ''}" data-cellnote="${esc(c.id)}" title="${esc(note || '두 번 누르면 비고를 적습니다')}"><input type="checkbox" data-ck="${esc(c.id)}" ${state.checks.marks[c.id]?.[s.id] ? 'checked' : ''} aria-label="${esc(s.name)} ${esc(c.title || '항목')}">${note ? `<div class="cnote">${esc(note)}</div>` : ''}</td>`; }).join('')}</tr>`).join('')}
       </tbody>
       ${cols.length ? `<tfoot><tr><td colspan="2" class="nm"><b>체크</b></td>${cols.map(c => `<td class="ck" data-cnt="${esc(c.id)}">${checkCount(c)}/${list.length}</td>`).join('')}</tr></tfoot>` : ''}
     </table></div>
-    <p class="muted small noprint" style="margin-top:8px">첫 줄에 항목(예: 가정통신문 회수, 우유 신청, 과제 제출)을 적고, 학생마다 체크합니다. 항목을 지우면 그 칸의 체크도 지워집니다.</p>`
+    <p class="muted small noprint" style="margin-top:8px">첫 줄에 항목(예: 가정통신문 회수, 우유 신청, 과제 제출)을 적고 학생마다 체크합니다. 항목 이름 옆 체크박스로 전체 선택·해제하고, 칸을 두 번 누르면 비고를 적습니다.</p>`
     : '<p class="muted small">아직 학생이 없습니다. 아래 «학생 추가 · 정보»에서 한 명씩 추가하거나 엑셀 내용을 붙여넣으세요.</p>'}
   </div>
   <details class="card noprint" id="stuInfo" ${list.length ? '' : 'open'}>
@@ -1087,14 +1199,54 @@ function renderRoster(){
     <textarea id="pasteRoster" placeholder="1	김하준	남&#10;2	이서윤	여"></textarea>
     <button class="btn primary" id="applyRoster" style="margin-top:6px">명렬표에 넣기</button>
   </details>`;
+  $$('#view-roster [data-ckall]').forEach(x => { x.indeterminate = !!x.dataset.some; });
 }
+function syncCheckCol(colId){
+  const col = state.checks.cols.find(c => c.id === colId); if(!col) return;
+  const n = students().length, k = checkCount(col);
+  const cell = $(`[data-cnt="${colId}"]`); if(cell) cell.textContent = `${k}/${n}`;
+  const all = $(`[data-ckall="${colId}"]`); if(all){ all.checked = n > 0 && k === n; all.indeterminate = k > 0 && k < n; }
+}
+function openCheckNote(colId, sid){
+  const col = state.checks.cols.find(c => c.id === colId); if(!col) return;
+  const stu = sid ? stuById(sid) : null;
+  const cur = sid ? (state.checks.notes[colId]?.[sid] || '') : (col.note || '');
+  openModal(`
+    <h3>${esc(col.title || '항목')} 비고</h3>
+    <div class="muted small">${stu ? esc(stuLabel(stu)) : '항목 전체에 대한 비고 (예: 마감일, 안내 내용)'}</div>
+    <div class="grp"><textarea id="ckNote" maxlength="500" autofocus>${esc(cur)}</textarea></div>
+    <div class="acts">${cur ? '<button class="btn danger" id="ckNoteDel" style="margin-right:auto">지우기</button>' : ''}<button class="btn ghost" data-close>취소</button><button class="btn primary" id="ckNoteSave">저장</button></div>`,
+  m => {
+    const put = v => {
+      if(sid){ const n = state.checks.notes[colId] ||= {}; if(v) n[sid] = v; else delete n[sid]; }
+      else { if(v) col.note = v; else delete col.note; }
+      save(); closeModal(); renderRoster();
+    };
+    $('[data-close]', m).onclick = closeModal;
+    $('#ckNoteSave', m).onclick = () => put($('#ckNote', m).value.trim());
+    const del = $('#ckNoteDel', m); if(del) del.onclick = () => put('');
+    $('#ckNote', m).onkeydown = e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); put($('#ckNote', m).value.trim()); } };
+  });
+}
+$('#view-roster').addEventListener('dblclick', e => {
+  const cell = e.target.closest('[data-cellnote]');
+  if(cell){ e.preventDefault(); openCheckNote(cell.dataset.cellnote, cell.closest('tr').dataset.sid); return; }
+  const head = e.target.closest('[data-colnote]');
+  if(head && !e.target.closest('[data-delcol]')){ e.preventDefault(); openCheckNote(head.dataset.colnote, ''); }
+});
 $('#view-roster').addEventListener('change', e => {
   const t = e.target;
   if(t.dataset.ck){
     const sid = t.closest('tr').dataset.sid, m = state.checks.marks[t.dataset.ck] ||= {};
     if(t.checked) m[sid] = true; else delete m[sid];
-    const col = state.checks.cols.find(c => c.id === t.dataset.ck);
-    const cell = $(`[data-cnt="${t.dataset.ck}"]`); if(cell && col) cell.textContent = `${checkCount(col)}/${students().length}`;
+    syncCheckCol(t.dataset.ck);
+    save();
+  }
+  if(t.dataset.ckall){
+    const m = state.checks.marks[t.dataset.ckall] = {};
+    if(t.checked) for(const st of students()) m[st.id] = true;
+    $$(`#view-roster [data-ck="${t.dataset.ckall}"]`).forEach(x => { x.checked = t.checked; });
+    syncCheckCol(t.dataset.ckall);
     save();
   }
 });
@@ -1117,6 +1269,7 @@ $('#view-roster').addEventListener('click', e => {
     if(n && !confirm(`«${c.title || '항목'}» 항목과 체크 ${n}개를 지울까요?`)) return;
     state.checks.cols = state.checks.cols.filter(x => x !== c);
     delete state.checks.marks[c.id];
+    delete state.checks.notes[c.id];
     save(); renderRoster();
   }
 });
@@ -1145,6 +1298,7 @@ $('#view-roster').addEventListener('click', e => {
     for(const day of Object.values(state.days)) if(day.att) delete day.att[sid];
     for(const ev of state.evals) if(ev.marks) delete ev.marks[sid];
     for(const m of Object.values(state.checks.marks)) delete m[sid];
+    for(const m of Object.values(state.checks.notes)) delete m[sid];
     save(); renderRoster(); return;
   }
   if(t.id === 'applyRoster'){
@@ -1351,7 +1505,7 @@ function renderMemo(){
   const el = $('#view-memo');
   const q = memoQ.trim();
   const memos = state.memos.filter(m => !q || `${m.title} ${m.text}`.includes(q))
-    .sort((a,b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (b.created || '').localeCompare(a.created || ''));
+    .sort((a,b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || (b.created || '').localeCompare(a.created || '') || state.memos.indexOf(b) - state.memos.indexOf(a));
   $('#printHead').textContent = headline() + ' 메모';
   el.innerHTML = `
   <div class="pagehead"><h2>메모</h2><input type="text" id="memoQ" class="noprint" placeholder="메모 검색" value="${esc(memoQ)}" aria-label="메모 검색"><span class="sp"></span><button class="btn primary noprint" id="newMemo">새 메모</button></div>
@@ -1360,15 +1514,16 @@ function renderMemo(){
       <button class="btn sm ghost noprint ${m.pin ? 'on' : ''}" data-mpin title="위에 고정">${m.pin ? '고정됨' : '고정'}</button>
       <button class="btn sm ghost danger noprint" data-mdel>지우기</button></div>
     <textarea data-mf="text" placeholder="내용" maxlength="20000" aria-label="메모 내용">${esc(m.text)}</textarea>
-    <small class="muted">${esc(m.updated || '')}</small></div>`).join('')}</div>`
+    <small class="muted">${m.date ? `<span class="tag">${esc(shortDate(m.date))} 일지</span>` : ''}${esc(m.updated || '')}</small></div>`).join('')}</div>`
   : `<div class="card"><p class="muted">${q ? '검색 결과가 없습니다.' : '학급 운영 아이디어, 회의 내용, 할 일 등을 자유롭게 적어 두세요.'}</p></div>`}`;
 }
 $('#view-memo').addEventListener('click', e => {
   const t = e.target;
   if(t.id === 'newMemo'){
     const now = stamp();
-    state.memos.push({id:uid(), title:'', text:'', pin:false, created:now, updated:now});
-    memoQ = ''; save(); renderMemo(); $('#view-memo .memo .mt')?.focus(); return;
+    const m = {id:uid(), title:'', text:'', pin:false, created:now, updated:now};
+    state.memos.push(m);
+    memoQ = ''; save(); renderMemo(); $(`#view-memo [data-mid="${m.id}"] .mt`)?.focus(); return;
   }
   const card = t.closest('[data-mid]'); if(!card) return;
   const m = state.memos.find(x => x.id === card.dataset.mid); if(!m) return;
@@ -1402,7 +1557,6 @@ function renderSetup(){
       <label class="f">학년<input type="text" data-i="grade" value="${esc(i.grade)}" maxlength="4" inputmode="numeric"></label>
       <label class="f">반<input type="text" data-i="cls" value="${esc(i.cls)}" maxlength="6"></label>
       <label class="f">담임<input type="text" data-i="teacher" value="${esc(i.teacher)}" maxlength="20"></label>
-      <label class="f" style="grid-column:span 2">Google 캘린더 ID<input type="text" data-i="gcal" value="${esc(i.gcal || '')}" placeholder="비우면 로그인한 계정의 캘린더"></label>
     </div>
   </div>
   <div class="card">
