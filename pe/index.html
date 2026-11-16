@@ -392,8 +392,10 @@ th{font-size:12px;color:var(--muted);font-weight:700;background:var(--line2)}
 #gradeTable tbody tr.grade-dragging{opacity:.42}
 #gradeTable tbody tr.grade-drop-before td{box-shadow:inset 0 3px 0 var(--accent)}
 #gradeTable tbody tr.grade-drop-after td{box-shadow:inset 0 -3px 0 var(--accent)}
-.grade-drag{display:inline-block;cursor:grab;color:var(--muted);font-size:16px;line-height:1;
-  padding:4px 5px;margin:-4px 1px -4px -3px;vertical-align:middle;touch-action:none}
+.grade-drag{display:inline-block;cursor:grab;color:var(--muted);font-size:18px;line-height:1;
+  padding:8px 6px;margin:-8px 1px -8px -3px;vertical-align:middle;touch-action:none;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+body.grade-drag-active,body.grade-drag-active *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
 .grade-drag:active{cursor:grabbing;color:var(--accent)}
 #gradeTable tr.current-grade-lesson td{background:var(--accent-soft)}
 #gradeTable tr.current-grade-lesson .grade-place{background:color-mix(in srgb,var(--place-color) 28%,var(--accent-soft))}
@@ -783,7 +785,8 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
         <button id="gNext" title="다음 날">›</button>
       </div>
       <button class="btn sm" id="gToday">오늘</button>
-      <input type="date" id="gDate">    </div>
+      <input type="date" id="gDate">
+    </div>
 
     <div class="card">
       <h2 id="gHead">그날의 수업 <span class="hint">진도·특이사항은 바로 입력하면 저장됩니다</span></h2>
@@ -851,7 +854,7 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
       <div class="pad row" style="padding-bottom:4px">
         <label class="f" style="margin:0">전체 차시</label>
         <input type="number" id="gradeN" min="1" max="200" style="width:84px">
-        <span class="muted" style="font-size:12px">수업 번호로 계획이 연동됩니다 · 첫 열을 누르면 학급별 날짜와 장소를 확인합니다</span>
+        <span class="muted" style="font-size:12px">수업 번호로 계획이 연동됩니다 · ⠿를 끌어 수업 번호를 바꿉니다 · 첫 열을 누르면 학급별 날짜와 장소를 확인합니다 · 음영은 학급별 다가올 수업</span>
       </div>
       <div class="scroll"><table id="gradeTable"></table></div>
       <div class="pad row" style="padding-top:10px">
@@ -1025,13 +1028,16 @@ th{background:color-mix(in srgb,var(--accent) 5%,var(--line2));color:var(--muted
 
 <script>
 'use strict';
-const APP_VER = '2026-10-27aa'; /* 화면에 표시되는 버전 */
+const APP_VER = '2026-11-16a'; /* 화면에 표시되는 버전 */
 const SHARE_TOKEN = new URLSearchParams(location.search).get('share') || '';
 /* 공유 링크로 열면 이 기기의 일지는 읽지도 쓰지도 않고, 공유 내용이 올 때까지 화면을 가린다. */
 if(SHARE_TOKEN) document.documentElement.classList.add('share-loading','share-mode');
 const LSKEY = 'pe-annual-v1';
 const DOWK = ['일','월','화','수','목','금','토'];
-const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
+const DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:40','11:20'],['11:30','12:10'],
+                   ['13:00','13:40'],['13:50','14:30'],['14:40','15:20']];
+/* 예전 기본 시간. 저장된 값이 이것과 같으면(손대지 않은 기본값) 새 기본 시간으로 바꾼다. */
+const OLD_DEF_TIMES = [['09:00','09:40'],['09:50','10:30'],['10:50','11:30'],['11:40','12:20'],
                    ['13:20','14:00'],['14:10','14:50'],['15:00','15:40']];
 const PALETTE = ['#2563eb','#15803d','#c2680a','#7c3aed','#0891b2','#be123c'];
 const DEF_CLASSES = ['1-1','1-2','2-1','2-2','3-1','3-2','3-3','3-4','5-1','5-2'];
@@ -1115,6 +1121,10 @@ function cloneData(value){ return JSON.parse(JSON.stringify(value)); }
 function normalizeState(input){
   const s=input||{}, d=defState();
   const st=Object.assign(d,s,{times:s.times||d.times});
+  st.times=st.times.map((t,i)=>{
+    const old=OLD_DEF_TIMES[i], now=DEF_TIMES[i];
+    return t && old && now && t.s===old[0] && t.e===old[1] ? {s:now[0], e:now[1]} : t;
+  });
   (st.classes||[]).forEach(c=>{
     if(c.capOn===undefined)c.capOn=false;
     delete c.done;
@@ -2080,6 +2090,31 @@ function gradeLessonPlaces(grade,ordinal){
     });
   });
 }
+/* 교시가 끝나는 시각. 설정에 시간이 없으면 기본 시간을 쓴다. */
+function lessonEndTime(L){
+  const t=state.times[L.period-1], def=DEF_TIMES[L.period-1];
+  const e=(t && /^\d{1,2}:\d{2}$/.test(t.e||'')) ? t.e : (def ? def[1] : '23:59');
+  const [h,m]=e.split(':').map(Number), d=parseD(L.date);
+  d.setHours(h,m,0,0);
+  return d;
+}
+/* 같은 학년 학급마다 아직 끝나지 않은 가장 가까운(다가올) 수업의 번호.
+   수업 중인 교시는 끝날 때까지 다가올 수업으로 본다. */
+function gradeUpcomingOrdinals(grade, now=new Date()){
+  return new Set(classNames()
+    .filter(name=>String(name).split('-')[0].trim()===grade)
+    .map(name=>LESSONS.find(L=>L.cls===name && L.status==='ok' && L.lessonNo && lessonEndTime(L)>now)?.lessonNo)
+    .filter(i=>i!==undefined));
+}
+/* 다시 그리지 않고 음영만 옮긴다 (입력 중인 칸의 커서 유지) */
+function updateGradeCurrent(){
+  if(!curGrade) return;
+  const cur=gradeUpcomingOrdinals(curGrade);
+  $$('#gradeTable tbody tr[data-i]').forEach(tr=>
+    tr.classList.toggle('current-grade-lesson', cur.has(Number(tr.dataset.i)+1)));
+}
+setInterval(()=>{ if(view==='grade' && !document.hidden) updateGradeCurrent(); }, 30*1000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && view==='grade') updateGradeCurrent(); });
 function renderGrade(){
   const list=gradeList();
   if(list.indexOf(curGrade)<0) curGrade = list[0]||'';
@@ -2089,11 +2124,7 @@ function renderGrade(){
 
   $('#gradeTitle').textContent = curGrade+'학년 수업 계획';
   const rows=gradeRows(curGrade), units=gradeUnits(curGrade);
-  /* 같은 학년 학급별로 오늘까지 진행된 최신 차시를 연하게 강조한다. */
-  const currentOrdinals=new Set(classNames()
-    .filter(name=>String(name).split('-')[0].trim()===curGrade)
-    .map(name=>LESSONS.filter(L=>L.cls===name && L.status==='ok' && L.date<=TODAY).at(-1)?.lessonNo)
-    .filter(i=>i!==undefined));
+  const currentOrdinals=gradeUpcomingOrdinals(curGrade);
   let h='<thead><tr><th style="width:90px">수업 번호</th><th style="width:150px">단원</th>'+
         '<th>주요 활동</th><th style="width:26%">비고</th><th style="width:46px"></th></tr></thead><tbody>';
   rows.forEach((r,i)=>{
@@ -2104,7 +2135,7 @@ function renderGrade(){
     const labels=unique.map(p=>'<small><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name)+'</small>').join('');
     h+='<tr data-i="'+i+'"'+(currentOrdinals.has(i+1)?' class="current-grade-lesson"':'')+'>'+
       '<td class="gh grade-place" style="--place-color:'+color+'">'+
-        '<span class="grade-drag" draggable="true" title="끌어서 행 순서 바꾸기">⠿</span>'+
+        '<span class="grade-drag" title="끌어서 수업 번호 바꾸기" aria-hidden="true">⠿</span>'+
         '<button type="button" class="grade-place-button" aria-label="'+esc('수업 '+(i+1)+'번')+' 시간표 장소 확인: '+esc(name)+'">'+
         '<b>'+(i+1)+'</b>'+
         (labels||'<small>미편성</small>')+'</button></td>'+
@@ -2137,49 +2168,78 @@ $('#gradeBar').onclick=e=>{
   curGrade=b.dataset.g; renderGrade();
 };
 
-/* 왼쪽 ⠿ 손잡이를 끌어 차시 행 순서를 바꾼다. */
-let gradeDragIndex=null;
+/* 왼쪽 ⠿ 손잡이를 끌어 차시 행 순서(= 수업 번호)를 바꾼다.
+   포인터 이벤트라 마우스·터치·펜 모두 같은 방식으로 동작한다. */
+let gradeDrag=null;
 function clearGradeDragMarks(){
   $$('#gradeTable tbody tr').forEach(tr=>tr.classList.remove('grade-dragging','grade-drop-before','grade-drop-after'));
 }
-$('#gradeTable').addEventListener('dragstart', e=>{
-  const tr=e.target.closest('tr[data-i]');
-  if(!tr || !e.target.closest('.grade-drag')){ e.preventDefault(); return; }
-  gradeDragIndex=Number(tr.dataset.i);
-  tr.classList.add('grade-dragging');
-  e.dataTransfer.effectAllowed='move';
-  e.dataTransfer.setData('text/plain',String(gradeDragIndex));
-});
-$('#gradeTable').addEventListener('dragover', e=>{
-  const tr=e.target.closest('tr[data-i]');
-  if(!tr || gradeDragIndex===null) return;
-  e.preventDefault();
-  clearGradeDragMarks();
-  const after=e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2;
-  tr.classList.add(after?'grade-drop-after':'grade-drop-before');
-  e.dataTransfer.dropEffect='move';
-});
-$('#gradeTable').addEventListener('dragleave', e=>{
-  if(!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) clearGradeDragMarks();
-});
-$('#gradeTable').addEventListener('drop', e=>{
-  const tr=e.target.closest('tr[data-i]');
-  if(!tr || gradeDragIndex===null) return;
-  e.preventDefault();
-  let insertAt=Number(tr.dataset.i);
-  if(e.clientY > tr.getBoundingClientRect().top + tr.getBoundingClientRect().height/2) insertAt++;
-  const rows=state.grades[curGrade];
-  if(rows && insertAt!==gradeDragIndex && insertAt!==gradeDragIndex+1){
-    const [moved]=rows.splice(gradeDragIndex,1);
-    if(gradeDragIndex<insertAt) insertAt--;
-    rows.splice(insertAt,0,moved);
-    save(); renderGrade();
+function gradeDropTarget(x,y){
+  const rows=$$('#gradeTable tbody tr[data-i]'); if(!rows.length) return null;
+  let tr=document.elementFromPoint(x,y)?.closest('#gradeTable tbody tr[data-i]');
+  if(!tr){                                     /* 표 위·아래로 벗어나면 맨 앞·맨 뒤 */
+    const first=rows[0].getBoundingClientRect(), last=rows.at(-1).getBoundingClientRect();
+    if(y<first.top) tr=rows[0]; else if(y>last.bottom) tr=rows.at(-1); else return null;
   }
-  gradeDragIndex=null; clearGradeDragMarks();
+  const r=tr.getBoundingClientRect(), after=y>r.top+r.height/2;
+  return {tr, after, insertAt:Number(tr.dataset.i)+(after?1:0)};
+}
+function gradeDragMark(){
+  clearGradeDragMarks();
+  const src=$('#gradeTable tbody tr[data-i="'+gradeDrag.from+'"]');
+  if(src) src.classList.add('grade-dragging');
+  const t=gradeDropTarget(gradeDrag.x,gradeDrag.y);
+  gradeDrag.insertAt=t?t.insertAt:null;
+  if(t && t.insertAt!==gradeDrag.from && t.insertAt!==gradeDrag.from+1)
+    t.tr.classList.add(t.after?'grade-drop-after':'grade-drop-before');
+}
+/* 화면 위·아래 끝으로 끌면 자동으로 스크롤한다 */
+function gradeDragAutoScroll(){
+  if(!gradeDrag) return;
+  const y=gradeDrag.y, edge=60, vh=window.innerHeight;
+  const dy = y<edge ? -Math.ceil((edge-y)/4) : y>vh-edge ? Math.ceil((y-(vh-edge))/4) : 0;
+  if(dy){ window.scrollBy(0,dy); gradeDragMark(); }
+  gradeDrag.raf=requestAnimationFrame(gradeDragAutoScroll);
+}
+function endGradeDrag(commit){
+  if(!gradeDrag) return;
+  cancelAnimationFrame(gradeDrag.raf);
+  const {from,insertAt,moved:dragged}=gradeDrag;
+  gradeDrag=null; clearGradeDragMarks();
+  document.body.classList.remove('grade-drag-active');
+  const rows=state.grades && state.grades[curGrade];
+  if(!commit || !dragged || !rows || insertAt==null || insertAt===from || insertAt===from+1) return;
+  const [moved]=rows.splice(from,1);
+  rows.splice(insertAt>from?insertAt-1:insertAt,0,moved);
+  save(); renderGrade();
+}
+$('#gradeTable').addEventListener('pointerdown', e=>{
+  const h=e.target.closest('.grade-drag'); if(!h || e.button>0) return;
+  const tr=h.closest('tr[data-i]'); if(!tr) return;
+  e.preventDefault();
+  try{ h.setPointerCapture(e.pointerId); }catch(err){}
+  gradeDrag={from:Number(tr.dataset.i), id:e.pointerId, x:e.clientX, y:e.clientY,
+    sx:e.clientX, sy:e.clientY, moved:false, insertAt:null, raf:0};
 });
-$('#gradeTable').addEventListener('dragend', ()=>{
-  gradeDragIndex=null; clearGradeDragMarks();
+$('#gradeTable').addEventListener('pointermove', e=>{
+  if(!gradeDrag || e.pointerId!==gradeDrag.id) return;
+  e.preventDefault();
+  gradeDrag.x=e.clientX; gradeDrag.y=e.clientY;
+  if(!gradeDrag.moved){
+    if(Math.abs(e.clientY-gradeDrag.sy)<4 && Math.abs(e.clientX-gradeDrag.sx)<4) return;
+    gradeDrag.moved=true;
+    document.body.classList.add('grade-drag-active');
+    gradeDrag.raf=requestAnimationFrame(gradeDragAutoScroll);
+  }
+  gradeDragMark();
 });
+$('#gradeTable').addEventListener('pointerup', e=>{
+  if(gradeDrag && e.pointerId===gradeDrag.id) endGradeDrag(true);
+});
+$('#gradeTable').addEventListener('pointercancel', e=>{
+  if(gradeDrag && e.pointerId===gradeDrag.id) endGradeDrag(false);
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && gradeDrag) endGradeDrag(false); });
 $('#gradeTable').addEventListener('input', e=>{
   const t=e.target, g=gradeRow(t); if(!g) return;
   const r=g.rows[g.i]; if(!r) return;
